@@ -1,0 +1,63 @@
+id_nodo,codigo,nombre,descripcion,categoria,etiquetas,busqueda,activo
+100,,Puerta 1,,PUERTA,,puerta 1,1
+101,,Puerta 2,,PUERTA,,puerta 2,1
+102,,Puerta 3,,PUERTA,,puerta 3,1
+103,,Puerta 4,,PUERTA,,puerta 4,1
+201,B-01,Bloque B-01,,BLOQUE,,bloque b-01 b-01,1
+202,B-02,Bloque B-02,,BLOQUE,,bloque b-02 b-02,1
+203,B-03,Bloque B-03,,BLOQUE,,bloque b-03 b-03,1
+205,B-05,Bloque B-05,,BLOQUE,,bloque b-05 b-05,1
+206,B-06,Bloque B-06,,BLOQUE,,bloque b-06 b-06,1
+207,B-07,Bloque B-07,,BLOQUE,,bloque b-07 b-07,1
+209,B-09,Bloque B-09,,BLOQUE,,bloque b-09 b-09,1
+210,B-10,Bloque B-10,,BLOQUE,,bloque b-10 b-10,1
+211,B-11,Bloque B-11,,BLOQUE,,bloque b-11 b-11,1
+212,B-12,Bloque B-12,,BLOQUE,,bloque b-12 b-12,1
+213,B-13,Bloque B-13,,BLOQUE,,bloque b-13 b-13,1
+214,B-14,Bloque B-14,,BLOQUE,,bloque b-14 b-14,1
+215,B-15,Bloque B-15,,BLOQUE,,bloque b-15 b-15,1
+216,B-16,Bloque B-16,,BLOQUE,,bloque b-16 b-16,1
+219,B-19,Bloque B-19,,BLOQUE,,bloque b-19 b-19,1
+220,B-20,Bloque B-20,,BLOQUE,,bloque b-20 b-20,1
+221,B-21,Bloque B-21,,BLOQUE,,bloque b-21 b-21,1
+204,B-04,Bloque B-04,,BLOQUE,,bloque b-04 b-04,1
+217,B-17,Bloque B-17,,BLOQUE,,bloque b-17 b-17,1
+218,B-18,Bloque B-18,,BLOQUE,,bloque b-18 b-18,1
+222,B-22,Bloque B-22,,BLOQUE,,bloque b-22 b-22,1
+223,B-23,Bloque B-23,,BLOQUE,,bloque b-23 b-23,1
+224,B-24,Bloque B-24,,BLOQUE,,bloque b-24 b-24,1
+225,B-25,Bloque B-25,,BLOQUE,,bloque b-25 b-25,1
+208,B-08,Bloque B-08,,BLOQUE,,bloque b-08 b-08,1
+300,,Paraninfo,,CULTURA,,paraninfo,1
+301,,"Centro de Innovacion, Emprendimiento y Convenciones del Pacifico (CIECP)",,BLOQUE,,"centro de innovacion, emprendimiento y convenciones del pacifico (ciecp)",1
+230,B-05,Laboratorio gastronomico B-05,,BLOQUE,,laboratorio gastronomico b-05 b-05,1
+304,,Cancha multiple,,DEPORTE,,cancha multiple,1
+305,,Tasty Food 1,,COMIDA,,tasty food 1,1
+306,,Coliseo Edmundo Lourido,,DEPORTE,,coliseo edmundo lourido,1
+307,,Plaza cultural centenario,,CULTURA,,plaza cultural centenario,1
+308,,Departamento bienestar universitario,,ADMINISTRATIVO,,departamento bienestar universitario,1
+309,,Edificio Rectorado y secretaria general y GYM,,ADMINISTRATIVO,,edificio rectorado y secretaria general y gym,1
+310,,Aula Magna de la Universidad Eloy Alfaro,,CULTURA,,aula magna de la universidad eloy alfaro,1
+302,,"Departamento bienestar, admision y nivelacion",,ADMINISTRATIVO,,"departamento bienestar, admision y nivelacion",1
+303,,Instituto de Idiomas,,BLOQUE,,instituto de idiomas,1
+324,,"Direccion de Infraestructura, Obras y Patrimonio (DIOP)",,ADMINISTRATIVO,,"direccion de infraestructura, obras y patrimonio (diop)",1
+315,,Agromarket,,COMIDA,,agromarket,1
+326,,Tasty Food 2,,COMIDA,,tasty food 2,1
+327,,Tasty Food 3,,COMIDA,,tasty food 3,1
+328,,Auditorio de comunicacion,,BLOQUE,,auditorio de comunicacion,1
+319,,Decanato ciencias de la salud,,BLOQUE,,decanato ciencias de la salud,1
+320,,Bodega control de bienes,,BLOQUE,,bodega control de bienes,1
+321,,Tasty Food 4,,COMIDA,,tasty food 4,1
+322,,Cancha,,DEPORTE,,cancha,1
+311,,Estudios y construcciones Uleam -EP,,ADMINISTRATIVO,,estudios y construcciones uleam -ep,1
+312,,El bosque,,CULTURA,,el bosque,1
+313,,Gradas de estadio,,DEPORTE,,gradas de estadio,1
+314,B-13,Bloque B-13 (acceso 2),,BLOQUE,,bloque b-13 (acceso 2) b-13,1
+323,,Empresa publica de produccion y desarrollo estrategico,,ADMINISTRATIVO,,empresa publica de produccion y desarrollo estrategico,1
+325,,Cine,,CULTURA,,cine,1
+317,,Vicerrectorado,,ADMINISTRATIVO,,vicerrectorado,1
+318,,Tasty Food,,COMIDA,,tasty food,1
+500,,Zona segura 1,,ZONA_SEGURA,,zona segura 1,1
+501,,Zona segura 2,,ZONA_SEGURA,,zona segura 2,1
+502,,Zona segura 3,,ZONA_SEGURA,,zona segura 3,1
+313,,Estadio,,DEPORTE,gradas coliseo futbol,estadio gradas coliseo futbol,1
