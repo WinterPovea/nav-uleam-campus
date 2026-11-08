@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ec.edu.uleam.navigator.routing.astar.RealCampusDataTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-24T17:44:27" hostname="IRIS" time="0.055">
+  <properties/>
+  <testcase name="desde cada puerta se llega a todos los lugares()" classname="ec.edu.uleam.navigator.routing.astar.RealCampusDataTest" time="0.008"/>
+  <testcase name="con evitar escaleras nunca se devuelve una ruta con escaleras()" classname="ec.edu.uleam.navigator.routing.astar.RealCampusDataTest" time="0.004"/>
+  <testcase name="el snap sobre un nodo de calle devuelve ese mismo nodo()" classname="ec.edu.uleam.navigator.routing.astar.RealCampusDataTest" time="0.001"/>
+  <testcase name="la heuristica Haversine es admisible en todas las aristas reales()" classname="ec.edu.uleam.navigator.routing.astar.RealCampusDataTest" time="0.001"/>
+  <testcase name="la ruta empieza y termina en los nodos pedidos y cada tramo existe en el grafo()" classname="ec.edu.uleam.navigator.routing.astar.RealCampusDataTest" time="0.001"/>
+  <testcase name="A estrella coincide con Dijkstra en todas las combinaciones puerta-lugar()" classname="ec.edu.uleam.navigator.routing.astar.RealCampusDataTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
