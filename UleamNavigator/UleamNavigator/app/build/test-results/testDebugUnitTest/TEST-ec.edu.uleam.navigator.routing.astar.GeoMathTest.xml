@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ec.edu.uleam.navigator.routing.astar.GeoMathTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-24T17:44:27" hostname="IRIS" time="0.006">
+  <properties/>
+  <testcase name="un grado de latitud mide unos 111 km()" classname="ec.edu.uleam.navigator.routing.astar.GeoMathTest" time="0.001"/>
+  <testcase name="es simetrica()" classname="ec.edu.uleam.navigator.routing.astar.GeoMathTest" time="0.0"/>
+  <testcase name="100 metros al este se miden como 100 metros()" classname="ec.edu.uleam.navigator.routing.astar.GeoMathTest" time="0.001"/>
+  <testcase name="distancia entre el mismo punto es cero()" classname="ec.edu.uleam.navigator.routing.astar.GeoMathTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
