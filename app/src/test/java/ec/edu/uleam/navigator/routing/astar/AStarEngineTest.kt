@@ -191,4 +191,73 @@ class AStarEngineTest {
             }
         }
     }
+
+    // ---------- Safe Zone (Evacuación Rápida) ----------
+    @Test fun `evacuacion rapida encuentra la zona segura mas cercana por distancia caminera`() {
+        val e = engine(
+            listOf(
+                mockNode(1, 0.0, 0.0),                          // Origen
+                mockNode(2, 40.0, 0.0),
+                mockNode(10, 50.0, 0.0, NodeType.ZONA_SEGURA),  // ZS cercana (~50 m)
+                mockNode(3, 0.0, 100.0),
+                mockNode(20, 0.0, 150.0, NodeType.ZONA_SEGURA)  // ZS lejana (~150 m)
+            )
+        ) { g ->
+            listOf(
+                mockEdge(g, 1, 2), mockEdge(g, 2, 10),
+                mockEdge(g, 1, 3), mockEdge(g, 3, 20)
+            )
+        }
+
+        val r = e.findNearestSafeZone(1).success()
+        assertEquals(listOf(1, 2, 10), r.nodeIds)
+        assertEquals(10, r.nodeIds.last())
+        assertEquals(50.0, r.distanceM, 1.0)
+    }
+
+    @Test fun `evacuacion rapida evita escaleras cuando se solicita`() {
+        val e = engine(
+            listOf(
+                mockNode(1, 0.0, 0.0),
+                mockNode(2, 30.0, 0.0),
+                mockNode(10, 40.0, 0.0, NodeType.ZONA_SEGURA),  // Más cerca pero con escaleras
+                mockNode(3, 0.0, 60.0),
+                mockNode(20, 0.0, 80.0, NodeType.ZONA_SEGURA)   // Más lejos pero sin escaleras
+            )
+        ) { g ->
+            listOf(
+                mockEdge(g, 1, 2, stairs = true), mockEdge(g, 2, 10),
+                mockEdge(g, 1, 3), mockEdge(g, 3, 20)
+            )
+        }
+
+        // Sin evitar escaleras: va a la ZS 10
+        val withStairs = e.findNearestSafeZone(1, RouteOptions(avoidStairs = false)).success()
+        assertEquals(10, withStairs.nodeIds.last())
+        assertTrue(withStairs.usesStairs)
+
+        // Evitando escaleras: va a la ZS 20
+        val withoutStairs = e.findNearestSafeZone(1, RouteOptions(avoidStairs = true)).success()
+        assertEquals(20, withoutStairs.nodeIds.last())
+        assertFalse(withoutStairs.usesStairs)
+    }
+
+    @Test fun `evacuacion rapida no atraviesa edificios ajenos`() {
+        val e = engine(
+            listOf(
+                mockNode(1, 0.0, 0.0),
+                mockNode(2, 40.0, 0.0, NodeType.DESTINO),      // Edificio en el camino directo
+                mockNode(10, 80.0, 0.0, NodeType.ZONA_SEGURA),
+                mockNode(3, 40.0, 40.0)                         // Desvío por la calle
+            )
+        ) { g ->
+            listOf(
+                mockEdge(g, 1, 2), mockEdge(g, 2, 10),
+                mockEdge(g, 1, 3), mockEdge(g, 3, 10)
+            )
+        }
+
+        val r = e.findNearestSafeZone(1).success()
+        assertEquals(listOf(1, 3, 10), r.nodeIds)
+    }
 }
