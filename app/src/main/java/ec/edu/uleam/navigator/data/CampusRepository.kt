@@ -1,21 +1,35 @@
 package ec.edu.uleam.navigator.data
 
 import android.content.Context
-import ec.edu.uleam.navigator.routing.RoutingEngine
+import ec.edu.uleam.navigator.routing.astar.AStarEngine
+import ec.edu.uleam.navigator.routing.astar.CampusGraph
 import java.text.Normalizer
 
-/** Carga el grafo completo UNA vez en memoria. */
+/** Carga el grafo completo UNA vez en memoria y gestiona el acceso a datos del campus. */
 class CampusRepository(private val ctx: Context) {
-    lateinit var nodos: List<NodoEntity>; private set
-    lateinit var aristas: List<AristaEntity>; private set
-    lateinit var lugares: List<LugarEntity>; private set
-    lateinit var engine: RoutingEngine; private set
+    var nodos: List<NodoEntity> = emptyList()
+        private set
+    var aristas: List<AristaEntity> = emptyList()
+        private set
+    var lugares: List<LugarEntity> = emptyList()
+        private set
+    var graph: CampusGraph? = null
+        private set
+    var astar: AStarEngine? = null
+        private set
+    var isLoaded: Boolean = false
+        private set
 
     suspend fun load() {
         val dao = AppDatabase.get(ctx).dao()
         CsvSeeder.seedIfEmpty(ctx, dao)
-        nodos = dao.nodos(); aristas = dao.aristas(); lugares = dao.lugares()
-        engine = RoutingEngine(nodos, aristas)
+        nodos = dao.nodos()
+        aristas = dao.aristas()
+        lugares = dao.lugares()
+        val g = buildCampusGraph(nodos, aristas)
+        graph = g
+        astar = AStarEngine(g)
+        isLoaded = true
     }
 
     /** Busca en la columna `busqueda` (minúsculas, sin tildes). */
