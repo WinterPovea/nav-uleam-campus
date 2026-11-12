@@ -48,6 +48,34 @@ class AStarEngine(private val graph: CampusGraph) {
         return findRoute(snap.nodeId, destinationId, options)
     }
 
+    /** Ruta de evacuación rápida hacia la zona segura más cercana por red caminera (Dijkstra multi-objetivo). */
+    fun findNearestSafeZone(originId: Int, options: RouteOptions = RouteOptions()): RouteResult {
+        val origin = graph.node(originId) ?: return RouteResult.Failure(RouteResult.Reason.UNKNOWN_ORIGIN)
+        if (graph.nodes.none { it.type == NodeType.ZONA_SEGURA }) {
+            return RouteResult.Failure(RouteResult.Reason.NO_PATH)
+        }
+
+        searchNearestSafeZone(origin, options.avoidStairs)?.let { return it }
+
+        val reason = if (options.avoidStairs && searchNearestSafeZone(origin, avoidStairs = false) != null)
+            RouteResult.Reason.ONLY_PATH_HAS_STAIRS
+        else
+            RouteResult.Reason.NO_PATH
+        return RouteResult.Failure(reason)
+    }
+
+    /** Evacuación rápida hacia zona segura desde coordenada GPS cruda. */
+    fun findNearestSafeZoneFromLocation(
+        latitude: Double,
+        longitude: Double,
+        options: RouteOptions = RouteOptions(),
+        maxSnapDistanceM: Double = DEFAULT_MAX_SNAP_M
+    ): RouteResult {
+        val snap = snapToNode(latitude, longitude, maxSnapDistanceM)
+            ?: return RouteResult.Failure(RouteResult.Reason.OUTSIDE_CAMPUS)
+        return findNearestSafeZone(snap.nodeId, options)
+    }
+
     /** Nodo de calle (CONEXION o ENTRADA) más cercano. Null si la coordenada es inválida o está muy lejos. */
     fun snapToNode(latitude: Double, longitude: Double, maxDistanceM: Double = DEFAULT_MAX_SNAP_M): SnapResult? {
         if (!latitude.isFinite() || !longitude.isFinite()) return null
@@ -87,6 +115,45 @@ class AStarEngine(private val graph: CampusGraph) {
                     bestG[next.id] = ng
                     cameFrom[next.id] = Step(cur.nodeId, nb.hasStairs)
                     open.add(QueueEntry(next.id, ng, ng + GeoMath.haversine(next, goal)))
+                }
+            }
+        }
+        return null
+    }
+
+    private fun searchNearestSafeZone(origin: GraphNode, avoidStairs: Boolean): RouteResult.Success? {
+        if (origin.type == NodeType.ZONA_SEGURA) {
+            return RouteResult.Success(listOf(origin.id), 0.0, false, 0)
+        }
+
+        val open = PriorityQueue<QueueEntry>(compareBy<QueueEntry> { it.g })
+        val bestG = HashMap<Int, Double>()
+        val cameFrom = HashMap<Int, Step>()
+
+        bestG[origin.id] = 0.0
+        open.add(QueueEntry(origin.id, 0.0, 0.0))
+        var explored = 0
+
+        while (open.isNotEmpty()) {
+            val cur = open.poll()!!
+            if (cur.g > (bestG[cur.nodeId] ?: Double.MAX_VALUE)) continue
+            explored++
+
+            val node = graph.node(cur.nodeId) ?: continue
+            if (node.type == NodeType.ZONA_SEGURA) {
+                return buildResult(origin.id, cur.nodeId, cur.g, cameFrom, explored)
+            }
+
+            for (nb in graph.neighbors(cur.nodeId)) {
+                if (avoidStairs && nb.hasStairs) continue
+                val next = graph.node(nb.toId) ?: continue
+                if (next.type == NodeType.DESTINO) continue
+
+                val ng = cur.g + nb.distanceM
+                if (ng < (bestG[next.id] ?: Double.MAX_VALUE)) {
+                    bestG[next.id] = ng
+                    cameFrom[next.id] = Step(cur.nodeId, nb.hasStairs)
+                    open.add(QueueEntry(next.id, ng, ng))
                 }
             }
         }

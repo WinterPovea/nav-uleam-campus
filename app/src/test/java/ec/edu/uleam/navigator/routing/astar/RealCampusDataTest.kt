@@ -51,4 +51,14 @@ class RealCampusDataTest {
         val s = engine.snapToNode(n.latitude, n.longitude)!!
         assertEquals(0.0, s.distanceM, 0.01)
     }
+
+    @Test fun `desde cada puerta se puede evacuar a una zona segura valida`() {
+        val safeZoneIds = graph.nodes.filter { it.type == NodeType.ZONA_SEGURA }.map { it.id }.toSet()
+        assertTrue(safeZoneIds.isNotEmpty(), "Deben existir zonas seguras en el campus real")
+        for (o in entradas) {
+            val r = engine.findNearestSafeZone(o)
+            val ok = assertInstanceOf(RouteResult.Success::class.java, r, "Fallo al evacuar desde puerta $o")
+            assertTrue(ok.nodeIds.last() in safeZoneIds, "El destino final ${ok.nodeIds.last()} debe ser una zona segura")
+        }
+    }
 }
