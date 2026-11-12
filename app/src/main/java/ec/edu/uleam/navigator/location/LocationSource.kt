@@ -128,6 +128,22 @@ class FusedLocationSource(
         }
 
         try {
+            // Emitir de inmediato la última ubicación conocida del sistema para evitar demoras al cambiar de modo
+            client.lastLocation.addOnSuccessListener { loc ->
+                if (loc != null && filter.lastAccepted == null) {
+                    val acc = if (loc.hasAccuracy()) loc.accuracy else Float.MAX_VALUE
+                    val ts = if (loc.time > 0L) loc.time else System.currentTimeMillis()
+                    when (val decision = filter.process(loc.latitude, loc.longitude, acc, ts)) {
+                        is FilterResult.Accepted -> {
+                            trySend(LocationState.Fix(decision.lat, decision.lon, decision.accuracyM))
+                        }
+                        is FilterResult.LowAccuracy -> {
+                            trySend(LocationState.LowAccuracy(decision.lat, decision.lon, decision.accuracyM))
+                        }
+                        else -> Unit
+                    }
+                }
+            }
             client.requestLocationUpdates(request, callback, Looper.getMainLooper())
         } catch (e: SecurityException) {
             trySend(LocationState.PermissionDenied)

@@ -47,22 +47,24 @@ ec.edu.uleam.navigator/
 │   ├── GraphMappers.kt        # Conversión de entidades Room a CampusGraph
 │   └── CampusRepository.kt    # Repositorio unificado para la UI
 │
-├── location/                  # Abstracción de sensores, filtrado GNSS y hardware
+├── location/                  # Abstracción de sensores, brújula, filtrado GNSS y hardware
+│   ├── CompassSource.kt       # Sensor de orientación (TYPE_ROTATION_VECTOR) con filtro paso bajo
 │   ├── LocationFilter.kt      # Filtro de incertidumbre (>30m) y saltos multipath (>20 m/s)
 │   └── LocationSource.kt      # Interfaz reactiva, FusedLocationSource y FakeLocationSource
 │
 ├── routing/astar/             # Motor algorítmico A* y navegación Turn-by-Turn
 │   ├── GraphModels.kt         # Modelos de grafo: GraphNode, GraphEdge, RoutingResult
-│   ├── GeoMath.kt             # Haversine, cálculo de rumbo (bearing) y giros relativos
+│   ├── GeoMath.kt             # Haversine, cálculo de rumbo (bearing), giros y distancia a segmento
 │   ├── CampusGraph.kt         # Grafo inmutable validado en memoria
-│   ├── AStarEngine.kt         # Algoritmo A*, Snap-to-node y Dijkstra para Zona Segura
+│   ├── AStarEngine.kt         # Algoritmo A*, Snap-to-node, isOffRoute y Dijkstra para Zona Segura
 │   └── NavigationGuidance.kt  # Generador de instrucciones de texto paso a paso
 │
 └── ui/                        # Capa de presentación Jetpack Compose
     ├── CampusViewModel.kt     # Estado global de la pantalla (UiState) y orquestación
     ├── MainActivity.kt        # Actividad principal, permisos y tarjeta flotante colapsable
     └── map/
-        └── CampusMap.kt       # Canvas gráfico con infraestructura institucional y pulsing dot
+        ├── CampusMap.kt       # Canvas gráfico con infraestructura, cono de visión 45° y pulsing dot
+        └── MapProjection.kt   # Proyección WGS84 <-> Pantalla con transformaciones afines de rotación
 ```
 
 ---
@@ -99,28 +101,23 @@ ec.edu.uleam.navigator/
     - `ARRIVE`: "Has llegado a [Destino]".
   - Incorpora compresión de segmentos rectos consecutivos para no saturar al usuario con indicaciones repetitivas.
 
-### 4.3. Sensores, Filtrado GNSS, Ciclo de Vida y Batería (`location/`)
+### 4.3. Sensores, Brújula Peatonal, Filtrado GNSS, Ciclo de Vida y Batería (`location/`)
+- **`CompassSource.kt`:**
+  - `SensorManagerCompassSource`: Implementado con `callbackFlow` sobre `Sensor.TYPE_ROTATION_VECTOR` (y respaldo en `TYPE_ACCELEROMETER` + `TYPE_MAGNETIC_FIELD`).
+  - Aplica un filtro circular paso bajo (`lowPassAzimuth`) interpolando por el arco angular más corto (`shortestAngleDelta`) para evitar saltos bruscos al cruzar el Norte ($359^\circ \leftrightarrow 0^\circ$), con umbral de emisión de $1.0^\circ$.
 - **`LocationFilter.kt`:**
   - Evalúa cada muestra entrante (`GnssSample`) frente a la última posición válida aceptada (`lastAccepted`).
   - Descarta lecturas corruptas (`Invalid`), clasifica lecturas degradadas (`LowAccuracy` $> 30\text{ m}$) sin sobrescribir la posición válida previa, y rechaza saltos cinemáticos irreales (`RejectedJump` $> 20\text{ m/s}$) producidos por rebote de señal entre edificios (*multipath*).
   - Provee `filterTrace(samples)` para limpieza de trazas ruidosas y `reset()` ante pérdida de satélites.
 - **`LocationSource.kt`:**
   - Sealed Interface `LocationState`: Estados explícitos de ubicación (`ProviderDisabled`, `PermissionDenied`, `Searching`, `Fix(lat, lon, accuracyM)`, `LowAccuracy(lat, lon, accuracyM)`).
-  - `FusedLocationSource`: Implementado con `callbackFlow` sobre `FusedLocationProviderClient` integrado con `LocationFilter`.
-  - **Eficiencia Energética:** La suscripción en `CampusViewModel` está configurada con:
-    ```kotlin
-    .stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = LocationState.Searching
-    )
-    ```
-    Si el usuario minimiza la aplicación o apaga la pantalla, el hardware GNSS se desactiva pasados 5 segundos, protegiendo la batería del teléfono.
+  - `FusedLocationSource`: Implementado con `callbackFlow` sobre `FusedLocationProviderClient` integrado con `LocationFilter` y lectura inmediata inicial mediante `client.lastLocation`.
+  - **Reinicio en Caliente y Eficiencia Energética:** En `CampusViewModel`, tanto `locationState` (con `flatMapLatest` para recarga inmediata tras conceder permisos sin reiniciar la app) como `azimuthDeg` utilizan `SharingStarted.WhileSubscribed(5000)`, apagando el GPS y la brújula 5 segundos después de minimizar la aplicación.
   - **Recálculo Inteligente Fuera de Ruta (`CampusViewModel.kt`):** Durante la navegación con GPS real, la ruta se mantiene estable mientras el usuario camine dentro del corredor de 15 m. Si se desvía $>15\text{ m}$ por más de 3 segundos consecutivos (`OFF_ROUTE_CONFIRMATION_MS = 3_000L`), recalcula la ruta asíncronamente en `Dispatchers.Default` sin parpadeo de UI, y valida de inmediato si el usuario se encuentra fuera del campus ($>100\text{ m}$).
   - `FakeLocationSource`: Implementación para emuladores o entornos sin GPS real.
 
-### 4.4. Renderizado Cartográfico en Compose (`ui/map/CampusMap.kt`)
-- **Canvas Paramétrico:** Proyecta las coordenadas geográficas reales del campus (latitud aproximada $-0.953$, longitud $-80.747$) a coordenadas de pantalla $(X, Y)$ con soporte interactivo para zoom (pellizco) y paneo (arrastre).
+### 4.4. Renderizado Cartográfico en Compose (`ui/map/CampusMap.kt` y `MapProjection.kt`)
+- **Canvas Paramétrico y Rotación Afín (`MapProjection.kt`):** Proyecta las coordenadas geográficas reales del campus (latitud aproximada $-0.953$, longitud $-80.747$) a coordenadas de pantalla $(X, Y)$ con soporte interactivo para zoom, paneo compensado y rotación con dos dedos o alineada con la brújula.
 - **Infraestructura Diferenciada por Colores Institucionales:**
   - `BLOQUE`: Azul pizarra (`0xFF2C3E50`)
   - `ADMINISTRATIVO`: Azul profundo (`0xFF1A365D`)
@@ -130,11 +127,11 @@ ec.edu.uleam.navigator/
   - `ZONA_SEGURA`: Verde esmeralda de seguridad (`0xFF2ECC71`)
   - `ENTRADA / PUERTA`: Rojo ladrillo (`0xFFC0392B`)
 - **Etiquetas de Texto Nativas:** Utiliza `android.graphics.Paint` para dibujar nombres de edificios con fondo tipo píldora de alto contraste, garantizando legibilidad en pantalla exterior.
-- **Pulsing Blue Dot:** Marcador del usuario con animación infinita (`rememberInfiniteTransition`) que dibuja un halo pulsante y un círculo de radio de incertidumbre proporcional a la precisión en metros entregada por el sensor GNSS.
-- **Botón FAB de Recentrado:** Botón flotante para recentrar inmediatamente la cámara sobre la posición actual del usuario.
+- **Pulsing Blue Dot y Cono de Visión (FOV 45°):** Marcador del usuario con animación infinita (`rememberInfiniteTransition`), halo de incertidumbre GNSS en metros y **cono de visión azimutal translúcido de 45°** que rota en tiempo real con la orientación física del teléfono.
+- **Botones Flotantes de Brújula/Norte y Recentrado:** Botones FAB para restablecer el Norte / alinear con la vista de la brújula y recentrar la cámara sobre la posición actual del usuario.
 
 ### 4.5. Interfaz de Usuario y Flujo de Permisos (`ui/MainActivity.kt`)
-- **Manejo Resiliente de Permisos:** Utiliza `ActivityResultContracts.RequestMultiplePermissions` solicitando `ACCESS_FINE_LOCATION` y `ACCESS_COARSE_LOCATION`.
+- **Manejo Resiliente de Permisos:** Utiliza `ActivityResultContracts.RequestMultiplePermissions` solicitando `ACCESS_FINE_LOCATION` y `ACCESS_COARSE_LOCATION` con activación inmediata en caliente (`vm.refreshLocationPermissionState()`).
   - Si el usuario deniega el permiso, se despliega un banner informativo con botón de reintento.
   - Si marca "No volver a preguntar", el botón redirige al usuario a la pantalla de configuración del sistema operativo (`Settings.ACTION_APPLICATION_DETAILS_SETTINGS`).
 - **Tarjeta Flotante Colapsable (`CollapsibleNavigationCard`):**
@@ -155,5 +152,6 @@ ec.edu.uleam.navigator/
 5. **UI de Navegación Completa:** Tarjeta colapsable en `MainActivity.kt` con Turn-by-Turn, switch de simulación y diálogo de permisos.
 6. **Resolución de Error de IDE:** Eliminación de metadatos Java no-Gradle residuales (`.idea/modules.xml`, `.idea/UleamNavigator.iml`) y saneamiento del árbol de Git.
 7. **Recálculo Inteligente Fuera de Ruta (`T3.1`):** Implementación de `GeoMath.distanceToSegment()`, `AStarEngine.isOffRoute()` ($>15\text{ m}$), confirmación temporal ($>3\text{ s}$) en `CampusViewModel`, validación inmediata de GPS fuera del campus al conmutar modo Demo y pruebas unitarias en `GeoMathTest` y `AStarEngineTest`.
-8. **Filtro de Saltos GNSS Anómalos (`T4.2`):** Creación de `LocationFilter.kt` (descarte de saltos $>20\text{ m/s}$ y lecturas de baja precisión $>30\text{ m}$), integración en `FusedLocationSource` y suite de pruebas con trazas ruidosas en `LocationFilterTest.kt` (47 pruebas unitarias en verde).
-9. **Pruebas y Verificación:** Ejecución exitosa de pruebas unitarias y generación de APK Debug.
+8. **Filtro de Saltos GNSS Anómalos (`T4.2`):** Creación de `LocationFilter.kt` (descarte de saltos $>20\text{ m/s}$ y lecturas de baja precisión $>30\text{ m}$), integración en `FusedLocationSource` y suite de pruebas con trazas ruidosas en `LocationFilterTest.kt`.
+9. **Brújula Peatonal, Cono de Visión y Rotación de Mapa (`T4.1` + `T5.1`):** Creación de `CompassSource.kt` con filtro circular paso bajo, `MapProjection.kt` con rotación afín, renderizado del cono de visión de 45° y botón de brújula en `CampusMap.kt`, recarga en caliente de permisos GPS y pruebas unitarias en `CompassSourceTest.kt` (51 pruebas unitarias en verde).
+10. **Pruebas y Verificación:** Ejecución exitosa de las 51 pruebas unitarias y generación de APK Debug.

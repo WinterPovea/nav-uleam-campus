@@ -13,15 +13,19 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -31,6 +35,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -39,7 +44,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
@@ -48,40 +52,7 @@ import ec.edu.uleam.navigator.data.AristaEntity
 import ec.edu.uleam.navigator.data.LugarEntity
 import ec.edu.uleam.navigator.data.NodoEntity
 import ec.edu.uleam.navigator.ui.UserPosition
-
-/**
- * Proyección 2D simplificada (WGS84 -> Píxeles de pantalla)
- * Optimizada para el campus de la ULEAM con pan y zoom dinámico.
- */
-private class MapProjection(
-    val minLat: Double,
-    val maxLat: Double,
-    val minLon: Double,
-    val maxLon: Double,
-    val size: IntSize,
-    val zoom: Float,
-    val pan: Offset
-) {
-    private val margin = 32f
-    val base: Float = minOf(
-        (size.width - 2 * margin) / (maxLon - minLon).toFloat(),
-        (size.height - 2 * margin) / (maxLat - minLat).toFloat()
-    )
-    val center = Offset(size.width / 2f, size.height / 2f)
-
-    fun toScreen(lat: Double, lon: Double): Offset {
-        val p = Offset(
-            margin + ((lon - minLon) * base).toFloat(),
-            margin + ((maxLat - lat) * base).toFloat()
-        )
-        return (p - center) * zoom + center + pan
-    }
-
-    fun toGeo(o: Offset): Pair<Double, Double> {
-        val p = (o - pan - center) / zoom + center
-        return (maxLat - (p.y - margin) / base) to (minLon + (p.x - margin) / base)
-    }
-}
+import kotlin.math.abs
 
 /**
  * Componente cartográfico central para el campus universitario ULEAM.
@@ -90,7 +61,8 @@ private class MapProjection(
  * - Red de camineras peatonales y tramos con escaleras.
  * - Etiquetas legibles para bloques y dependencias.
  * - Trazado de ruta óptima A* con halo de contraste.
- * - Marcador de usuario animado (pulsing blue dot) con incertidumbre de señal GNSS.
+ * - Marcador de usuario animado (pulsing blue dot) con cono de visión (FOV 45°) e incertidumbre GNSS.
+ * - Soporte de rotación multitouch o alineación con brújula.
  */
 @Composable
 fun CampusMap(
@@ -104,11 +76,13 @@ fun CampusMap(
     userPosition: UserPosition?,
     isSimulationMode: Boolean,
     onMapTap: (lat: Double, lon: Double) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    azimuthDeg: Float? = null
 ) {
     var size by remember { mutableStateOf(IntSize(1, 1)) }
     var zoom by remember { mutableFloatStateOf(1.2f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
+    var mapRotationDeg by remember { mutableFloatStateOf(0f) }
     val currentOnTap by rememberUpdatedState(onMapTap)
 
     // Animación continua para el marcador de usuario 'pulsing blue dot'
@@ -161,8 +135,8 @@ fun CampusMap(
         }
     }
 
-    fun proj(z: Float = zoom, p: Offset = pan) =
-        MapProjection(bounds[0], bounds[1], bounds[2], bounds[3], size, z, p)
+    fun proj(z: Float = zoom, p: Offset = pan, rot: Float = mapRotationDeg) =
+        MapProjection(bounds[0], bounds[1], bounds[2], bounds[3], size, z, p, rot)
 
     Box(modifier = modifier) {
         Canvas(
@@ -171,9 +145,12 @@ fun CampusMap(
                 .background(Color(0xFFF6F5F0)) // Fondo crema cartográfico suave institucional
                 .onSizeChanged { size = it }
                 .pointerInput(Unit) {
-                    detectTransformGestures { _, panChange, zoomChange, _ ->
+                    detectTransformGestures { _, panChange, zoomChange, rotationChange ->
                         zoom = (zoom * zoomChange).coerceIn(0.9f, 15f)
-                        pan += panChange
+                        if (abs(rotationChange) > 0.05f) {
+                            mapRotationDeg = (mapRotationDeg + rotationChange) % 360f
+                        }
+                        pan += proj().rotatePanDelta(panChange)
                     }
                 }
                 .pointerInput(Unit) {
@@ -375,7 +352,7 @@ fun CampusMap(
                 drawCircle(Color(0xFFC2185B), 8f, o)
             }
 
-            // 6. MARCADOR DE USUARIO EN VIVO (PULSING BLUE DOT CON RADIO DE INCERTIDUMBRE)
+            // 6. MARCADOR DE USUARIO EN VIVO (PULSING BLUE DOT + CONO DE VISIÓN 45° + INCERTIDUMBRE)
             userPosition?.let { u ->
                 val userScreen = p.toScreen(u.lat, u.lon)
 
@@ -393,6 +370,35 @@ fun CampusMap(
                         radius = clampedRadius,
                         center = userScreen,
                         style = Stroke(1.5f)
+                    )
+                }
+
+                // Cono de visión azimutal translúcido de 45° (FOV) orientado según la brújula
+                azimuthDeg?.let { headingDeg ->
+                    // En coordenadas geográficas 0° = Norte (arriba, -90° en Canvas)
+                    val screenHeadingDeg = headingDeg + mapRotationDeg
+                    val canvasCenterAngle = screenHeadingDeg - 90f
+                    val fovDeg = 45f
+                    val startAngle = canvasCenterAngle - (fovDeg / 2f)
+
+                    val outerRadius = 72f
+                    drawArc(
+                        color = Color(0x2E1976D2),
+                        startAngle = startAngle,
+                        sweepAngle = fovDeg,
+                        useCenter = true,
+                        topLeft = userScreen - Offset(outerRadius, outerRadius),
+                        size = Size(outerRadius * 2f, outerRadius * 2f)
+                    )
+
+                    val innerRadius = 46f
+                    drawArc(
+                        color = Color(0x521976D2),
+                        startAngle = startAngle,
+                        sweepAngle = fovDeg,
+                        useCenter = true,
+                        topLeft = userScreen - Offset(innerRadius, innerRadius),
+                        size = Size(innerRadius * 2f, innerRadius * 2f)
                     )
                 }
 
@@ -418,30 +424,57 @@ fun CampusMap(
             }
         }
 
-        // 7. BOTÓN FLOTANTE "CENTRAR EN MI UBICACIÓN / ORIGEN"
-        FloatingActionButton(
-            onClick = {
-                val targetPos = userPosition ?: originNodeId?.let { id ->
-                    nodoById[id]?.let { UserPosition(it.latitud, it.longitud) }
-                }
-                if (targetPos != null) {
-                    val targetZoom = 3.5f
-                    val raw = proj(1f, Offset.Zero).toScreen(targetPos.lat, targetPos.lon)
-                    zoom = targetZoom
-                    pan = -(raw - proj(1f, Offset.Zero).center) * targetZoom
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
+        // 7. BOTONES FLOTANTES DE BRÚJULA / NORTE Y RECENTRADO
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.MyLocation,
-                contentDescription = "Centrar mapa"
-            )
+            if (abs(mapRotationDeg) > 0.5f || azimuthDeg != null) {
+                SmallFloatingActionButton(
+                    onClick = {
+                        // Si el mapa está rotado vuelve al Norte (0°); si está en 0° y hay brújula, orienta el mapa al rumbo del usuario
+                        mapRotationDeg = if (abs(mapRotationDeg) > 1f) {
+                            0f
+                        } else {
+                            azimuthDeg?.let { -it } ?: 0f
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = Color(0xFFA01B2C),
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Explore,
+                        contentDescription = "Orientar Norte / Brújula",
+                        modifier = Modifier.rotate(mapRotationDeg)
+                    )
+                }
+            }
+
+            FloatingActionButton(
+                onClick = {
+                    val targetPos = userPosition ?: originNodeId?.let { id ->
+                        nodoById[id]?.let { UserPosition(it.latitud, it.longitud) }
+                    }
+                    if (targetPos != null) {
+                        val targetZoom = 3.5f
+                        val raw = proj(1f, Offset.Zero, 0f).toScreen(targetPos.lat, targetPos.lon)
+                        zoom = targetZoom
+                        pan = -(raw - proj(1f, Offset.Zero, 0f).center) * targetZoom
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MyLocation,
+                    contentDescription = "Centrar mapa"
+                )
+            }
         }
     }
 }

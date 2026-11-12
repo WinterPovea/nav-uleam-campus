@@ -12,16 +12,20 @@ import ec.edu.uleam.navigator.data.LugarEntity
 import ec.edu.uleam.navigator.data.NodoEntity
 import ec.edu.uleam.navigator.location.FusedLocationSource
 import ec.edu.uleam.navigator.location.LocationState
+import ec.edu.uleam.navigator.location.SensorManagerCompassSource
 import ec.edu.uleam.navigator.routing.astar.AStarEngine
 import ec.edu.uleam.navigator.routing.astar.NavigationGuidance
 import ec.edu.uleam.navigator.routing.astar.NavigationInstruction
 import ec.edu.uleam.navigator.routing.astar.RouteOptions
 import ec.edu.uleam.navigator.routing.astar.RouteResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +54,8 @@ data class UiState(
 class CampusViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = CampusRepository(app)
     private val locationSource = FusedLocationSource(app)
+    private val compassSource = SensorManagerCompassSource(app)
+    private val locationSessionTrigger = MutableStateFlow(0)
 
     var ui by mutableStateOf(UiState())
         private set
@@ -60,15 +66,29 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     private var lastGpsLatLon: Pair<Double, Double>? = null
 
     /**
-     * Suscripción reactiva optimizada para batería:
-     * SharingStarted.WhileSubscribed(5000) detiene el hardware GPS 5s después
-     * de que ningún observador UI esté activo (pantalla apagada o app minimizada).
+     * Suscripción reactiva optimizada para batería y permisos en caliente:
+     * - Se reinicia automáticamente cuando el usuario concede permisos en tiempo de ejecución.
+     * - SharingStarted.WhileSubscribed(5000) detiene el hardware GPS 5s después
+     *   de que ningún observador UI esté activo (pantalla apagada o app minimizada).
      */
-    val locationState: StateFlow<LocationState> = locationSource.updates()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val locationState: StateFlow<LocationState> = locationSessionTrigger
+        .flatMapLatest { locationSource.updates() }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = LocationState.Searching
+        )
+
+    /**
+     * Orientación peatonal (azimut en grados [0, 360) respecto al Norte) suavizada con filtro paso bajo.
+     * Se desactiva automáticamente tras 5s sin suscriptores activos en UI para proteger batería.
+     */
+    val azimuthDeg: StateFlow<Float?> = compassSource.azimuthUpdates()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
         )
 
     val nodos: List<NodoEntity> get() = repo.nodos
@@ -306,8 +326,20 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         offRouteRerouteJob = null
     }
 
+    /**
+     * Reinicia el flujo de ubicación en caliente tras conceder permisos o reactivar el GPS,
+     * sin necesidad de cerrar y volver a abrir la aplicación.
+     */
+    fun refreshLocationPermissionState() {
+        locationSessionTrigger.value++
+    }
+
     fun toggleSimulationMode(active: Boolean) {
         resetOffRouteTracking()
+        if (!active && (locationState.value is LocationState.PermissionDenied || locationState.value is LocationState.ProviderDisabled)) {
+            refreshLocationPermissionState()
+        }
+
         ui = ui.copy(
             isSimulationMode = active,
             origenId = if (active && ui.origenId == null) 100 else ui.origenId,
@@ -338,6 +370,14 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
                     )
                     recalcular()
                 }
+            } else {
+                // Mientras llega la primera muestra (o lastLocation inmediata), limpiar el origen simulado
+                ui = ui.copy(
+                    origenId = null,
+                    origenLabel = "Obteniendo ubicación GPS…",
+                    route = null,
+                    instructions = emptyList()
+                )
             }
         } else {
             recalcular()

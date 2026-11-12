@@ -123,6 +123,9 @@ fun CampusApp(vm: CampusViewModel) {
     val locationState by vm.locationState.collectAsStateWithLifecycle(
         minActiveState = Lifecycle.State.STARTED
     )
+    val azimuthDeg by vm.azimuthDeg.collectAsStateWithLifecycle(
+        minActiveState = Lifecycle.State.STARTED
+    )
 
     // Estados para el manejo resiliente de permisos
     var permissionDenied by remember { mutableStateOf(false) }
@@ -136,6 +139,7 @@ fun CampusApp(vm: CampusViewModel) {
         if (fine || coarse) {
             permissionDenied = false
             permanentlyDenied = false
+            vm.refreshLocationPermissionState()
         } else {
             permissionDenied = true
             val shouldShowRationale = activity?.let {
@@ -160,6 +164,11 @@ fun CampusApp(vm: CampusViewModel) {
 
     // Actualizar ubicación real al ViewModel cuando no está en modo simulación
     LaunchedEffect(locationState, vm.ui.isSimulationMode) {
+        if (locationState is LocationState.PermissionDenied && hasLocationPermission(context)) {
+            permissionDenied = false
+            permanentlyDenied = false
+            vm.refreshLocationPermissionState()
+        }
         if (!vm.ui.isSimulationMode) {
             when (val s = locationState) {
                 is LocationState.Fix -> vm.onGpsLocation(s.lat, s.lon)
@@ -194,7 +203,8 @@ fun CampusApp(vm: CampusViewModel) {
             userPosition = vm.userPosition,
             isSimulationMode = s.isSimulationMode,
             onMapTap = vm::onMapTap,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            azimuthDeg = azimuthDeg
         )
 
         // CAPA 2: CONTROLES SUPERIORES (Búsqueda + Selector de Puertas + Conmutador Demo)

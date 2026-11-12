@@ -16,16 +16,17 @@ Tras evaluar minuciosamente las 15 diapositivas de la presentación oficial fren
 - Tubería GeoJSON estandarizada ---------> Se cargan 3 archivos CSV manuales en assets
 - Decisión de Renderizado (MapLibre/OSM)-> Canvas paramétrico 2D propio (muy ligero, pero sin tiles)
 - Calibración física en terreno ---------> ✅ IMPLEMENTADO (T4.2: LocationFilter descarta saltos >20m/s e incertidumbre >30m)
-- Pruebas End-to-End completas ----------> Existen 47 pruebas unitarias (A*, geometría y GNSS), faltan pruebas de UI Compose
-- Orientación y Brújula peatonal -------> El usuario es un punto azul estático, no rota con el teléfono
+- Pruebas End-to-End completas ----------> Existen 51 pruebas unitarias (A*, geometría, GNSS y brújula), faltan pruebas de UI Compose
+- Orientación y Brújula peatonal -------> ✅ IMPLEMENTADO (T4.1 + T5.1: CompassSource paso bajo + Cono de visión 45° y rotación en Canvas)
 - Recálculo de ruta en marcha (Reroute) -> ✅ IMPLEMENTADO (T3.1: distancia ortogonal >15m por >3s en segundo plano)
 ```
 
 ### Fortalezas Ya Construidas
 - El algoritmo $A^*$ con heurística Haversine y Dijkstra para Zona Segura es matemáticamente riguroso y óptimo.
 - El motor de detección de desvío (`GeoMath.distanceToSegment`, `AStarEngine.isOffRoute`) y recálculo automático (> 15 m por > 3 s) opera en segundo plano sin parpadeos.
-- El filtro cinemático GNSS (`LocationFilter`) estabiliza la señal descartando rebotes *multipath* (> 20 m/s) y lecturas degradadas (> 30 m).
-- El ciclo de vida de la ubicación con `SharingStarted.WhileSubscribed(5000)` previene efectivamente el drenaje de batería.
+- El filtro cinemático GNSS (`LocationFilter`) estabiliza la señal descartando rebotes *multipath* (> 20 m/s) y lecturas degradadas (> 30 m), con reactivación en caliente al conceder permisos.
+- La brújula peatonal (`CompassSource`) con filtro circular paso bajo y el cono de visión de 45° (`CampusMap` + `MapProjection`) orientan al usuario en tiempo real sin vibraciones.
+- El ciclo de vida de la ubicación y brújula con `SharingStarted.WhileSubscribed(5000)` previene efectivamente el drenaje de batería.
 - La interfaz Compose cuenta con tarjeta colapsable, switch de accesibilidad y modo simulación funcional.
 
 ---
@@ -158,13 +159,14 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 
 ### Módulo 4: Sensores, Brújula y Calibración GNSS (G4)
 
-#### Tarea 4.1: Sensor de Orientación (Magnetómetro / Brújula Peatonal)
+#### Tarea 4.1: Sensor de Orientación (Magnetómetro / Brújula Peatonal) — ✅ COMPLETADA
+- **Estado:** Implementada en `CompassSource.kt` con filtro circular paso bajo, integrada en `CampusViewModel.kt` y validada en `CompassSourceTest.kt`.
 - **Asignado a:** Desarrollador 7 (Especialista en Sensores de Hardware)
 - **Rama Git:** `feature/g4-compass-sensor`
-- **Archivos a crear/modificar:**
-  - `location/CompassSource.kt` (Crear interfaz y clase `SensorManagerCompassSource` con `callbackFlow`)
-  - `location/LocationSource.kt` (Integrar rumbo / `bearing` en el estado de ubicación)
-  - `ui/CampusViewModel.kt` (Exponer `azimuth` en grados $[0, 360)$ hacia la UI)
+- **Archivos creados/modificados:**
+  - `location/CompassSource.kt` (`SensorManagerCompassSource` con `callbackFlow` y `lowPassAzimuth`)
+  - `ui/CampusViewModel.kt` (Exposición de `azimuthDeg` en grados $[0, 360)$ con `SharingStarted.WhileSubscribed(5000)`)
+  - `test/.../location/CompassSourceTest.kt` (Pruebas unitarias de normalización y cruce $359^\circ \leftrightarrow 0^\circ$)
 - **Contrato de Entrada/Salida:**  
   Emite el ángulo de orientación del dispositivo en tiempo real aplicando un filtro de suavizado paso bajo (*low-pass filter*) para evitar vibraciones en la aguja.
 - **Commits sugeridos:**
@@ -187,12 +189,13 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 
 ### Módulo 5: Renderizado y Cartografía en Compose (G5)
 
-#### Tarea 5.1: Cono de Visión y Rotación Dinámica de Mapa
+#### Tarea 5.1: Cono de Visión y Rotación Dinámica de Mapa — ✅ COMPLETADA
+- **Estado:** Implementada en `MapProjection.kt` y `CampusMap.kt` con cono de visión de 45° y rotación multitouch / botón de brújula.
 - **Asignado a:** Desarrollador 9 (Especialista en Gráficos y Animaciones Compose)
 - **Rama Git:** `feature/g5-compass-canvas`
-- **Archivos a crear/modificar:**
-  - `ui/map/CampusMap.kt` (Modificar Canvas para dibujar cono de visión y opción de rotar mapa con dos dedos o según brújula)
-  - `ui/map/MapProjection.kt` (Añadir transformaciones afines de rotación sobre el centro de pantalla)
+- **Archivos creados/modificados:**
+  - `ui/map/CampusMap.kt` (Dibujo de cono de visión FOV 45°, rotación multitouch y botón flotante de Norte/Brújula)
+  - `ui/map/MapProjection.kt` (Transformaciones afines de rotación sobre el centro de pantalla e inversa exacta `toGeo`)
 - **Contrato de Entrada/Salida:**  
   Dibuja un cono de luz semitransparente que acompaña al *Pulsing Dot*, girando con el teléfono.
 - **Commits sugeridos:**
@@ -246,9 +249,9 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 | **T2.2** | G2 | Migración Room y Pisos | Dev 4 | `feature/g2-schema-migration-v2` | `Migration(1, 2)` |
 | **T3.1** | G3 | Recálculo Fuera de Ruta ✅ | Dev 5 | `feature/g3-dynamic-rerouting` | `isOffRoute()` y tests (Completado) |
 | **T3.2** | G3 | Ponderación Peatonal | Dev 6 | `feature/g3-routing-penalties` | Opciones de caminata |
-| **T4.1** | G4 | Brújula y Orientación | Dev 7 | `feature/g4-compass-sensor` | `CompassSource.kt` |
+| **T4.1** | G4 | Brújula y Orientación ✅ | Dev 7 | `feature/g4-compass-sensor` | `CompassSource.kt` (Completado) |
 | **T4.2** | G4 | Filtro Suavizado GNSS ✅ | Dev 8 | `feature/g4-gnss-filtering` | `LocationFilter.kt` (Completado) |
-| **T5.1** | G5 | Cono de Visión y Rotación| Dev 9 | `feature/g5-compass-canvas` | Canvas con FOV |
+| **T5.1** | G5 | Cono de Visión y Rotación ✅| Dev 9 | `feature/g5-compass-canvas` | Canvas con FOV (Completado) |
 | **T5.2** | G5 | Renderizado de Áreas | Dev 10 | `feature/g5-infrastructure-polygons`| Paleta y polígonos |
 | **T6.1** | G6 | Voz TTS y Vibración | Dev 11 | `feature/g6-voice-and-haptics` | `VoiceGuidanceManager` |
 | **T6.2** | G6 | Bottom Sheet de Detalles | Dev 12 | `feature/g6-place-details-sheet` | BottomSheet y chips |
