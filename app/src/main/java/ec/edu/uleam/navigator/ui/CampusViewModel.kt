@@ -12,14 +12,19 @@ import ec.edu.uleam.navigator.data.LugarEntity
 import ec.edu.uleam.navigator.data.NodoEntity
 import ec.edu.uleam.navigator.location.FusedLocationSource
 import ec.edu.uleam.navigator.location.LocationState
+import ec.edu.uleam.navigator.routing.astar.AStarEngine
 import ec.edu.uleam.navigator.routing.astar.NavigationGuidance
 import ec.edu.uleam.navigator.routing.astar.NavigationInstruction
 import ec.edu.uleam.navigator.routing.astar.RouteOptions
 import ec.edu.uleam.navigator.routing.astar.RouteResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class UserPosition(
     val lat: Double,
@@ -48,6 +53,11 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     var ui by mutableStateOf(UiState())
         private set
+
+    /** Control temporal de desvío de ruta (> 3 segundos consecutivos a > 15 m). */
+    private var offRouteSinceMs: Long? = null
+    private var offRouteRerouteJob: Job? = null
+    private var lastGpsLatLon: Pair<Double, Double>? = null
 
     /**
      * Suscripción reactiva optimizada para batería:
@@ -96,11 +106,13 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun elegirDestino(l: LugarEntity) {
+        resetOffRouteTracking()
         ui = ui.copy(destino = l, query = "", results = emptyList(), msg = null, infoMsg = null)
         recalcular()
     }
 
     fun elegirPuerta(n: Int) {
+        resetOffRouteTracking()
         val puertaId = 99 + n
         ui = ui.copy(
             origenId = puertaId,
@@ -112,6 +124,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun elegirOrigenManual(nodoId: Int, label: String) {
+        resetOffRouteTracking()
         ui = ui.copy(
             origenId = nodoId,
             origenLabel = label,
@@ -135,6 +148,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         if (snap == null) {
             ui = ui.copy(msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS))
         } else {
+            resetOffRouteTracking()
             val place = repo.lugares.firstOrNull { it.idNodo == snap.nodeId }
             val label = place?.nombre ?: "Nodo ${snap.nodeId} (calle)"
             ui = ui.copy(
@@ -149,35 +163,189 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * Recibe actualizaciones del GPS cuando no se está en modo simulación.
+     * - Si no existe ruta activa, fija el nodo de origen más cercano.
+     * - Si existe una ruta activa, evalúa si el usuario se desvió > 15 m durante > 3 s
+     *   consecutivos antes de disparar un recálculo en segundo plano sin parpadeo.
      */
-    fun onGpsLocation(lat: Double, lon: Double) {
+    fun onGpsLocation(lat: Double, lon: Double, nowMs: Long = System.currentTimeMillis()) {
         if (ui.isSimulationMode || ui.loading) return
         val astar = repo.astar ?: return
-        val snap = astar.snapToNode(lat, lon)
-        if (snap != null) {
-            ui = ui.copy(
-                origenId = snap.nodeId,
-                origenLabel = "Mi ubicación GPS (nodo ${snap.nodeId})",
-                msg = null
-            )
-            recalcular()
+        lastGpsLatLon = lat to lon
+
+        val activeRoute = ui.route
+        val currentDestino = ui.destino
+
+        // Sin ruta activa: acoplar origen al nodo de calle más cercano o alertar si está fuera del campus
+        if (activeRoute == null || currentDestino == null) {
+            resetOffRouteTracking()
+            val snap = astar.snapToNode(lat, lon)
+            if (snap == null) {
+                ui = ui.copy(
+                    origenId = null,
+                    origenLabel = "GPS fuera del campus",
+                    route = null,
+                    instructions = emptyList(),
+                    msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS),
+                    infoMsg = null
+                )
+            } else if (ui.origenId != snap.nodeId) {
+                ui = ui.copy(
+                    origenId = snap.nodeId,
+                    origenLabel = "Mi ubicación GPS (nodo ${snap.nodeId})",
+                    msg = null
+                )
+                if (currentDestino != null) {
+                    recalcular()
+                }
+            }
+            return
+        }
+
+        // Con ruta activa: verificar si el usuario se desvió más de 15 metros de los segmentos
+        val offRoute = astar.isOffRoute(
+            latitude = lat,
+            longitude = lon,
+            routeNodeIds = activeRoute.nodeIds,
+            thresholdMeters = AStarEngine.DEFAULT_OFF_ROUTE_THRESHOLD_M
+        )
+
+        if (!offRoute) {
+            resetOffRouteTracking()
+            return
+        }
+
+        val startMs = offRouteSinceMs
+        if (startMs == null) {
+            offRouteSinceMs = nowMs
+            offRouteRerouteJob?.cancel()
+            offRouteRerouteJob = viewModelScope.launch {
+                delay(OFF_ROUTE_CONFIRMATION_MS)
+                val (latestLat, latestLon) = lastGpsLatLon ?: return@launch
+                val routeNow = ui.route ?: return@launch
+                if (!ui.isSimulationMode && astar.isOffRoute(latestLat, latestLon, routeNow.nodeIds)) {
+                    ejecutarRerouteDesdeUbicacion(latestLat, latestLon)
+                }
+            }
+        } else if (nowMs - startMs >= OFF_ROUTE_CONFIRMATION_MS) {
+            resetOffRouteTracking()
+            viewModelScope.launch {
+                ejecutarRerouteDesdeUbicacion(lat, lon)
+            }
         }
     }
 
+    private sealed interface RerouteOutcome {
+        data class Updated(
+            val originId: Int,
+            val originLabel: String,
+            val route: RouteResult.Success,
+            val instructions: List<NavigationInstruction>
+        ) : RerouteOutcome
+
+        data class Failed(val reason: RouteResult.Reason) : RerouteOutcome
+    }
+
+    private suspend fun ejecutarRerouteDesdeUbicacion(lat: Double, lon: Double) {
+        val destinoActual = ui.destino ?: return
+        val astar = repo.astar ?: return
+        val graph = repo.graph ?: return
+        val avoid = ui.avoidStairs
+
+        val outcome = withContext(Dispatchers.Default) {
+            when (val result = astar.findRouteFromLocation(
+                latitude = lat,
+                longitude = lon,
+                destinationId = destinoActual.idNodo,
+                options = RouteOptions(avoidStairs = avoid)
+            )) {
+                is RouteResult.Success -> {
+                    val newOriginId = result.nodeIds.first()
+                    val newOriginLabel = "Mi ubicación GPS (nodo $newOriginId)"
+                    val instructions = NavigationGuidance.generateInstructions(
+                        nodeIds = result.nodeIds,
+                        nodeById = graph.nodes.associateBy { it.id },
+                        hasStairsEdge = ::edgeHasStairs,
+                        originLabel = newOriginLabel,
+                        destinationLabel = destinoActual.nombre
+                    )
+                    RerouteOutcome.Updated(newOriginId, newOriginLabel, result, instructions)
+                }
+                is RouteResult.Failure -> RerouteOutcome.Failed(result.reason)
+            }
+        }
+
+        when (outcome) {
+            is RerouteOutcome.Updated -> {
+                if (ui.route?.nodeIds != outcome.route.nodeIds) {
+                    ui = ui.copy(
+                        origenId = outcome.originId,
+                        origenLabel = outcome.originLabel,
+                        route = outcome.route,
+                        instructions = outcome.instructions,
+                        msg = null,
+                        infoMsg = "Ruta recalculada automáticamente por desvío"
+                    )
+                }
+            }
+            is RerouteOutcome.Failed -> {
+                ui = ui.copy(
+                    origenId = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) null else ui.origenId,
+                    origenLabel = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) "GPS fuera del campus" else ui.origenLabel,
+                    route = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) null else ui.route,
+                    instructions = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) emptyList() else ui.instructions,
+                    msg = mensajeDe(outcome.reason),
+                    infoMsg = null
+                )
+            }
+        }
+    }
+
+    private fun resetOffRouteTracking() {
+        offRouteSinceMs = null
+        offRouteRerouteJob?.cancel()
+        offRouteRerouteJob = null
+    }
+
     fun toggleSimulationMode(active: Boolean) {
+        resetOffRouteTracking()
         ui = ui.copy(
             isSimulationMode = active,
+            origenId = if (active && ui.origenId == null) 100 else ui.origenId,
+            origenLabel = if (active && ui.origenId == null) "Puerta 1" else ui.origenLabel,
+            msg = null,
             infoMsg = if (active) "Modo Simulación activado: toca el mapa o elige una puerta." else "Modo GPS Real activado."
         )
         if (!active) {
             val currentPos = userPosition
             if (currentPos != null) {
-                onGpsLocation(currentPos.lat, currentPos.lon)
+                // Al cambiar a GPS real, validar de inmediato la posición real frente al campus
+                val astar = repo.astar
+                val snap = astar?.snapToNode(currentPos.lat, currentPos.lon)
+                if (snap == null) {
+                    ui = ui.copy(
+                        origenId = null,
+                        origenLabel = "GPS fuera del campus",
+                        route = null,
+                        instructions = emptyList(),
+                        msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS),
+                        infoMsg = null
+                    )
+                } else {
+                    ui = ui.copy(
+                        origenId = snap.nodeId,
+                        origenLabel = "Mi ubicación GPS (nodo ${snap.nodeId})",
+                        msg = null
+                    )
+                    recalcular()
+                }
             }
+        } else {
+            recalcular()
         }
     }
 
     fun toggleEscaleras(v: Boolean) {
+        resetOffRouteTracking()
         ui = ui.copy(avoidStairs = v)
         recalcular()
     }
@@ -187,6 +355,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
      * utilizando Dijkstra en el grafo unificado sin depender de SQL.
      */
     fun zonaSegura() {
+        resetOffRouteTracking()
         val o = ui.origenId ?: run {
             ui = ui.copy(msg = "Define un origen para evacuar a una zona segura.")
             return
@@ -228,12 +397,20 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun limpiar() {
+        resetOffRouteTracking()
         ui = ui.copy(destino = null, route = null, instructions = emptyList(), msg = null, infoMsg = null)
     }
 
     private fun recalcular() {
-        val o = ui.origenId ?: return
         val d = ui.destino ?: return
+        val o = ui.origenId ?: run {
+            ui = ui.copy(
+                route = null,
+                instructions = emptyList(),
+                msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS)
+            )
+            return
+        }
         val astar = repo.astar ?: return
         val graph = repo.graph ?: return
 
@@ -267,5 +444,9 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         RouteResult.Reason.NO_PATH -> "No se encontró una ruta disponible."
         RouteResult.Reason.ONLY_PATH_HAS_STAIRS -> "La única ruta incluye escaleras. Desactiva 'Evitar escaleras'."
         RouteResult.Reason.UNKNOWN_ORIGIN, RouteResult.Reason.UNKNOWN_DESTINATION -> "Ubicación o destino no válido."
+    }
+
+    companion object {
+        const val OFF_ROUTE_CONFIRMATION_MS = 3_000L
     }
 }

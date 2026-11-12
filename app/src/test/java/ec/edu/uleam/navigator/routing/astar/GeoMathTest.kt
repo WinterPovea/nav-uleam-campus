@@ -20,4 +20,24 @@ class GeoMathTest {
         val a = mockNode(1, 0.0, 0.0); val b = mockNode(2, 100.0, 0.0)
         assertEquals(100.0, GeoMath.haversine(a, b), 0.5)
     }
+
+    @Test fun `distancia ortogonal a un segmento sobre su punto medio coincide con desplazamiento perpendicular`() {
+        val segStart = mockNode(1, 0.0, 0.0)
+        val segEnd = mockNode(2, 100.0, 0.0)
+        val point = mockNode(3, 50.0, 12.0) // 12 metros al norte de la mitad del segmento
+        assertEquals(12.0, GeoMath.distanceToSegment(point.latitude, point.longitude, segStart, segEnd), 0.5)
+    }
+
+    @Test fun `distancia a un segmento fuera de sus extremos se mide al extremo mas cercano`() {
+        val segStart = mockNode(1, 0.0, 0.0)
+        val segEnd = mockNode(2, 100.0, 0.0)
+        val beyondEnd = mockNode(3, 130.0, 40.0) // 30m al este y 40m al norte del extremo final -> hipotenusa 50m
+        assertEquals(50.0, GeoMath.distanceToSegment(beyondEnd.latitude, beyondEnd.longitude, segStart, segEnd), 0.8)
+    }
+
+    @Test fun `distancia a segmento degenerado de longitud cero equivale a haversine al punto`() {
+        val p = mockNode(1, 0.0, 0.0)
+        val q = mockNode(2, 25.0, 0.0)
+        assertEquals(25.0, GeoMath.distanceToSegment(q.latitude, q.longitude, p, p), 0.5)
+    }
 }

@@ -260,4 +260,27 @@ class AStarEngineTest {
         val r = e.findNearestSafeZone(1).success()
         assertEquals(listOf(1, 3, 10), r.nodeIds)
     }
+
+    // ---------- Detección de desvío (isOffRoute) ----------
+    @Test fun `isOffRoute devuelve false cuando el usuario camina dentro del umbral de 15m`() {
+        val e = engine(
+            listOf(mockNode(1, 0.0, 0.0), mockNode(2, 100.0, 0.0), mockNode(3, 100.0, 100.0))
+        ) { g ->
+            listOf(mockEdge(g, 1, 2), mockEdge(g, 2, 3))
+        }
+        val onSecondSegment = mockNode(99, 108.0, 50.0) // A 8m del tramo (2 -> 3)
+        assertFalse(e.isOffRoute(onSecondSegment.latitude, onSecondSegment.longitude, listOf(1, 2, 3)))
+        assertEquals(8.0, e.minDistanceToRoute(onSecondSegment.latitude, onSecondSegment.longitude, listOf(1, 2, 3)), 0.5)
+    }
+
+    @Test fun `isOffRoute devuelve true cuando el usuario supera los 15m de todos los segmentos`() {
+        val e = engine(
+            listOf(mockNode(1, 0.0, 0.0), mockNode(2, 100.0, 0.0), mockNode(3, 100.0, 100.0))
+        ) { g ->
+            listOf(mockEdge(g, 1, 2), mockEdge(g, 2, 3))
+        }
+        val deviated = mockNode(99, 50.0, -22.0) // A 22m al sur del tramo (1 -> 2)
+        assertTrue(e.isOffRoute(deviated.latitude, deviated.longitude, listOf(1, 2, 3)))
+        assertEquals(22.0, e.minDistanceToRoute(deviated.latitude, deviated.longitude, listOf(1, 2, 3)), 0.5)
+    }
 }

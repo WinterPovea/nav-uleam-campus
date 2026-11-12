@@ -40,4 +40,49 @@ object GeoMath {
         if (diff < -180.0) diff += 360.0
         return diff
     }
+
+    /**
+     * Distancia mínima ortogonal en metros desde un punto (pointLat, pointLon)
+     * hacia el segmento definido por (segStartLat, segStartLon) -> (segEndLat, segEndLon).
+     * Proyecta en plano tangente local equirectangular y mide la distancia geodésica al punto proyectado.
+     */
+    fun distanceToSegment(
+        pointLat: Double,
+        pointLon: Double,
+        segStartLat: Double,
+        segStartLon: Double,
+        segEndLat: Double,
+        segEndLon: Double
+    ): Double {
+        val cosLat = cos(Math.toRadians((segStartLat + segEndLat) * 0.5))
+        val dx = (segEndLon - segStartLon) * cosLat
+        val dy = segEndLat - segStartLat
+        val lenSq = dx * dx + dy * dy
+
+        if (lenSq <= 1e-18) {
+            return haversine(pointLat, pointLon, segStartLat, segStartLon)
+        }
+
+        val px = (pointLon - segStartLon) * cosLat
+        val py = pointLat - segStartLat
+        val t = ((px * dx + py * dy) / lenSq).coerceIn(0.0, 1.0)
+
+        val closestLat = segStartLat + t * (segEndLat - segStartLat)
+        val closestLon = segStartLon + t * (segEndLon - segStartLon)
+        return haversine(pointLat, pointLon, closestLat, closestLon)
+    }
+
+    fun distanceToSegment(
+        pointLat: Double,
+        pointLon: Double,
+        segStart: GraphNode,
+        segEnd: GraphNode
+    ): Double = distanceToSegment(
+        pointLat = pointLat,
+        pointLon = pointLon,
+        segStartLat = segStart.latitude,
+        segStartLon = segStart.longitude,
+        segEndLat = segEnd.latitude,
+        segEndLon = segEnd.longitude
+    )
 }

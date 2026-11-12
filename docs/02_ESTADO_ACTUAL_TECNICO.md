@@ -77,15 +77,17 @@ ec.edu.uleam.navigator/
 - **`CampusDao.kt`:** Realiza consultas directas a SQLite. La búsqueda de lugares normaliza el texto eliminando diacríticos/tildes para coincidencias rápidas como "bloque b-01" o "fcvt".
 - **`GraphMappers.kt`:** Es el único puente desacoplador entre las tablas de Room y el motor algorítmico, convirtiendo `NodoEntity` y `AristaEntity` en las clases de datos puras `GraphNode` y `GraphEdge`.
 
-### 4.2. Motor Algorítmico y Turn-by-Turn (`routing/astar/`)
+### 4.2. Motor Algorítmico, Turn-by-Turn y Recálculo Dinámico (`routing/astar/`)
 - **`AStarEngine.kt`:**
   - `findRoute(startNodeId, goalNodeId, avoidStairs)`: Ejecuta $A^*$ clásico utilizando una `PriorityQueue` ordenada por $f(n) = g(n) + h(n)$.
-  - `findRouteFromLocation(location, goalNodeId, avoidStairs)`: Encuentra el nodo transitable de tipo `CALLE` más cercano dentro de un umbral de 100 metros (*snap-to-node*). Si el usuario está fuera de rango, retorna `RoutingResult.Failure(OUTSIDE_CAMPUS)`.
+  - `findRouteFromLocation(location, goalNodeId, avoidStairs)`: Encuentra el nodo transitable de tipo `CALLE` más cercano dentro de un umbral de 100 metros (*snap-to-node*). Si el usuario está fuera de rango, retorna `RouteResult.Failure(OUTSIDE_CAMPUS)`.
   - `findNearestSafeZone(startNodeId, avoidStairs)`: Algoritmo de Dijkstra multidestino que calcula la distancia más corta hacia cualquier nodo clasificado como `ZONA_SEGURA`. Ignora nodos intermedios de tipo `DESTINO` para evitar atravesar interiores de edificios durante una evacuación.
+  - `minDistanceToRoute(latitude, longitude, routeNodeIds)` e `isOffRoute(latitude, longitude, routeNodeIds, thresholdMeters = 15.0)`: Evalúan la desviación ortogonal mínima respecto a todos los segmentos de la polilínea activa para detectar desvíos reales.
 - **`GeoMath.kt`:**
   - `haversine(lat1, lon1, lat2, lon2)`: Distancia en metros considerando el radio terrestre medio ($6,371,000 \text{ m}$).
   - `bearing(from, to)`: Rumbo azimutal en grados $[0^\circ, 360^\circ)$ entre dos puntos cartográficos.
   - `turnAngle(bearing1, bearing2)`: Diferencia angular relativa $[-180^\circ, 180^\circ]$ para inferir si el usuario debe continuar recto, girar a la derecha o girar a la izquierda.
+  - `distanceToSegment(pointLat, pointLon, segStartLat, segStartLon, segEndLat, segEndLon)`: Distancia mínima ortogonal en metros proyectada sobre el plano tangente equirectangular local hacia un tramo de caminería.
 - **`NavigationGuidance.kt`:**
   - Convierte la lista ordenada de nodos de una ruta en pasos legibles (`NavigationStep`):
     - `DEPART`: "Inicia tu recorrido en [Origen]".
@@ -98,17 +100,18 @@ ec.edu.uleam.navigator/
 
 ### 4.3. Sensores, Ciclo de Vida y Batería (`location/`)
 - **`LocationSource.kt`:**
-  - Sealed Interface `LocationState`: Estados explícitos de ubicación (`Disabled`, `PermissionDenied`, `Locating`, `Available(lat, lon, accuracy)`).
+  - Sealed Interface `LocationState`: Estados explícitos de ubicación (`ProviderDisabled`, `PermissionDenied`, `Searching`, `Fix(lat, lon, accuracyM)`, `LowAccuracy(lat, lon, accuracyM)`).
   - `FusedLocationSource`: Implementado con `callbackFlow` sobre `FusedLocationProviderClient`.
   - **Eficiencia Energética:** La suscripción en `CampusViewModel` está configurada con:
     ```kotlin
     .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = LocationState.Locating
+        initialValue = LocationState.Searching
     )
     ```
     Si el usuario minimiza la aplicación o apaga la pantalla, el hardware GNSS se desactiva pasados 5 segundos, protegiendo la batería del teléfono.
+  - **Recálculo Inteligente Fuera de Ruta (`CampusViewModel.kt`):** Durante la navegación con GPS real, la ruta se mantiene estable mientras el usuario camine dentro del corredor de 15 m. Si se desvía $>15\text{ m}$ por más de 3 segundos consecutivos (`OFF_ROUTE_CONFIRMATION_MS = 3_000L`), recalcula la ruta asíncronamente en `Dispatchers.Default` sin parpadeo de UI, y valida de inmediato si el usuario se encuentra fuera del campus ($>100\text{ m}$).
   - `FakeLocationSource`: Implementación para emuladores o entornos sin GPS real.
 
 ### 4.4. Renderizado Cartográfico en Compose (`ui/map/CampusMap.kt`)
@@ -146,4 +149,5 @@ ec.edu.uleam.navigator/
 4. **Enriquecimiento Visual:** Implementación del Canvas cartográfico en `CampusMap.kt` con etiquetas nativas legibles y *Pulsing Dot*.
 5. **UI de Navegación Completa:** Tarjeta colapsable en `MainActivity.kt` con Turn-by-Turn, switch de simulación y diálogo de permisos.
 6. **Resolución de Error de IDE:** Eliminación de metadatos Java no-Gradle residuales (`.idea/modules.xml`, `.idea/UleamNavigator.iml`) y saneamiento del árbol de Git.
-7. **Pruebas y Verificación:** Ejecución exitosa de pruebas unitarias y generación de APK Debug.
+7. **Recálculo Inteligente Fuera de Ruta (`T3.1`):** Implementación de `GeoMath.distanceToSegment()`, `AStarEngine.isOffRoute()` ($>15\text{ m}$), confirmación temporal ($>3\text{ s}$) en `CampusViewModel`, validación inmediata de GPS fuera del campus al conmutar modo Demo y nuevas pruebas unitarias en `GeoMathTest` y `AStarEngineTest`.
+8. **Pruebas y Verificación:** Ejecución exitosa de pruebas unitarias y generación de APK Debug.

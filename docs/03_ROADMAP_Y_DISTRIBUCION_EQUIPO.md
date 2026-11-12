@@ -16,13 +16,14 @@ Tras evaluar minuciosamente las 15 diapositivas de la presentación oficial fren
 - Tubería GeoJSON estandarizada ---------> Se cargan 3 archivos CSV manuales en assets
 - Decisión de Renderizado (MapLibre/OSM)-> Canvas paramétrico 2D propio (muy ligero, pero sin tiles)
 - Calibración física en terreno ---------> Coordenadas estáticas, falta prueba de deriva GNSS en campo
-- Pruebas End-to-End completas ----------> Existen 29 pruebas unitarias de A*, pero faltan pruebas de UI Compose
+- Pruebas End-to-End completas ----------> Existen 34 pruebas unitarias de A* y geometría, faltan pruebas de UI Compose
 - Orientación y Brújula peatonal -------> El usuario es un punto azul estático, no rota con el teléfono
-- Recálculo de ruta en marcha (Reroute) -> Si el usuario se desvía, la ruta no se recalcula automáticamente
+- Recálculo de ruta en marcha (Reroute) -> ✅ IMPLEMENTADO (T3.1: distancia ortogonal >15m por >3s en segundo plano)
 ```
 
 ### Fortalezas Ya Construidas
 - El algoritmo $A^*$ con heurística Haversine y Dijkstra para Zona Segura es matemáticamente riguroso y óptimo.
+- El motor de detección de desvío (`GeoMath.distanceToSegment`, `AStarEngine.isOffRoute`) y recálculo automático (> 15 m por > 3 s) opera en segundo plano sin parpadeos.
 - El ciclo de vida de la ubicación con `SharingStarted.WhileSubscribed(5000)` previene efectivamente el drenaje de batería.
 - La interfaz Compose cuenta con tarjeta colapsable, switch de accesibilidad y modo simulación funcional.
 
@@ -127,13 +128,14 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 
 ### Módulo 3: Motor Algorítmico y Navegación Dinámica (G3)
 
-#### Tarea 3.1: Detección de Desvío y Recálculo Automático de Ruta (Rerouting)
+#### Tarea 3.1: Detección de Desvío y Recálculo Automático de Ruta (Rerouting) — ✅ COMPLETADA
+- **Estado:** Implementada y verificada en dispositivo físico y pruebas unitarias.
 - **Asignado a:** Desarrollador 5 (Especialista en Algoritmos de Grafos)
 - **Rama Git:** `feature/g3-dynamic-rerouting`
-- **Archivos a crear/modificar:**
-  - `routing/astar/GeoMath.kt` (Agregar función `distanceToSegment(point, segStart, segEnd)`)
-  - `routing/astar/AStarEngine.kt` (Agregar lógica `isOffRoute(currentLoc, routeNodeIds, thresholdMeters = 15.0)`)
-  - `ui/CampusViewModel.kt` (Escuchar cambio de coordenadas y disparar recálculo si está fuera de ruta)
+- **Archivos modificados:**
+  - `routing/astar/GeoMath.kt` (`distanceToSegment(point, segStart, segEnd)`)
+  - `routing/astar/AStarEngine.kt` (`minDistanceToRoute()` e `isOffRoute(currentLoc, routeNodeIds, thresholdMeters = 15.0)`)
+  - `ui/CampusViewModel.kt` (Ventana de confirmación `OFF_ROUTE_CONFIRMATION_MS = 3_000L`, recálculo asíncrono en `Dispatchers.Default` y validación inmediata de ubicación fuera del campus)
 - **Contrato de Entrada/Salida:**  
   Evalúa si la coordenada GPS actual se alejó de la trayectoria activa. Emite evento de recálculo sin parpadeo de pantalla.
 - **Commits sugeridos:**
@@ -239,7 +241,7 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 | **T1.2** | G1 | Polígonos de Edificios | Dev 2 | `feature/g1-campus-polygons` | `edificios_poligonos.json` |
 | **T2.1** | G2 | Favoritos e Historial | Dev 3 | `feature/g2-favorites-history` | Entidades y DAOs favoritos |
 | **T2.2** | G2 | Migración Room y Pisos | Dev 4 | `feature/g2-schema-migration-v2` | `Migration(1, 2)` |
-| **T3.1** | G3 | Recálculo Fuera de Ruta | Dev 5 | `feature/g3-dynamic-rerouting` | `isOffRoute()` y tests |
+| **T3.1** | G3 | Recálculo Fuera de Ruta ✅ | Dev 5 | `feature/g3-dynamic-rerouting` | `isOffRoute()` y tests (Completado) |
 | **T3.2** | G3 | Ponderación Peatonal | Dev 6 | `feature/g3-routing-penalties` | Opciones de caminata |
 | **T4.1** | G4 | Brújula y Orientación | Dev 7 | `feature/g4-compass-sensor` | `CompassSource.kt` |
 | **T4.2** | G4 | Filtro Suavizado GNSS | Dev 8 | `feature/g4-gnss-filtering` | `LocationFilter.kt` |

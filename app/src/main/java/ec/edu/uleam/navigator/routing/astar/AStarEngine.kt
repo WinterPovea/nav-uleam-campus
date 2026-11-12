@@ -88,6 +88,46 @@ class AStarEngine(private val graph: CampusGraph) {
         return best?.takeIf { it.distanceM <= maxDistanceM }
     }
 
+    /**
+     * Calcula la distancia mínima ortogonal en metros desde la posición actual
+     * hacia cualquiera de los tramos de la polilínea activa [routeNodeIds].
+     */
+    fun minDistanceToRoute(
+        latitude: Double,
+        longitude: Double,
+        routeNodeIds: List<Int>
+    ): Double {
+        if (!latitude.isFinite() || !longitude.isFinite() || routeNodeIds.isEmpty()) {
+            return Double.POSITIVE_INFINITY
+        }
+        if (routeNodeIds.size == 1) {
+            val single = graph.node(routeNodeIds[0]) ?: return Double.POSITIVE_INFINITY
+            return GeoMath.haversine(latitude, longitude, single.latitude, single.longitude)
+        }
+
+        var minDist = Double.POSITIVE_INFINITY
+        for (i in 0 until routeNodeIds.size - 1) {
+            val u = graph.node(routeNodeIds[i]) ?: continue
+            val v = graph.node(routeNodeIds[i + 1]) ?: continue
+            val d = GeoMath.distanceToSegment(latitude, longitude, u, v)
+            if (d < minDist) minDist = d
+        }
+        return minDist
+    }
+
+    /**
+     * Evalúa si la coordenada actual se desvió más de [thresholdMeters] respecto a la ruta activa.
+     */
+    fun isOffRoute(
+        latitude: Double,
+        longitude: Double,
+        routeNodeIds: List<Int>,
+        thresholdMeters: Double = DEFAULT_OFF_ROUTE_THRESHOLD_M
+    ): Boolean {
+        if (routeNodeIds.isEmpty()) return false
+        return minDistanceToRoute(latitude, longitude, routeNodeIds) > thresholdMeters
+    }
+
     private fun search(origin: GraphNode, goal: GraphNode, avoidStairs: Boolean): RouteResult.Success? {
         val open = PriorityQueue<QueueEntry>(compareBy<QueueEntry> { it.f }.thenByDescending { it.g })
         val bestG = HashMap<Int, Double>()
@@ -180,5 +220,6 @@ class AStarEngine(private val graph: CampusGraph) {
 
     companion object {
         const val DEFAULT_MAX_SNAP_M = 100.0
+        const val DEFAULT_OFF_ROUTE_THRESHOLD_M = 15.0
     }
 }
