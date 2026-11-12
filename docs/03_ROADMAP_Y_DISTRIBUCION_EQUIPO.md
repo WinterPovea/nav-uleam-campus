@@ -15,8 +15,8 @@ Tras evaluar minuciosamente las 15 diapositivas de la presentación oficial fren
 [Presentación Teórica]                     [Estado Actual en Código]
 - Tubería GeoJSON estandarizada ---------> Se cargan 3 archivos CSV manuales en assets
 - Decisión de Renderizado (MapLibre/OSM)-> Canvas paramétrico 2D propio (muy ligero, pero sin tiles)
-- Calibración física en terreno ---------> Coordenadas estáticas, falta prueba de deriva GNSS en campo
-- Pruebas End-to-End completas ----------> Existen 34 pruebas unitarias de A* y geometría, faltan pruebas de UI Compose
+- Calibración física en terreno ---------> ✅ IMPLEMENTADO (T4.2: LocationFilter descarta saltos >20m/s e incertidumbre >30m)
+- Pruebas End-to-End completas ----------> Existen 47 pruebas unitarias (A*, geometría y GNSS), faltan pruebas de UI Compose
 - Orientación y Brújula peatonal -------> El usuario es un punto azul estático, no rota con el teléfono
 - Recálculo de ruta en marcha (Reroute) -> ✅ IMPLEMENTADO (T3.1: distancia ortogonal >15m por >3s en segundo plano)
 ```
@@ -24,6 +24,7 @@ Tras evaluar minuciosamente las 15 diapositivas de la presentación oficial fren
 ### Fortalezas Ya Construidas
 - El algoritmo $A^*$ con heurística Haversine y Dijkstra para Zona Segura es matemáticamente riguroso y óptimo.
 - El motor de detección de desvío (`GeoMath.distanceToSegment`, `AStarEngine.isOffRoute`) y recálculo automático (> 15 m por > 3 s) opera en segundo plano sin parpadeos.
+- El filtro cinemático GNSS (`LocationFilter`) estabiliza la señal descartando rebotes *multipath* (> 20 m/s) y lecturas degradadas (> 30 m).
 - El ciclo de vida de la ubicación con `SharingStarted.WhileSubscribed(5000)` previene efectivamente el drenaje de batería.
 - La interfaz Compose cuenta con tarjeta colapsable, switch de accesibilidad y modo simulación funcional.
 
@@ -170,12 +171,14 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
   - `feat(sensors): implementar CompassSource reactivo utilizando SensorManager`
   - `feat(sensors): aplicar filtro paso bajo para estabilizar azimuth de brujula`
 
-#### Tarea 4.2: Filtro de Suavizado GPS y Calibración en Campo
+#### Tarea 4.2: Filtro de Suavizado GPS y Calibración en Campo — ✅ COMPLETADA
+- **Estado:** Implementada e integrada en `FusedLocationSource` con 5 pruebas unitarias en `LocationFilterTest.kt`.
 - **Asignado a:** Desarrollador 8 (Ingeniero de Calidad y Hardware)
 - **Rama Git:** `feature/g4-gnss-filtering`
-- **Archivos a crear/modificar:**
-  - `location/LocationFilter.kt` (Crear filtro de precisión mínima y descarte de saltos anómalos $>20 \text{ m/s}$)
-  - `location/LocationSource.kt` (Aplicar filtro antes de emitir a Compose)
+- **Archivos creados/modificados:**
+  - `location/LocationFilter.kt` (Filtro de precisión mínima $\le 30\text{ m}$ y descarte de saltos anómalos $>20 \text{ m/s}$)
+  - `location/LocationSource.kt` (Aplicación del filtro antes de emitir estados a Compose y reinicio al perder satélites)
+  - `test/.../location/LocationFilterTest.kt` (Pruebas unitarias con trazas GNSS ruidosas)
 - **Commits sugeridos:**
   - `feat(location): implementar filtro para descarte de saltos GPS anomalos`
   - `test(location): pruebas unitarias con trazas GNSS ruidosas`
@@ -244,7 +247,7 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 | **T3.1** | G3 | Recálculo Fuera de Ruta ✅ | Dev 5 | `feature/g3-dynamic-rerouting` | `isOffRoute()` y tests (Completado) |
 | **T3.2** | G3 | Ponderación Peatonal | Dev 6 | `feature/g3-routing-penalties` | Opciones de caminata |
 | **T4.1** | G4 | Brújula y Orientación | Dev 7 | `feature/g4-compass-sensor` | `CompassSource.kt` |
-| **T4.2** | G4 | Filtro Suavizado GNSS | Dev 8 | `feature/g4-gnss-filtering` | `LocationFilter.kt` |
+| **T4.2** | G4 | Filtro Suavizado GNSS ✅ | Dev 8 | `feature/g4-gnss-filtering` | `LocationFilter.kt` (Completado) |
 | **T5.1** | G5 | Cono de Visión y Rotación| Dev 9 | `feature/g5-compass-canvas` | Canvas con FOV |
 | **T5.2** | G5 | Renderizado de Áreas | Dev 10 | `feature/g5-infrastructure-polygons`| Paleta y polígonos |
 | **T6.1** | G6 | Voz TTS y Vibración | Dev 11 | `feature/g6-voice-and-haptics` | `VoiceGuidanceManager` |

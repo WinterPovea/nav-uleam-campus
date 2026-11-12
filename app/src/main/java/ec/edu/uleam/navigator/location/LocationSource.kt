@@ -53,7 +53,8 @@ interface LocationSource {
  */
 class FusedLocationSource(
     context: Context,
-    private val maxAccuracyM: Float = 30f,
+    private val maxAccuracyM: Float = LocationFilter.DEFAULT_MAX_ACCURACY_M,
+    private val maxSpeedMps: Double = LocationFilter.DEFAULT_MAX_SPEED_MPS,
     private val intervalMs: Long = 2000L
 ) : LocationSource {
 
@@ -85,6 +86,10 @@ class FusedLocationSource(
 
         trySend(LocationState.Searching)
 
+        val filter = LocationFilter(
+            maxAccuracyM = maxAccuracyM,
+            maxSpeedMps = maxSpeedMps
+        )
         val client = LocationServices.getFusedLocationProviderClient(appContext)
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
             .setMinUpdateIntervalMillis(1000L)
@@ -93,21 +98,30 @@ class FusedLocationSource(
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 val loc = result.lastLocation ?: return
-                val good = loc.hasAccuracy() && loc.accuracy <= maxAccuracyM
-                val state = if (good) {
-                    LocationState.Fix(loc.latitude, loc.longitude, loc.accuracy)
-                } else {
-                    LocationState.LowAccuracy(
-                        loc.latitude,
-                        loc.longitude,
-                        if (loc.hasAccuracy()) loc.accuracy else Float.MAX_VALUE
-                    )
+                val accuracy = if (loc.hasAccuracy()) loc.accuracy else Float.MAX_VALUE
+                val timestampMs = if (loc.time > 0L) loc.time else System.currentTimeMillis()
+
+                when (val decision = filter.process(loc.latitude, loc.longitude, accuracy, timestampMs)) {
+                    is FilterResult.Accepted -> {
+                        trySend(LocationState.Fix(decision.lat, decision.lon, decision.accuracyM))
+                    }
+                    is FilterResult.LowAccuracy -> {
+                        // Solo emitir LowAccuracy si aún no se tiene una posición válida previa fijada,
+                        // evitando que picos de incertidumbre degraden una ruta ya estable.
+                        if (filter.lastAccepted == null) {
+                            trySend(LocationState.LowAccuracy(decision.lat, decision.lon, decision.accuracyM))
+                        }
+                    }
+                    is FilterResult.RejectedJump,
+                    FilterResult.Invalid -> {
+                        // Se descartan silenciosamente los saltos multipath (>20 m/s) y lecturas inválidas
+                    }
                 }
-                trySend(state)
             }
 
             override fun onLocationAvailability(availability: LocationAvailability) {
                 if (!availability.isLocationAvailable) {
+                    filter.reset()
                     trySend(LocationState.Searching)
                 }
             }

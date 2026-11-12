@@ -47,7 +47,8 @@ ec.edu.uleam.navigator/
 │   ├── GraphMappers.kt        # Conversión de entidades Room a CampusGraph
 │   └── CampusRepository.kt    # Repositorio unificado para la UI
 │
-├── location/                  # Abstracción de sensores y hardware GNSS
+├── location/                  # Abstracción de sensores, filtrado GNSS y hardware
+│   ├── LocationFilter.kt      # Filtro de incertidumbre (>30m) y saltos multipath (>20 m/s)
 │   └── LocationSource.kt      # Interfaz reactiva, FusedLocationSource y FakeLocationSource
 │
 ├── routing/astar/             # Motor algorítmico A* y navegación Turn-by-Turn
@@ -98,10 +99,14 @@ ec.edu.uleam.navigator/
     - `ARRIVE`: "Has llegado a [Destino]".
   - Incorpora compresión de segmentos rectos consecutivos para no saturar al usuario con indicaciones repetitivas.
 
-### 4.3. Sensores, Ciclo de Vida y Batería (`location/`)
+### 4.3. Sensores, Filtrado GNSS, Ciclo de Vida y Batería (`location/`)
+- **`LocationFilter.kt`:**
+  - Evalúa cada muestra entrante (`GnssSample`) frente a la última posición válida aceptada (`lastAccepted`).
+  - Descarta lecturas corruptas (`Invalid`), clasifica lecturas degradadas (`LowAccuracy` $> 30\text{ m}$) sin sobrescribir la posición válida previa, y rechaza saltos cinemáticos irreales (`RejectedJump` $> 20\text{ m/s}$) producidos por rebote de señal entre edificios (*multipath*).
+  - Provee `filterTrace(samples)` para limpieza de trazas ruidosas y `reset()` ante pérdida de satélites.
 - **`LocationSource.kt`:**
   - Sealed Interface `LocationState`: Estados explícitos de ubicación (`ProviderDisabled`, `PermissionDenied`, `Searching`, `Fix(lat, lon, accuracyM)`, `LowAccuracy(lat, lon, accuracyM)`).
-  - `FusedLocationSource`: Implementado con `callbackFlow` sobre `FusedLocationProviderClient`.
+  - `FusedLocationSource`: Implementado con `callbackFlow` sobre `FusedLocationProviderClient` integrado con `LocationFilter`.
   - **Eficiencia Energética:** La suscripción en `CampusViewModel` está configurada con:
     ```kotlin
     .stateIn(
@@ -149,5 +154,6 @@ ec.edu.uleam.navigator/
 4. **Enriquecimiento Visual:** Implementación del Canvas cartográfico en `CampusMap.kt` con etiquetas nativas legibles y *Pulsing Dot*.
 5. **UI de Navegación Completa:** Tarjeta colapsable en `MainActivity.kt` con Turn-by-Turn, switch de simulación y diálogo de permisos.
 6. **Resolución de Error de IDE:** Eliminación de metadatos Java no-Gradle residuales (`.idea/modules.xml`, `.idea/UleamNavigator.iml`) y saneamiento del árbol de Git.
-7. **Recálculo Inteligente Fuera de Ruta (`T3.1`):** Implementación de `GeoMath.distanceToSegment()`, `AStarEngine.isOffRoute()` ($>15\text{ m}$), confirmación temporal ($>3\text{ s}$) en `CampusViewModel`, validación inmediata de GPS fuera del campus al conmutar modo Demo y nuevas pruebas unitarias en `GeoMathTest` y `AStarEngineTest`.
-8. **Pruebas y Verificación:** Ejecución exitosa de pruebas unitarias y generación de APK Debug.
+7. **Recálculo Inteligente Fuera de Ruta (`T3.1`):** Implementación de `GeoMath.distanceToSegment()`, `AStarEngine.isOffRoute()` ($>15\text{ m}$), confirmación temporal ($>3\text{ s}$) en `CampusViewModel`, validación inmediata de GPS fuera del campus al conmutar modo Demo y pruebas unitarias en `GeoMathTest` y `AStarEngineTest`.
+8. **Filtro de Saltos GNSS Anómalos (`T4.2`):** Creación de `LocationFilter.kt` (descarte de saltos $>20\text{ m/s}$ y lecturas de baja precisión $>30\text{ m}$), integración en `FusedLocationSource` y suite de pruebas con trazas ruidosas en `LocationFilterTest.kt` (47 pruebas unitarias en verde).
+9. **Pruebas y Verificación:** Ejecución exitosa de pruebas unitarias y generación de APK Debug.
