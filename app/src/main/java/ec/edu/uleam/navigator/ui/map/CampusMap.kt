@@ -104,6 +104,21 @@ fun CampusMap(
     // Modo seguimiento: la cámara acompaña al usuario mientras se navega (como Google Maps)
     var followUser by remember { mutableStateOf(false) }
     var followZoom by remember { mutableFloatStateOf(3.4f) }
+    // Mapa "rumbo arriba": durante la navegación gira para que el frente del usuario apunte hacia arriba
+    var followHeading by remember { mutableStateOf(true) }
+
+    // Avance del usuario sobre la ruta (solo mientras se navega)
+    val routePoints = remember(routeNodeIds, nodoById) {
+        routeNodeIds?.mapNotNull { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+    }
+    val navProgress = if (navigating && routePoints != null) {
+        animatedUser?.let { RouteProgressCalc.compute(routePoints, GeoPoint(it.lat, it.lon)) }
+    } else null
+    // En simulación el rumbo es el del tramo; con GPS real manda la brújula (si falla, el del tramo)
+    val headingDeg: Float? =
+        if (isSimulationMode) navProgress?.bearingDeg?.toFloat()
+        else azimuthDeg ?: navProgress?.bearingDeg?.toFloat()
+    val latestHeading by rememberUpdatedState(headingDeg)
 
     // Animación continua para el marcador de usuario 'pulsing blue dot'
     val infiniteTransition = rememberInfiniteTransition(label = "UserPulseTransition")
@@ -181,6 +196,7 @@ fun CampusMap(
     // Al empezar / terminar la ruta se activa / desactiva el seguimiento de cámara
     LaunchedEffect(navigating) {
         followUser = navigating
+        followHeading = true
         if (navigating) followZoom = maxOf(zoom, 3.4f)
     }
 
@@ -197,6 +213,12 @@ fun CampusMap(
                     val targetPan = panToCenter(u.lat, u.lon, zoom)
                     pan += (targetPan - pan) * k
                     zoom += (followZoom - zoom) * k
+                    // Gira hacia el rumbo del usuario por el camino más corto (con suavizado más lento)
+                    val h = latestHeading
+                    if (followHeading && h != null) {
+                        val diff = ((-h - mapRotationDeg + 540f) % 360f + 360f) % 360f - 180f
+                        mapRotationDeg = (mapRotationDeg + diff * (1f - exp(-5f * dt))) % 360f
+                    }
                 }
                 last = now
             }
@@ -250,6 +272,7 @@ fun CampusMap(
                         }
                         if (abs(rotationChange) > 0.05f) {
                             mapRotationDeg = (mapRotationDeg + rotationChange) % 360f
+                            followHeading = false // el usuario tomó el control del giro
                         }
                     }
                 }
@@ -418,14 +441,7 @@ fun CampusMap(
             // 4. TRAZADO DE RUTA ACTIVA (A*)
             routeNodeIds?.let { ids ->
                 // Durante la navegación el tramo ya recorrido se atenúa y solo lo que falta queda resaltado
-                val progress = if (navigating) {
-                    animatedUser?.let { u ->
-                        RouteProgressCalc.compute(
-                            ids.mapNotNull { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } },
-                            GeoPoint(u.lat, u.lon)
-                        )
-                    }
-                } else null
+                val progress = navProgress
                 progress?.let { pr ->
                     val done = pr.traveled.map { p.toScreen(it.lat, it.lon) }
                     for (i in 0 until done.size - 1) {
@@ -501,7 +517,7 @@ fun CampusMap(
                 }
 
                 // Cono de visión azimutal translúcido de 45° (FOV) orientado según la brújula
-                azimuthDeg?.let { headingDeg ->
+                (if (navigating && isSimulationMode) headingDeg else azimuthDeg)?.let { headingDeg ->
                     // En coordenadas geográficas 0° = Norte (arriba, -90° en Canvas)
                     val screenHeadingDeg = headingDeg + mapRotationDeg
                     val canvasCenterAngle = screenHeadingDeg - 90f
@@ -562,6 +578,7 @@ fun CampusMap(
             if (abs(mapRotationDeg) > 0.5f || azimuthDeg != null) {
                 SmallFloatingActionButton(
                     onClick = {
+                        followHeading = false // tocar la brújula devuelve el control de la orientación al usuario
                         // Si el mapa está rotado vuelve al Norte (0°); si está en 0° y hay brújula, orienta el mapa al rumbo del usuario
                         mapRotationDeg = if (abs(mapRotationDeg) > 1f) {
                             0f

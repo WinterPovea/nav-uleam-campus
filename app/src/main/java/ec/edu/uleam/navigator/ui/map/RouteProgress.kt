@@ -1,5 +1,6 @@
 package ec.edu.uleam.navigator.ui.map
 
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 
@@ -12,12 +13,14 @@ data class GeoPoint(val lat: Double, val lon: Double)
  * @property traveled Nodos ya recorridos + punto proyectado del usuario.
  * @property remainingM Metros que faltan hasta el destino siguiendo la ruta.
  * @property offRouteM Distancia perpendicular del usuario a la ruta (m).
+ * @property bearingDeg Rumbo [0, 360) del tramo de la ruta que está recorriendo (0 = Norte, horario).
  */
 data class RouteProgress(
     val remaining: List<GeoPoint>,
     val traveled: List<GeoPoint>,
     val remainingM: Double,
-    val offRouteM: Double
+    val offRouteM: Double,
+    val bearingDeg: Double = 0.0
 )
 
 object RouteProgressCalc {
@@ -27,6 +30,14 @@ object RouteProgressCalc {
     fun distanceM(a: GeoPoint, b: GeoPoint): Double {
         val k = cos(Math.toRadians((a.lat + b.lat) / 2.0))
         return hypot((b.lat - a.lat) * M_PER_DEG, (b.lon - a.lon) * M_PER_DEG * k)
+    }
+
+    /** Rumbo de a hacia b en grados [0, 360): 0 = Norte, 90 = Este. */
+    fun bearingDeg(a: GeoPoint, b: GeoPoint): Double {
+        val k = cos(Math.toRadians((a.lat + b.lat) / 2.0))
+        val dx = (b.lon - a.lon) * k
+        val dy = b.lat - a.lat
+        return (Math.toDegrees(atan2(dx, dy)) + 360.0) % 360.0
     }
 
     /** Proyecta [user] sobre el segmento a-b; devuelve el punto proyectado (fracción acotada a [0,1]). */
@@ -55,6 +66,6 @@ object RouteProgressCalc {
         val remaining = listOf(bestPoint) + route.subList(bestSeg + 1, route.size)
         val traveled = route.subList(0, bestSeg + 1) + bestPoint
         val remainingM = remaining.zipWithNext().sumOf { (a, b) -> distanceM(a, b) }
-        return RouteProgress(remaining, traveled, remainingM, bestDist)
+        return RouteProgress(remaining, traveled, remainingM, bestDist, bearingDeg(route[bestSeg], route[bestSeg + 1]))
     }
 }
