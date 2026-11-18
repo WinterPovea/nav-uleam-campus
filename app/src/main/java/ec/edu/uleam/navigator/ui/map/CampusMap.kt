@@ -279,6 +279,11 @@ fun CampusMap(
                     val center = p.toScreen(node.latitud, node.longitud)
 
                     val label = when {
+                        // Zoom alto: sigla·bloque + primera carrera (el nombre oficial es demasiado largo)
+                        !place.codigo.isNullOrBlank() && zoom >= 2.8f && node.tipo == "DESTINO" &&
+                            !place.descripcion.isNullOrBlank() ->
+                            "${place.codigo} · ${place.descripcion!!.substringBefore(',').trim().take(22)}"
+                        // Zoom bajo/medio: etiqueta compacta (sigla·bloque, p. ej. FCS·B-04)
                         !place.codigo.isNullOrBlank() -> place.codigo!!
                         node.tipo == "ENTRADA" -> place.nombre.replace("Puerta", "P").trim()
                         node.tipo == "ZONA_SEGURA" -> "Zona Segura"

@@ -1,5 +1,6 @@
 package ec.edu.uleam.navigator.routing.astar
 
+import ec.edu.uleam.navigator.data.LugarEntity
 import java.io.File
 import java.util.PriorityQueue
 
@@ -71,4 +72,13 @@ object RealCampusData {
 
     /** ids de nodo que son lugares buscables (columna id_nodo de lugares.csv). */
     fun placeNodeIds(): List<Int> = rows("lugares.csv").map { it[0].toInt() }
+
+    /** Catálogo completo de lugares.csv, con el mismo mapeo de columnas que CsvSeeder. */
+    fun lugares(): List<LugarEntity> = rows("lugares.csv").map {
+        LugarEntity(
+            idNodo = it[0].toInt(), codigo = it[1].ifBlank { null }, nombre = it[2],
+            descripcion = it[3].ifBlank { null }, categoria = it[4], etiquetas = it[5].ifBlank { null },
+            busqueda = it[6], activo = it[7].toInt()
+        )
+    }
 }

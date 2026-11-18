@@ -58,6 +58,7 @@ Como especialista en sistemas de información geográfica móvil y aplicaciones 
 - **Solución Técnica:** Ampliar el esquema de nodos con la propiedad `piso: Int` (0 = PB, 1 = Piso 1, 2 = Piso 2). Modelar las aristas verticales de escaleras conectando nodos del mismo bloque con diferente piso. En la UI, mostrar un selector de nivel (PB, 1, 2) cuando la ruta involucre interiores.
 
 ### 2.6. Búsqueda Enriquecida, Categorías y Ficha de Lugar (Bottom Sheet)
+- **Avance (✅ búsqueda por Facultad/Carrera/Sigla):** los bloques se encuentran por nombre de facultad, sigla, carrera o código `B-xx`. Pendiente: chips de categorías y `ModalBottomSheet`.
 - **Solución Técnica:** Implementar chips horizontales de categorías (`Aulas`, `Administración`, `Cafeterías`, `Canchas`, `Baños`, `Zonas Seguras`). Al seleccionar un lugar, desplegar un `ModalBottomSheet` con información ampliada (descripción, carreras o departamentos que funcionan ahí, horario de atención y botón directo de "Cómo llegar").
 
 ---

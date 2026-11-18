@@ -8,6 +8,9 @@ interface CampusDao {
     @Insert suspend fun insertAristas(l: List<AristaEntity>)
     @Insert suspend fun insertLugares(l: List<LugarEntity>)
 
+    /** Vacía solo el catálogo de lugares (no toca nodos ni aristas). */
+    @Query("DELETE FROM lugares") suspend fun clearLugares()
+
     @Query("SELECT COUNT(*) FROM nodos") suspend fun countNodos(): Int
     @Query("SELECT * FROM nodos") suspend fun nodos(): List<NodoEntity>
     @Query("SELECT * FROM aristas") suspend fun aristas(): List<AristaEntity>
