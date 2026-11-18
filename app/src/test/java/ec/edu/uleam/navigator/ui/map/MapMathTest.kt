@@ -84,6 +84,15 @@ class MapMathTest {
         assertEquals(0.0, RouteProgressCalc.compute(listOf(a, b, c), GeoPoint(-0.9495, -80.7450))!!.bearingDeg, 0.01)
     }
 
+    @Test fun `el toque elige el lugar mas cercano dentro del radio y null si cae en vacio`() {
+        val c = listOf(1 to Offset(100f, 100f), 2 to Offset(130f, 100f), 3 to Offset(500f, 500f))
+        assertEquals(1, PlaceHitTest.nearest(c, Offset(105f, 100f), 40f))
+        assertEquals(2, PlaceHitTest.nearest(c, Offset(120f, 100f), 40f)) // 2 está más cerca que 1
+        assertEquals(3, PlaceHitTest.nearest(c, Offset(490f, 510f), 40f))
+        assertNull(PlaceHitTest.nearest(c, Offset(300f, 300f), 40f))
+        assertNull(PlaceHitTest.nearest(emptyList(), Offset(0f, 0f), 40f))
+    }
+
     @Test fun `una ruta con menos de dos puntos no tiene avance`() {
         assertNull(RouteProgressCalc.compute(listOf(a), a))
         assertNotNull(RouteProgressCalc.compute(listOf(a, b), a))

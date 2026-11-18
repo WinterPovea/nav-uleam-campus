@@ -213,6 +213,7 @@ fun CampusApp(vm: CampusViewModel) {
             userPosition = vm.userPosition,
             isSimulationMode = s.isSimulationMode,
             onMapTap = vm::onMapTap,
+            onPlaceTap = vm::onPlaceTap,
             modifier = Modifier.fillMaxSize(),
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
@@ -459,6 +460,15 @@ fun CollapsibleNavigationCard(
                         fontSize = 17.sp,
                         color = if (s.destino != null) Color(0xFFA01B2C) else MaterialTheme.colorScheme.onSurface
                     )
+                    s.destino?.descripcion?.takeIf { it.isNotBlank() }?.let { d ->
+                        Text(
+                            text = d,
+                            fontSize = 12.sp,
+                            color = Color(0xFF424242),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Text(
                         text = "Origen: ${s.origenLabel}",
                         fontSize = 12.sp,
