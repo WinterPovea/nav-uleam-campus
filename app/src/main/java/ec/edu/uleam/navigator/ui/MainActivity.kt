@@ -72,6 +72,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,7 +82,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import ec.edu.uleam.navigator.ui.map.GeoPoint
+import ec.edu.uleam.navigator.ui.map.RouteProgressCalc
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -191,6 +196,10 @@ fun CampusApp(vm: CampusViewModel) {
         return
     }
 
+    // Altura de la tarjeta inferior: los botones flotantes del mapa quedan siempre por encima de ella
+    var cardHeightPx by remember { mutableStateOf(0) }
+    val cardHeightDp = with(LocalDensity.current) { cardHeightPx.toDp() }
+
     Box(Modifier.fillMaxSize().statusBarsPadding()) {
         // CAPA 1: MAPA CANVAS BASE
         CampusMap(
@@ -205,7 +214,9 @@ fun CampusApp(vm: CampusViewModel) {
             isSimulationMode = s.isSimulationMode,
             onMapTap = vm::onMapTap,
             modifier = Modifier.fillMaxSize(),
-            azimuthDeg = azimuthDeg
+            azimuthDeg = azimuthDeg,
+            navigating = s.navigating,
+            controlsBottomPadding = cardHeightDp + 24.dp
         )
 
         // CAPA 2: CONTROLES SUPERIORES (Búsqueda + Selector de Puertas + Conmutador Demo)
@@ -406,6 +417,7 @@ fun CampusApp(vm: CampusViewModel) {
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(12.dp)
+                .onSizeChanged { cardHeightPx = it.height }
         )
     }
 }
@@ -495,6 +507,43 @@ fun CollapsibleNavigationCard(
                             color = Color(0xFFE65100),
                             fontWeight = FontWeight.Medium
                         )
+                    }
+                }
+            }
+
+            // EMPEZAR RUTA (como Google Maps) / NAVEGANDO CON METROS RESTANTES
+            if (s.route != null) {
+                Spacer(Modifier.height(8.dp))
+                if (!s.navigating) {
+                    Button(
+                        onClick = vm::empezarRuta,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    ) {
+                        Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Empezar ruta", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    val byId = remember(vm.nodos.size) { vm.nodoById }
+                    val remainingM = vm.userPosition?.let { u ->
+                        val pts = s.route.nodeIds.mapNotNull { id -> byId[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+                        RouteProgressCalc.compute(pts, GeoPoint(u.lat, u.lon))?.remainingM
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Navegando…", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1976D2))
+                            Text(
+                                text = remainingM?.let { "Faltan %.0f m  ·  ≈ %.1f min".format(it, it / 1.2 / 60.0) }
+                                    ?: "Esperando tu ubicación…",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                        OutlinedButton(onClick = vm::terminarRuta) { Text("Terminar") }
                     }
                 }
             }
