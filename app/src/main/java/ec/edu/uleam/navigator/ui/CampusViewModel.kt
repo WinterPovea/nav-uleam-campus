@@ -586,8 +586,8 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         /** Distancia al destino (m) a la que se considera que el usuario llegó. */
         const val ARRIVAL_RADIUS_M = 15.0
 
-        /** Velocidad del caminante virtual en Modo Simulación (m/s): más rápido que a pie para la demo. */
-        const val DEMO_WALK_SPEED_MPS = 6.0
+        /** Velocidad del caminante virtual en Modo Simulación (m/s): paso humano normal (≈ 5 km/h). */
+        const val DEMO_WALK_SPEED_MPS = 1.4
         const val WALK_TICK_MS = 100L
     }
 }

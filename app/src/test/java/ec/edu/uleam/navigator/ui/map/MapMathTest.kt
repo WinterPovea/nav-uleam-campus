@@ -70,6 +70,20 @@ class MapMathTest {
         assertEquals(0.0, pr.remainingM, 0.01)
     }
 
+    @Test fun `el rumbo del tramo apunta al norte, este, sur y oeste segun corresponda`() {
+        val o = GeoPoint(-0.9500, -80.7450)
+        assertEquals(0.0, RouteProgressCalc.bearingDeg(o, GeoPoint(-0.9490, -80.7450)), 0.01)   // norte
+        assertEquals(90.0, RouteProgressCalc.bearingDeg(o, GeoPoint(-0.9500, -80.7440)), 0.01)  // este
+        assertEquals(180.0, RouteProgressCalc.bearingDeg(o, GeoPoint(-0.9510, -80.7450)), 0.01) // sur
+        assertEquals(270.0, RouteProgressCalc.bearingDeg(o, GeoPoint(-0.9500, -80.7460)), 0.01) // oeste
+    }
+
+    @Test fun `el avance reporta el rumbo del tramo que se recorre`() {
+        // a->b va al este; b->c va al norte
+        assertEquals(90.0, RouteProgressCalc.compute(listOf(a, b, c), GeoPoint(-0.9500, -80.7455))!!.bearingDeg, 0.01)
+        assertEquals(0.0, RouteProgressCalc.compute(listOf(a, b, c), GeoPoint(-0.9495, -80.7450))!!.bearingDeg, 0.01)
+    }
+
     @Test fun `una ruta con menos de dos puntos no tiene avance`() {
         assertNull(RouteProgressCalc.compute(listOf(a), a))
         assertNotNull(RouteProgressCalc.compute(listOf(a, b), a))
