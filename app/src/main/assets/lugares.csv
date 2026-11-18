@@ -32,7 +32,7 @@ id_nodo,codigo,nombre,descripcion,categoria,etiquetas,busqueda,activo
 301,,"Centro de Innovación, Emprendimiento y Convenciones del Pacífico (CIECP)",,BLOQUE,,centro de innovacion emprendimiento y convenciones del pacifico ciecp,1
 230,FETAH·B-05,Laboratorio gastronómico (Bloque B-05),Gastronomía,BLOQUE,fetah educacion turismo artes humanidades,laboratorio gastronomico bloque b-05 fetah facultad de educacion turismo artes y humanidades gastronomia,1
 304,,Cancha múltiple,,DEPORTE,,cancha multiple,1
-305,,Tasty Food 1,,COMIDA,,tasty food 1,1
+305,,Tasty Food 1 (entrada 1),,COMIDA,tasty food cafeteria comida,tasty food 1 entrada cafeteria comida,1
 306,,Coliseo Edmundo Lourido,,DEPORTE,,coliseo edmundo lourido,1
 307,,Plaza cultural centenario,,CULTURA,,plaza cultural centenario,1
 308,,Departamento bienestar universitario,,ADMINISTRATIVO,,departamento bienestar universitario,1
@@ -50,13 +50,13 @@ id_nodo,codigo,nombre,descripcion,categoria,etiquetas,busqueda,activo
 321,,Tasty Food 4,,COMIDA,,tasty food 4,1
 322,,Cancha,,DEPORTE,,cancha,1
 311,,Estudios y construcciones Uleam -EP,,ADMINISTRATIVO,,estudios y construcciones uleam ep,1
-312,,El bosque,,CULTURA,,el bosque,1
+312,,El bosque,,COMIDA,cafeteria cafe comida,el bosque cafeteria cafe comida,1
 313,,Estadio (gradas),,DEPORTE,estadio gradas coliseo futbol,estadio gradas coliseo futbol,1
 314,FCACC·B-13,"Facultad de Ciencias Administrativas, Contables y Comercio (Bloque B-13, acceso 2)","Contabilidad y Auditoría, Finanzas, Mercadotecnia, Auditoría y Control de Gestión",BLOQUE,fcacc administrativas contables comercio,facultad de ciencias administrativas contables y comercio bloque b-13 acceso 2 fcacc contabilidad auditoria finanzas mercadotecnia control gestion,1
 323,,Empresa pública de producción y desarrollo estratégico,,ADMINISTRATIVO,,empresa publica de produccion y desarrollo estrategico,1
 325,,Cine,,CULTURA,,cine,1
 317,,Vicerrectorado,,ADMINISTRATIVO,,vicerrectorado,1
-318,,Tasty Food,,COMIDA,,tasty food,1
+318,,Tasty Food 1 (entrada 2),,COMIDA,tasty food cafeteria comida,tasty food 1 entrada 2 cafeteria comida,1
 500,,Zona segura 1,,ZONA_SEGURA,,zona segura 1,1
 501,,Zona segura 2,,ZONA_SEGURA,,zona segura 2,1
 502,,Zona segura 3,,ZONA_SEGURA,,zona segura 3,1
