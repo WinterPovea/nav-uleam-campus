@@ -36,6 +36,34 @@ SINONIMOS = {
 }
 
 
+# El CSV de QGIS se exportó sin tildes (la codificación fallaba). Para MOSTRAR la ortografía correcta en la app
+# se restauran aquí las tildes palabra por palabra; la columna `busqueda` sigue sin tildes a propósito.
+ACENTOS = {w: a for w, a in (p.split(":") for p in """
+administracion:administración admision:admisión agroindustria:agroindustria alimentos:alimentos
+arqueologia:arqueología auditoria:auditoría basica:básica bilingue:bilingüe billingue:bilingüe biologia:biología
+clinico:clínico comunicacion:comunicación construccion:construcción contable:contable criminologia:criminología
+dietetica:dietética direccion:dirección economia:economía educacion:educación enfermeria:enfermería
+escenicas:escénicas estrategico:estratégico fisica:física fonoaudiologia:fonoaudiología gastronomia:gastronomía
+gastronomico:gastronómico gestion:gestión hoteleria:hotelería informacion:información ingenieria:ingeniería
+innovacion:innovación investigacion:investigación maritima:marítima mecanica:mecánica multiple:múltiple
+nivelacion:nivelación nutricion:nutrición odontologia:odontología pacifico:pacífico pedagogia:pedagogía
+plasticas:plásticas politicas:políticas produccion:producción psicologia:psicología publica:pública
+publico:público raices:raíces secretaria:secretaría sociologia:sociología tecnologia:tecnología
+tecnologias:tecnologías electrica:eléctrica fonoaudologia:fonoaudiología
+""".split())}
+
+
+def acentuar(text: str) -> str:
+    """Restaura tildes en palabras conocidas conservando mayúsculas/minúsculas. Es idempotente."""
+    def repl(m: re.Match) -> str:
+        w = m.group(0)
+        a = ACENTOS.get(w.lower())
+        if a is None or (w.isupper() and len(w) > 1):  # siglas (FCS, DIOP...) no se tocan
+            return w
+        return a[0].upper() + a[1:] if w[0].isupper() else a
+    return re.sub(r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü]+", repl, text)
+
+
 def fix(text: str) -> str:
     for bad, good in FIXES.items():
         text = text.replace(bad, good)
@@ -109,6 +137,11 @@ def main() -> None:
             enriquecidas += 1
         else:
             r["busqueda"] = norm(" ".join([r["nombre"], r["codigo"], r["etiquetas"]]))
+
+    for r in unicas:
+        r["nombre"] = acentuar(r["nombre"])
+        r["descripcion"] = acentuar(r["descripcion"])
+        r["busqueda"] = norm(r["busqueda"])  # sin tildes, siempre
 
     with (ASSETS / "lugares.csv").open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=campos, lineterminator="\n")

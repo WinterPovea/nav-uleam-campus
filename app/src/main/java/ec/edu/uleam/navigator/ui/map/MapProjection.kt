@@ -60,6 +60,17 @@ class MapProjection(
     }
 
     /**
+     * Nuevo `pan` para que el punto del mapa que está bajo [focal] (coordenadas de pantalla)
+     * siga bajo ese mismo punto al cambiar el zoom de [zoom] a [newZoom].
+     * Se usa con el centroide del gesto de pellizco: el mapa crece/encoge desde donde están los dedos
+     * y no desde el centro de la pantalla.
+     */
+    fun panForZoomAt(focal: Offset, newZoom: Float): Offset {
+        val u = rotatePanDelta(focal - center) // focal en el sistema previo a la rotación
+        return u - (u - pan) * (newZoom / zoom)
+    }
+
+    /**
      * Transforma un vector de arrastre en pantalla al sistema de coordenadas previo a la rotación
      * para que el paneo táctil siga exactamente la dirección del dedo aunque el mapa esté rotado.
      */

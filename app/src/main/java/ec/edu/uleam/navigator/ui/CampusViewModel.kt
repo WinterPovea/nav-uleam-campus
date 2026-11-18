@@ -18,6 +18,8 @@ import ec.edu.uleam.navigator.routing.astar.NavigationGuidance
 import ec.edu.uleam.navigator.routing.astar.NavigationInstruction
 import ec.edu.uleam.navigator.routing.astar.RouteOptions
 import ec.edu.uleam.navigator.routing.astar.RouteResult
+import ec.edu.uleam.navigator.ui.map.GeoPoint
+import ec.edu.uleam.navigator.ui.map.RouteProgressCalc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -48,7 +50,9 @@ data class UiState(
     val avoidStairs: Boolean = false,
     val isSimulationMode: Boolean = true, // Modo demo activo por defecto para resiliencia en interiores
     val msg: String? = null,
-    val infoMsg: String? = null
+    val infoMsg: String? = null,
+    /** true mientras el usuario recorre la ruta (botón "Empezar ruta"). */
+    val navigating: Boolean = false
 )
 
 class CampusViewModel(app: Application) : AndroidViewModel(app) {
@@ -64,6 +68,10 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     private var offRouteSinceMs: Long? = null
     private var offRouteRerouteJob: Job? = null
     private var lastGpsLatLon: Pair<Double, Double>? = null
+
+    /** Posición simulada del caminante (solo en Modo Simulación mientras se navega). */
+    private var simPosition by mutableStateOf<UserPosition?>(null)
+    private var walkJob: Job? = null
 
     /**
      * Suscripción reactiva optimizada para batería y permisos en caliente:
@@ -99,6 +107,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     val userPosition: UserPosition?
         get() {
             if (ui.isSimulationMode) {
+                simPosition?.let { return it }
                 // En modo simulación, el punto azul sigue al origen seleccionado
                 val node = ui.origenId?.let { nodoById[it] }
                 return if (node != null) UserPosition(node.latitud, node.longitud, 5f) else null
@@ -127,12 +136,14 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     fun elegirDestino(l: LugarEntity) {
         resetOffRouteTracking()
+        detenerNavegacion()
         ui = ui.copy(destino = l, query = "", results = emptyList(), msg = null, infoMsg = null)
         recalcular()
     }
 
     fun elegirPuerta(n: Int) {
         resetOffRouteTracking()
+        detenerNavegacion()
         val puertaId = 99 + n
         ui = ui.copy(
             origenId = puertaId,
@@ -145,6 +156,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     fun elegirOrigenManual(nodoId: Int, label: String) {
         resetOffRouteTracking()
+        detenerNavegacion()
         ui = ui.copy(
             origenId = nodoId,
             origenLabel = label,
@@ -169,6 +181,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
             ui = ui.copy(msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS))
         } else {
             resetOffRouteTracking()
+            detenerNavegacion()
             val place = repo.lugares.firstOrNull { it.idNodo == snap.nodeId }
             val label = place?.nombre ?: "Nodo ${snap.nodeId} (calle)"
             ui = ui.copy(
@@ -219,6 +232,15 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             return
+        }
+
+        // Navegando: si ya está junto al destino, la ruta termina
+        if (ui.navigating) {
+            val dest = nodoById[currentDestino.idNodo]
+            if (dest != null && RouteProgressCalc.distanceM(GeoPoint(lat, lon), GeoPoint(dest.latitud, dest.longitud)) <= ARRIVAL_RADIUS_M) {
+                llegarAlDestino(currentDestino)
+                return
+            }
         }
 
         // Con ruta activa: verificar si el usuario se desvió más de 15 metros de los segmentos
@@ -336,6 +358,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     fun toggleSimulationMode(active: Boolean) {
         resetOffRouteTracking()
+        detenerNavegacion()
         if (!active && (locationState.value is LocationState.PermissionDenied || locationState.value is LocationState.ProviderDisabled)) {
             refreshLocationPermissionState()
         }
@@ -386,6 +409,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     fun toggleEscaleras(v: Boolean) {
         resetOffRouteTracking()
+        detenerNavegacion()
         ui = ui.copy(avoidStairs = v)
         recalcular()
     }
@@ -396,6 +420,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun zonaSegura() {
         resetOffRouteTracking()
+        detenerNavegacion()
         val o = ui.origenId ?: run {
             ui = ui.copy(msg = "Define un origen para evacuar a una zona segura.")
             return
@@ -436,8 +461,77 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * "Empezar ruta": activa el modo navegación (la cámara sigue al usuario y se muestra el avance).
+     * En Modo Simulación el usuario virtual camina solo por la ruta para poder probarlo sin GPS.
+     */
+    fun empezarRuta() {
+        val route = ui.route ?: return
+        walkJob?.cancel()
+        resetOffRouteTracking()
+        ui = ui.copy(navigating = true, msg = null, infoMsg = "Ruta iniciada. ¡Buen viaje!")
+        if (ui.isSimulationMode) caminarSimulado(route)
+    }
+
+    /** "Terminar": sale del modo navegación pero conserva la ruta trazada. */
+    fun terminarRuta() {
+        detenerNavegacion()
+        ui = ui.copy(infoMsg = "Navegación finalizada")
+    }
+
+    private fun detenerNavegacion() {
+        walkJob?.cancel()
+        walkJob = null
+        simPosition = null
+        if (ui.navigating) ui = ui.copy(navigating = false)
+    }
+
+    /** El origen pasa a ser el destino alcanzado; la ruta se da por terminada. */
+    private fun llegarAlDestino(destino: LugarEntity) {
+        walkJob?.cancel()
+        walkJob = null
+        simPosition = null
+        resetOffRouteTracking()
+        ui = ui.copy(
+            navigating = false,
+            origenId = destino.idNodo,
+            origenLabel = destino.nombre,
+            destino = null,
+            route = null,
+            instructions = emptyList(),
+            msg = null,
+            infoMsg = "🏁 Llegaste a ${destino.nombre}"
+        )
+    }
+
+    /** Camina por la ruta a velocidad de demostración, avanzando cada [WALK_TICK_MS] ms. */
+    private fun caminarSimulado(route: RouteResult.Success) {
+        val byId = nodoById
+        val points = route.nodeIds.mapNotNull { id -> byId[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+        val destino = ui.destino ?: return
+        if (points.size < 2) return
+        walkJob = viewModelScope.launch {
+            val stepM = DEMO_WALK_SPEED_MPS * WALK_TICK_MS / 1000.0
+            simPosition = UserPosition(points[0].lat, points[0].lon, 5f)
+            for (i in 0 until points.size - 1) {
+                val a = points[i]
+                val b = points[i + 1]
+                val len = RouteProgressCalc.distanceM(a, b)
+                var walked = 0.0
+                while (walked < len) {
+                    delay(WALK_TICK_MS)
+                    walked = minOf(len, walked + stepM)
+                    val t = if (len == 0.0) 1.0 else walked / len
+                    simPosition = UserPosition(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t, 5f)
+                }
+            }
+            llegarAlDestino(destino)
+        }
+    }
+
     fun limpiar() {
         resetOffRouteTracking()
+        detenerNavegacion()
         ui = ui.copy(destino = null, route = null, instructions = emptyList(), msg = null, infoMsg = null)
     }
 
@@ -488,5 +582,12 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         const val OFF_ROUTE_CONFIRMATION_MS = 3_000L
+
+        /** Distancia al destino (m) a la que se considera que el usuario llegó. */
+        const val ARRIVAL_RADIUS_M = 15.0
+
+        /** Velocidad del caminante virtual en Modo Simulación (m/s): paso humano normal (≈ 5 km/h). */
+        const val DEMO_WALK_SPEED_MPS = 1.4
+        const val WALK_TICK_MS = 100L
     }
 }

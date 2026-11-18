@@ -2,6 +2,7 @@ package ec.edu.uleam.navigator.ui.map
 
 import android.graphics.Paint
 import android.graphics.Typeface
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -21,16 +22,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,8 +49,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import ec.edu.uleam.navigator.data.AristaEntity
@@ -53,6 +60,8 @@ import ec.edu.uleam.navigator.data.LugarEntity
 import ec.edu.uleam.navigator.data.NodoEntity
 import ec.edu.uleam.navigator.ui.UserPosition
 import kotlin.math.abs
+import kotlin.math.exp
+import kotlinx.coroutines.launch
 
 /**
  * Componente cartográfico central para el campus universitario ULEAM.
@@ -77,13 +86,39 @@ fun CampusMap(
     isSimulationMode: Boolean,
     onMapTap: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
-    azimuthDeg: Float? = null
+    azimuthDeg: Float? = null,
+    navigating: Boolean = false,
+    controlsBottomPadding: Dp = 16.dp
 ) {
     var size by remember { mutableStateOf(IntSize(1, 1)) }
     var zoom by remember { mutableFloatStateOf(1.2f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
     var mapRotationDeg by remember { mutableFloatStateOf(0f) }
     val currentOnTap by rememberUpdatedState(onMapTap)
+    val scope = rememberCoroutineScope()
+
+    // Posición con movimiento suave (el marcador se desliza entre lecturas GPS / pasos de simulación)
+    val animatedUser = rememberAnimatedUserPosition(userPosition, if (isSimulationMode) 130 else 900)
+    val latestUser by rememberUpdatedState(animatedUser)
+
+    // Modo seguimiento: la cámara acompaña al usuario mientras se navega (como Google Maps)
+    var followUser by remember { mutableStateOf(false) }
+    var followZoom by remember { mutableFloatStateOf(3.4f) }
+    // Mapa "rumbo arriba": durante la navegación gira para que el frente del usuario apunte hacia arriba
+    var followHeading by remember { mutableStateOf(true) }
+
+    // Avance del usuario sobre la ruta (solo mientras se navega)
+    val routePoints = remember(routeNodeIds, nodoById) {
+        routeNodeIds?.mapNotNull { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+    }
+    val navProgress = if (navigating && routePoints != null) {
+        animatedUser?.let { RouteProgressCalc.compute(routePoints, GeoPoint(it.lat, it.lon)) }
+    } else null
+    // En simulación el rumbo es el del tramo; con GPS real manda la brújula (si falla, el del tramo)
+    val headingDeg: Float? =
+        if (isSimulationMode) navProgress?.bearingDeg?.toFloat()
+        else azimuthDeg ?: navProgress?.bearingDeg?.toFloat()
+    val latestHeading by rememberUpdatedState(headingDeg)
 
     // Animación continua para el marcador de usuario 'pulsing blue dot'
     val infiniteTransition = rememberInfiniteTransition(label = "UserPulseTransition")
@@ -138,6 +173,79 @@ fun CampusMap(
     fun proj(z: Float = zoom, p: Offset = pan, rot: Float = mapRotationDeg) =
         MapProjection(bounds[0], bounds[1], bounds[2], bounds[3], size, z, p, rot)
 
+    /** Pan (previo a la rotación) que deja el punto (lat, lon) justo en el centro de la pantalla. */
+    fun panToCenter(lat: Double, lon: Double, z: Float): Offset {
+        val base = proj(1f, Offset.Zero, 0f)
+        return -(base.toScreen(lat, lon) - base.center) * z
+    }
+
+    /** Anima la cámara (zoom + desplazamiento) hasta centrar la posición indicada. */
+    fun animateCameraTo(lat: Double, lon: Double, targetZoom: Float) {
+        val z0 = zoom
+        val p0 = pan
+        val z1 = targetZoom
+        val p1 = panToCenter(lat, lon, z1)
+        scope.launch {
+            Animatable(0f).animateTo(1f, tween(450, easing = FastOutSlowInEasing)) {
+                zoom = z0 + (z1 - z0) * value
+                pan = p0 + (p1 - p0) * value
+            }
+        }
+    }
+
+    // Al empezar / terminar la ruta se activa / desactiva el seguimiento de cámara
+    LaunchedEffect(navigating) {
+        followUser = navigating
+        followHeading = true
+        if (navigating) followZoom = maxOf(zoom, 3.4f)
+    }
+
+    // Bucle de cámara: se acerca suavemente (ease-out) a la posición animada del usuario
+    LaunchedEffect(followUser) {
+        if (!followUser) return@LaunchedEffect
+        var last = 0L
+        while (true) {
+            withFrameNanos { now ->
+                val u = latestUser
+                if (u != null && size.width > 1) {
+                    val dt = if (last == 0L) 0.016f else ((now - last) / 1_000_000_000f).coerceIn(0.001f, 0.1f)
+                    val k = 1f - exp(-9f * dt)
+                    val targetPan = panToCenter(u.lat, u.lon, zoom)
+                    pan += (targetPan - pan) * k
+                    zoom += (followZoom - zoom) * k
+                    // Gira hacia el rumbo del usuario por el camino más corto (con suavizado más lento)
+                    val h = latestHeading
+                    if (followHeading && h != null) {
+                        val diff = ((-h - mapRotationDeg + 540f) % 360f + 360f) % 360f - 180f
+                        mapRotationDeg = (mapRotationDeg + diff * (1f - exp(-5f * dt))) % 360f
+                    }
+                }
+                last = now
+            }
+        }
+    }
+
+    /** Centra el mapa en el usuario: reanuda el seguimiento si se navega, o anima una sola vez. */
+    fun centrarEnUsuario() {
+        val target = userPosition ?: originNodeId?.let { id ->
+            nodoById[id]?.let { UserPosition(it.latitud, it.longitud) }
+        } ?: return
+        if (navigating) {
+            followUser = true
+            followZoom = maxOf(followZoom, 3.4f)
+        } else {
+            animateCameraTo(target.lat, target.lon, maxOf(zoom, 3.5f))
+        }
+    }
+
+    // El usuario queda fuera de la pantalla (o la navegación dejó de seguirlo) -> mostrar "Mi ubicación"
+    val userOffScreen = animatedUser?.let { u ->
+        val o = proj().toScreen(u.lat, u.lon)
+        val m = 24f
+        o.x < m || o.y < m || o.x > size.width - m || o.y > size.height - m
+    } ?: false
+    val showMyLocationButton = userPosition != null && (userOffScreen || (navigating && !followUser))
+
     Box(modifier = modifier) {
         Canvas(
             modifier = Modifier
@@ -145,12 +253,27 @@ fun CampusMap(
                 .background(Color(0xFFF6F5F0)) // Fondo crema cartográfico suave institucional
                 .onSizeChanged { size = it }
                 .pointerInput(Unit) {
-                    detectTransformGestures { _, panChange, zoomChange, rotationChange ->
-                        zoom = (zoom * zoomChange).coerceIn(0.9f, 15f)
+                    detectTransformGestures { centroid, panChange, zoomChange, rotationChange ->
+                        val oldZoom = zoom
+                        val newZoom = (zoom * zoomChange).coerceIn(0.9f, 15f)
+                        // Un arrastre con un dedo (sin zoom ni giro) suelta el seguimiento de la cámara
+                        if (followUser && zoomChange == 1f && rotationChange == 0f && panChange != Offset.Zero) {
+                            followUser = false
+                        }
+                        if (followUser) {
+                            // Siguiendo al usuario: el zoom se aplica y la cámara sigue anclada a él
+                            zoom = newZoom
+                            followZoom = newZoom
+                        } else {
+                            // Zoom anclado al punto de pellizco: el mapa crece desde donde están los dedos
+                            if (newZoom != oldZoom) pan = proj().panForZoomAt(centroid, newZoom)
+                            zoom = newZoom
+                            pan += proj().rotatePanDelta(panChange)
+                        }
                         if (abs(rotationChange) > 0.05f) {
                             mapRotationDeg = (mapRotationDeg + rotationChange) % 360f
+                            followHeading = false // el usuario tomó el control del giro
                         }
-                        pan += proj().rotatePanDelta(panChange)
                     }
                 }
                 .pointerInput(Unit) {
@@ -317,7 +440,22 @@ fun CampusMap(
 
             // 4. TRAZADO DE RUTA ACTIVA (A*)
             routeNodeIds?.let { ids ->
-                val points = ids.mapNotNull { id -> nodoById[id]?.let { p.toScreen(it.latitud, it.longitud) } }
+                // Durante la navegación el tramo ya recorrido se atenúa y solo lo que falta queda resaltado
+                val progress = navProgress
+                progress?.let { pr ->
+                    val done = pr.traveled.map { p.toScreen(it.lat, it.lon) }
+                    for (i in 0 until done.size - 1) {
+                        drawLine(
+                            color = Color(0x669E9E9E),
+                            start = done[i],
+                            end = done[i + 1],
+                            strokeWidth = 8f,
+                            cap = StrokeCap.Round
+                        )
+                    }
+                }
+                val points = progress?.remaining?.map { p.toScreen(it.lat, it.lon) }
+                    ?: ids.mapNotNull { id -> nodoById[id]?.let { p.toScreen(it.latitud, it.longitud) } }
                 if (points.size >= 2) {
                     // Halo de contraste exterior
                     for (i in 0 until points.size - 1) {
@@ -358,7 +496,7 @@ fun CampusMap(
             }
 
             // 6. MARCADOR DE USUARIO EN VIVO (PULSING BLUE DOT + CONO DE VISIÓN 45° + INCERTIDUMBRE)
-            userPosition?.let { u ->
+            animatedUser?.let { u ->
                 val userScreen = p.toScreen(u.lat, u.lon)
 
                 // Círculo de incertidumbre métrica GNSS
@@ -379,7 +517,7 @@ fun CampusMap(
                 }
 
                 // Cono de visión azimutal translúcido de 45° (FOV) orientado según la brújula
-                azimuthDeg?.let { headingDeg ->
+                (if (navigating && isSimulationMode) headingDeg else azimuthDeg)?.let { headingDeg ->
                     // En coordenadas geográficas 0° = Norte (arriba, -90° en Canvas)
                     val screenHeadingDeg = headingDeg + mapRotationDeg
                     val canvasCenterAngle = screenHeadingDeg - 90f
@@ -433,13 +571,14 @@ fun CampusMap(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = controlsBottomPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (abs(mapRotationDeg) > 0.5f || azimuthDeg != null) {
                 SmallFloatingActionButton(
                     onClick = {
+                        followHeading = false // tocar la brújula devuelve el control de la orientación al usuario
                         // Si el mapa está rotado vuelve al Norte (0°); si está en 0° y hay brújula, orienta el mapa al rumbo del usuario
                         mapRotationDeg = if (abs(mapRotationDeg) > 1f) {
                             0f
@@ -459,26 +598,30 @@ fun CampusMap(
                 }
             }
 
-            FloatingActionButton(
-                onClick = {
-                    val targetPos = userPosition ?: originNodeId?.let { id ->
-                        nodoById[id]?.let { UserPosition(it.latitud, it.longitud) }
-                    }
-                    if (targetPos != null) {
-                        val targetZoom = 3.5f
-                        val raw = proj(1f, Offset.Zero, 0f).toScreen(targetPos.lat, targetPos.lon)
-                        zoom = targetZoom
-                        pan = -(raw - proj(1f, Offset.Zero, 0f).center) * targetZoom
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MyLocation,
-                    contentDescription = "Centrar mapa"
+            // Aparece cuando el usuario queda fuera de pantalla (o al soltar el seguimiento en plena ruta)
+            if (showMyLocationButton) {
+                ExtendedFloatingActionButton(
+                    onClick = { centrarEnUsuario() },
+                    containerColor = Color(0xFF1976D2),
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
+                    icon = { Icon(Icons.Default.MyLocation, contentDescription = null) },
+                    text = { Text("Mi ubicación") }
                 )
+            }
+
+            if (!showMyLocationButton) {
+                FloatingActionButton(
+                    onClick = { centrarEnUsuario() },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MyLocation,
+                        contentDescription = "Centrar mapa"
+                    )
+                }
             }
         }
     }
