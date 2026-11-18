@@ -114,6 +114,13 @@ class RealCampusDataTest {
         assertTrue(lugares.any { it.nombre.contains("Dirección") } && lugares.any { it.nombre.contains("Pacífico") })
     }
 
+    @Test fun `Tasty Food 1 tiene dos entradas y El bosque es cafeteria`() {
+        assertTrue(buscar("tasty food 1").containsAll(listOf(305, 318)))
+        assertTrue(lugares.first { it.idNodo == 318 }.nombre.startsWith("Tasty Food 1"))
+        assertEquals("COMIDA", lugares.first { it.idNodo == 312 }.categoria)
+        assertTrue(312 in buscar("cafeteria") && 305 in buscar("cafeteria"))
+    }
+
     @Test fun `la busqueda ignora puntuacion y mayusculas`() {
         assertEquals(buscar("fcs"), buscar("  (FCS), "))
         assertTrue(301 in buscar("(CIECP)"))
