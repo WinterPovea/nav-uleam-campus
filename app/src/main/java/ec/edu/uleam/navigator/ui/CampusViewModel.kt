@@ -141,6 +141,15 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         recalcular()
     }
 
+    /**
+     * Toque sobre un lugar del mapa: lo elige como destino y traza la ruta de vista previa
+     * (la tarjeta inferior ofrece "Empezar ruta"). Se ignora si ya es el destino o se está navegando.
+     */
+    fun onPlaceTap(l: LugarEntity) {
+        if (ui.navigating || ui.destino?.idNodo == l.idNodo) return
+        elegirDestino(l)
+    }
+
     fun elegirPuerta(n: Int) {
         resetOffRouteTracking()
         detenerNavegacion()

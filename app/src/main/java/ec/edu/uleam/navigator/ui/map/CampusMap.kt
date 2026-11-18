@@ -85,6 +85,7 @@ fun CampusMap(
     userPosition: UserPosition?,
     isSimulationMode: Boolean,
     onMapTap: (lat: Double, lon: Double) -> Unit,
+    onPlaceTap: (LugarEntity) -> Unit = {},
     modifier: Modifier = Modifier,
     azimuthDeg: Float? = null,
     navigating: Boolean = false,
@@ -95,6 +96,8 @@ fun CampusMap(
     var pan by remember { mutableStateOf(Offset.Zero) }
     var mapRotationDeg by remember { mutableFloatStateOf(0f) }
     val currentOnTap by rememberUpdatedState(onMapTap)
+    val currentOnPlaceTap by rememberUpdatedState(onPlaceTap)
+    val currentNavigating by rememberUpdatedState(navigating)
     val scope = rememberCoroutineScope()
 
     // Posición con movimiento suave (el marcador se desliza entre lecturas GPS / pasos de simulación)
@@ -152,6 +155,7 @@ fun CampusMap(
     val lugaresByNodoId = remember(lugares) {
         lugares.associateBy { it.idNodo }
     }
+    val currentLugares by rememberUpdatedState(lugaresByNodoId)
 
     // Paint nativo de Android optimizado para renderizar texto de alta legibilidad en Canvas
     val labelPaint = remember {
@@ -277,10 +281,32 @@ fun CampusMap(
                     }
                 }
                 .pointerInput(Unit) {
-                    detectTapGestures { offset ->
-                        val (lat, lon) = proj().toGeo(offset)
-                        currentOnTap(lat, lon)
-                    }
+                    detectTapGestures(
+                        // Toque corto: si cae sobre un lugar (bloque, comida, etc.) lo elige como destino;
+                        // en un espacio vacío se conserva el comportamiento anterior (fijar origen en simulación).
+                        onTap = { offset ->
+                            if (!currentNavigating) {
+                                val p = proj()
+                                val candidates = currentLugares.mapNotNull { (id, _) ->
+                                    nodoById[id]?.let { id to p.toScreen(it.latitud, it.longitud) }
+                                }
+                                val hit = PlaceHitTest.nearest(candidates, offset, 28.dp.toPx())
+                                val place = hit?.let { currentLugares[it] }
+                                if (place != null) currentOnPlaceTap(place)
+                                else {
+                                    val (lat, lon) = p.toGeo(offset)
+                                    currentOnTap(lat, lon)
+                                }
+                            }
+                        },
+                        // Mantener pulsado: fija el origen aunque haya un lugar bajo el dedo (Modo Simulación)
+                        onLongPress = { offset ->
+                            if (!currentNavigating) {
+                                val (lat, lon) = proj().toGeo(offset)
+                                currentOnTap(lat, lon)
+                            }
+                        }
+                    )
                 }
         ) {
             val p = proj()
