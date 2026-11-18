@@ -2,10 +2,17 @@ package ec.edu.uleam.navigator.data
 
 import android.content.Context
 
-/** Carga los CSV de assets en Room la primera vez que se abre la app. */
+/**
+ * Carga los CSV de assets en Room. Nodos y aristas solo la primera vez; el catálogo de
+ * lugares se refresca en cada arranque para que las instalaciones previas reciban los
+ * nombres de facultades, carreras y palabras clave más recientes de lugares.csv.
+ */
 object CsvSeeder {
     suspend fun seedIfEmpty(ctx: Context, dao: CampusDao) {
-        if (dao.countNodos() > 0) return
+        if (dao.countNodos() > 0) {
+            refreshLugares(ctx, dao)
+            return
+        }
         dao.insertNodos(read(ctx, "nodos.csv").map {
             NodoEntity(it[0].toInt(), it[1].toDouble(), it[2].toDouble(), it[3], it[4])
         })
@@ -15,13 +22,23 @@ object CsvSeeder {
                 bidireccional = it[3].toInt(), tieneEscaleras = it[4].toInt(), nota = it[5].ifBlank { null }
             )
         })
-        dao.insertLugares(read(ctx, "lugares.csv").map {
-            LugarEntity(
-                idNodo = it[0].toInt(), codigo = it[1].ifBlank { null }, nombre = it[2],
-                descripcion = it[3].ifBlank { null }, categoria = it[4], etiquetas = it[5].ifBlank { null },
-                busqueda = it[6], activo = it[7].toInt()
-            )
-        })
+        dao.insertLugares(readLugares(ctx))
+    }
+
+    /** Reemplaza solo la tabla `lugares` con el contenido actual de lugares.csv. */
+    private suspend fun refreshLugares(ctx: Context, dao: CampusDao) {
+        val lugares = readLugares(ctx)
+        if (lugares.isEmpty()) return // no vaciar el catálogo si el asset no se pudo leer
+        dao.clearLugares()
+        dao.insertLugares(lugares)
+    }
+
+    private fun readLugares(ctx: Context): List<LugarEntity> = read(ctx, "lugares.csv").map {
+        LugarEntity(
+            idNodo = it[0].toInt(), codigo = it[1].ifBlank { null }, nombre = it[2],
+            descripcion = it[3].ifBlank { null }, categoria = it[4], etiquetas = it[5].ifBlank { null },
+            busqueda = it[6], activo = it[7].toInt()
+        )
     }
 
     private fun read(ctx: Context, file: String): List<List<String>> =

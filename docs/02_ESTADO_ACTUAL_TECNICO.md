@@ -75,9 +75,9 @@ ec.edu.uleam.navigator/
 - **Archivos de Origen (`app/src/main/assets/`):**
   - `nodos.csv`: 135 nodos con columnas `id, lat, lon, tipo` (`CALLE`, `DESTINO`, `ZONA_SEGURA`), `tiene_escaleras`, `etiqueta`.
   - `aristas.csv`: 185 conexiones peatonales con `id_origen, id_destino, distancia_metros, tiene_escaleras`.
-  - `lugares.csv`: Puntos de interés del campus con `id_nodo, codigo, nombre, descripcion, categoria, busqueda`.
-- **`CsvSeeder.kt`:** Durante la primera inicialización de la base de datos Room, lee los archivos CSV de `assets/` e inserta los registros en una transacción atómica.
-- **`CampusDao.kt`:** Realiza consultas directas a SQLite. La búsqueda de lugares normaliza el texto eliminando diacríticos/tildes para coincidencias rápidas como "bloque b-01" o "fcvt".
+  - `lugares.csv`: Puntos de interés del campus con `id_nodo, codigo, nombre, descripcion, categoria, etiquetas, busqueda, activo`. Los bloques B-01..B-25 se buscan por **Facultad, sigla (FETAH, FCSDB, FCACC, FIIA, FACIVITEC, FCS), carreras y código de bloque**; `codigo` tiene la forma `SIGLA·B-xx`. Se genera con `build_lugares.py` a partir de `data/nodos_u.csv` (sin alterar `nodos.csv` ni `aristas.csv`).
+- **`CsvSeeder.kt`:** En la primera inicialización de Room inserta nodos, aristas y lugares. En arranques posteriores refresca solo la tabla `lugares` (`clearLugares()` + `insertLugares()`), de modo que las instalaciones existentes reciben el catálogo de facultades sin tocar el grafo.
+- **`CampusDao.kt`:** Realiza consultas directas a SQLite. La búsqueda (`CampusRepository.filtrar`) normaliza a minúsculas, sin tildes ni puntuación, y exige que todos los términos aparezcan en `busqueda` ("facultad ciencias tecnologia", "facivitec", "odontologia", "b-16").
 - **`GraphMappers.kt`:** Es el único puente desacoplador entre las tablas de Room y el motor algorítmico, convirtiendo `NodoEntity` y `AristaEntity` en las clases de datos puras `GraphNode` y `GraphEdge`.
 
 ### 4.2. Motor Algorítmico, Turn-by-Turn y Recálculo Dinámico (`routing/astar/`)
@@ -154,4 +154,5 @@ ec.edu.uleam.navigator/
 7. **Recálculo Inteligente Fuera de Ruta (`T3.1`):** Implementación de `GeoMath.distanceToSegment()`, `AStarEngine.isOffRoute()` ($>15\text{ m}$), confirmación temporal ($>3\text{ s}$) en `CampusViewModel`, validación inmediata de GPS fuera del campus al conmutar modo Demo y pruebas unitarias en `GeoMathTest` y `AStarEngineTest`.
 8. **Filtro de Saltos GNSS Anómalos (`T4.2`):** Creación de `LocationFilter.kt` (descarte de saltos $>20\text{ m/s}$ y lecturas de baja precisión $>30\text{ m}$), integración en `FusedLocationSource` y suite de pruebas con trazas ruidosas en `LocationFilterTest.kt`.
 9. **Brújula Peatonal, Cono de Visión y Rotación de Mapa (`T4.1` + `T5.1`):** Creación de `CompassSource.kt` con filtro circular paso bajo, `MapProjection.kt` con rotación afín, renderizado del cono de visión de 45° y botón de brújula en `CampusMap.kt`, recarga en caliente de permisos GPS y pruebas unitarias en `CompassSourceTest.kt` (51 pruebas unitarias en verde).
-10. **Pruebas y Verificación:** Ejecución exitosa de las 51 pruebas unitarias y generación de APK Debug.
+10. **Búsqueda por Facultades/Carreras:** `lugares.csv` enriquecido (30 lugares con facultad/carreras), recarga segura del catálogo en `CsvSeeder`, normalización de puntuación en `CampusRepository`, subtítulo con bloque y carreras en los resultados y etiquetas del mapa `SIGLA·B-xx` (con primera carrera a zoom ≥ 2.8). Pruebas nuevas en `RealCampusDataTest`.
+11. **Pruebas y Verificación:** 51 pruebas previas en verde; las nuevas pruebas de catálogo/búsqueda quedan pendientes de ejecutar con `./gradlew :app:testDebugUnitTest` en un entorno con Android SDK.
