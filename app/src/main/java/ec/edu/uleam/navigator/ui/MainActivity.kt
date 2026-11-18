@@ -81,6 +81,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import ec.edu.uleam.navigator.ui.map.GeoPoint
 import ec.edu.uleam.navigator.ui.map.RouteProgressCalc
@@ -196,6 +198,16 @@ fun CampusApp(vm: CampusViewModel) {
         return
     }
 
+    // Al elegir un destino (lista de búsqueda o toque en el mapa) se cierra el teclado y se quita el foco
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(s.destino?.idNodo) {
+        if (s.destino != null) {
+            focusManager.clearFocus()
+            keyboard?.hide()
+        }
+    }
+
     // Altura de la tarjeta inferior: los botones flotantes del mapa quedan siempre por encima de ella
     var cardHeightPx by remember { mutableStateOf(0) }
     val cardHeightDp = with(LocalDensity.current) { cardHeightPx.toDp() }
@@ -213,6 +225,7 @@ fun CampusApp(vm: CampusViewModel) {
             userPosition = vm.userPosition,
             isSimulationMode = s.isSimulationMode,
             onMapTap = vm::onMapTap,
+            onPlaceTap = vm::onPlaceTap,
             modifier = Modifier.fillMaxSize(),
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
@@ -225,7 +238,9 @@ fun CampusApp(vm: CampusViewModel) {
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // Tarjeta de Búsqueda Institucional
+            // Tarjeta de Búsqueda: se oculta mientras se navega y reaparece al terminar o llegar al destino
+            AnimatedVisibility(visible = !s.navigating) {
+              Column {
             ElevatedCard(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -237,7 +252,7 @@ fun CampusApp(vm: CampusViewModel) {
                         value = s.query,
                         onValueChange = vm::onQuery,
                         singleLine = true,
-                        placeholder = { Text("Buscar bloque, cafetería, puerta, FCVT…") },
+                        placeholder = { Text("Buscar Bloque, Facultad, Carrera, Otros…") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color(0xFFA01B2C)) },
                         trailingIcon = {
                             if (s.query.isNotEmpty()) {
@@ -299,6 +314,8 @@ fun CampusApp(vm: CampusViewModel) {
             }
 
             Spacer(Modifier.height(8.dp))
+              }
+            }
 
             // Barra rápida de selección de puertas origen
             Row(
@@ -459,6 +476,15 @@ fun CollapsibleNavigationCard(
                         fontSize = 17.sp,
                         color = if (s.destino != null) Color(0xFFA01B2C) else MaterialTheme.colorScheme.onSurface
                     )
+                    s.destino?.descripcion?.takeIf { it.isNotBlank() }?.let { d ->
+                        Text(
+                            text = d,
+                            fontSize = 12.sp,
+                            color = Color(0xFF424242),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Text(
                         text = "Origen: ${s.origenLabel}",
                         fontSize = 12.sp,

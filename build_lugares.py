@@ -108,6 +108,15 @@ def main() -> None:
         vistos.add(r["id_nodo"])
         unicas.append(r)
 
+    # Ajustes manuales de catálogo (se reaplican en cada ejecución).
+    for r in unicas:
+        if r["id_nodo"] == "305":  # Tasty Food 1 tiene dos entradas: 305 y 318
+            r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 1)", "tasty food cafeteria comida"
+        elif r["id_nodo"] == "318":
+            r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 2)", "tasty food cafeteria comida"
+        elif r["id_nodo"] == "312":  # El bosque es una cafetería, no un lugar cultural
+            r["categoria"], r["etiquetas"] = "COMIDA", "cafeteria cafe comida"
+
     enriquecidas = 0
     for r in unicas:
         nid = int(r["id_nodo"])

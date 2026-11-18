@@ -23,6 +23,20 @@ data class RouteProgress(
     val bearingDeg: Double = 0.0
 )
 
+/** Selección táctil de lugares sobre el mapa. */
+object PlaceHitTest {
+    /**
+     * Devuelve el id del candidato más cercano al toque [tap] que esté dentro de [radiusPx],
+     * o null si el toque cayó en un espacio vacío del mapa.
+     */
+    fun nearest(candidates: List<Pair<Int, androidx.compose.ui.geometry.Offset>>, tap: androidx.compose.ui.geometry.Offset, radiusPx: Float): Int? =
+        candidates
+            .map { (id, pos) -> id to (pos - tap).getDistance() }
+            .filter { it.second <= radiusPx }
+            .minByOrNull { it.second }
+            ?.first
+}
+
 object RouteProgressCalc {
     private const val M_PER_DEG = 111_320.0
 
