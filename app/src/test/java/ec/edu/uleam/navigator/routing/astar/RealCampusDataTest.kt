@@ -105,6 +105,15 @@ class RealCampusDataTest {
         assertTrue(buscar("salud").containsAll(listOf(204, 218, 219, 221)))
     }
 
+    @Test fun `los nombres mostrados llevan tildes pero la busqueda las ignora`() {
+        val l = lugares.first { it.idNodo == 216 }
+        assertTrue("Tecnologías" in l.nombre, l.nombre)
+        assertTrue("Información" in l.descripcion!!, l.descripcion)
+        assertTrue(216 in buscar("tecnologias") && 216 in buscar("Tecnologías") && 216 in buscar("INFORMACIÓN"))
+        assertTrue(lugares.all { p -> p.busqueda.all { it.code < 128 } }, "busqueda con caracteres no ASCII")
+        assertTrue(lugares.any { it.nombre.contains("Dirección") } && lugares.any { it.nombre.contains("Pacífico") })
+    }
+
     @Test fun `la busqueda ignora puntuacion y mayusculas`() {
         assertEquals(buscar("fcs"), buscar("  (FCS), "))
         assertTrue(301 in buscar("(CIECP)"))
