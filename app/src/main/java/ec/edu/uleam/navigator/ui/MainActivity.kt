@@ -81,6 +81,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -259,10 +260,17 @@ fun CampusApp(vm: CampusViewModel) {
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 14.sp
                                         )
+                                        // Subtítulo: bloque + carreras/referencias para confirmar el destino
+                                        val detalle = listOfNotNull(
+                                            place.codigo?.takeIf { it.isNotBlank() },
+                                            place.descripcion?.takeIf { it.isNotBlank() }
+                                        ).joinToString(" · ").ifBlank { place.categoria }
                                         Text(
-                                            place.categoria + (place.codigo?.let { " · $it" } ?: ""),
+                                            detalle,
                                             fontSize = 12.sp,
-                                            color = Color.Gray
+                                            color = Color.Gray,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                     Icon(

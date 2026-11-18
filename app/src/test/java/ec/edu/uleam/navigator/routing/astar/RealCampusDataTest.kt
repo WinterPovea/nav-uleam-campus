@@ -1,5 +1,6 @@
 package ec.edu.uleam.navigator.routing.astar
 
+import ec.edu.uleam.navigator.data.CampusRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -59,6 +60,65 @@ class RealCampusDataTest {
             val r = engine.findNearestSafeZone(o)
             val ok = assertInstanceOf(RouteResult.Success::class.java, r, "Fallo al evacuar desde puerta $o")
             assertTrue(ok.nodeIds.last() in safeZoneIds, "El destino final ${ok.nodeIds.last()} debe ser una zona segura")
+        }
+    }
+    // ---------- Catálogo de lugares: búsqueda por Facultad / Carrera / Sigla / Bloque ----------
+
+    private val lugares = RealCampusData.lugares()
+
+    private fun buscar(q: String) = CampusRepository.filtrar(lugares, q).map { it.idNodo }
+
+    @Test fun `todos los lugares apuntan a un nodo existente y no hay id_nodo repetidos`() {
+        val nodeIds = graph.nodes.map { it.id }.toSet()
+        val ids = lugares.map { it.idNodo }
+        assertTrue(nodeIds.containsAll(ids), "id_nodo sin nodo: ${ids.filter { it !in nodeIds }}")
+        assertEquals(ids.size, ids.toSet().size, "id_nodo repetidos: ${ids.groupingBy { it }.eachCount().filter { it.value > 1 }.keys}")
+    }
+
+    @Test fun `la columna busqueda esta normalizada sin tildes ni puntuacion`() {
+        lugares.forEach {
+            assertEquals(CampusRepository.normalizar(it.busqueda), it.busqueda, "busqueda no normalizada en nodo ${it.idNodo}")
+            assertEquals(it.busqueda, it.busqueda.lowercase(), "busqueda con mayusculas en nodo ${it.idNodo}")
+        }
+    }
+
+    @Test fun `los 25 bloques B-01 a B-25 siguen siendo buscables por su codigo`() {
+        for (n in 1..25) {
+            val b = "b-%02d".format(n)
+            assertTrue(buscar(b).isNotEmpty(), "Sin resultados para $b")
+            assertTrue(buscar("bloque $b").isNotEmpty(), "Sin resultados para bloque $b")
+        }
+    }
+
+    @Test fun `se encuentra el lugar por facultad, sigla, carrera y bloque`() {
+        assertTrue(216 in buscar("Facultad de Ciencias de la Vida y Tecnologías"))
+        assertTrue(216 in buscar("facultad ciencias tecnologia"))
+        assertTrue(216 in buscar("FACIVITEC"))
+        assertTrue(216 in buscar("Software"))
+        assertTrue(216 in buscar("B-16"))
+        assertTrue(204 in buscar("Odontología"))
+        assertTrue(218 in buscar("Enfermería"))
+        assertTrue(206 in buscar("Derecho"))
+        assertTrue(209 in buscar("Ingeniería Industrial"))
+        assertTrue(221 in buscar("psicologia"))
+        assertTrue(313 in buscar("estadio"))
+        assertTrue(buscar("salud").containsAll(listOf(204, 218, 219, 221)))
+    }
+
+    @Test fun `la busqueda ignora puntuacion y mayusculas`() {
+        assertEquals(buscar("fcs"), buscar("  (FCS), "))
+        assertTrue(301 in buscar("(CIECP)"))
+        assertTrue(buscar("zzzz inexistente").isEmpty())
+    }
+
+    @Test fun `cada resultado de busqueda por facultad tiene ruta optima desde todas las puertas`() {
+        val ids = listOf("facivitec", "fcs", "fiia", "fcsdb", "fetah", "fcacc", "software", "odontologia").flatMap(::buscar).distinct()
+        assertTrue(ids.isNotEmpty())
+        for (d in ids) for (o in entradas) {
+            val expected = referenceDistance(graph, o, d, false)
+            val actual = engine.findRoute(o, d)
+            if (expected == null) assertInstanceOf(RouteResult.Failure::class.java, actual, "$o->$d")
+            else assertEquals(expected, (actual as RouteResult.Success).distanceM, 1e-6, "$o->$d")
         }
     }
 }
