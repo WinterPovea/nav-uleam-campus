@@ -57,4 +57,31 @@ class CampusShapesTest {
             assertTrue(p.lat in minLat..maxLat && p.lon in minLon..maxLon, "${s.codigo} fuera del campus")
         }
     }
+
+    @Test
+    fun envolventeConvexaIgnoraPuntosInteriores() {
+        val cuadrado = listOf(GeoPoint(0.0, 0.0), GeoPoint(0.0, 1.0), GeoPoint(1.0, 1.0), GeoPoint(1.0, 0.0))
+        val hull = CampusShapesGeometry.convexHull(cuadrado + GeoPoint(0.5, 0.5) + GeoPoint(0.2, 0.7))
+        assertEquals(4, hull.size)
+        assertTrue(CampusShapesGeometry.insideConvex(hull, GeoPoint(0.5, 0.5)))
+        assertTrue(!CampusShapesGeometry.insideConvex(hull, GeoPoint(1.5, 0.5)))
+    }
+
+    @Test
+    fun arbolesSonDeterministasYEstanDentroDelTerreno() {
+        val ground = CampusShapesGeometry.ground(realShapes())
+        val otra = CampusShapesGeometry.ground(realShapes())
+        assertEquals(ground.trees, otra.trees)
+        assertTrue(ground.trees.size > 100)
+        assertTrue(ground.trees.all { CampusShapesGeometry.insideConvex(ground.hull, GeoPoint(it.lat, it.lon)) })
+    }
+
+    @Test
+    fun unaEtiquetaPorBloqueYEstadio() {
+        val labels = CampusShapesGeometry.labels(realShapes())
+        val bloques = labels.filter { it.tipo == "EDIFICIO" }.map { it.texto }
+        assertEquals(bloques.size, bloques.toSet().size, "etiquetas de bloque repetidas")
+        assertTrue("B-04" in bloques && "B-25" in bloques)
+        assertTrue(labels.any { it.tipo == "ESTADIO" })
+    }
 }

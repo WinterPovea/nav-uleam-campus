@@ -45,6 +45,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -153,6 +154,10 @@ fun CampusMap(
         )
     }
 
+    val ground = remember(shapes) { CampusShapesGeometry.ground(shapes) }
+    val shapeLabels = remember(shapes) { CampusShapesGeometry.labels(shapes) }
+    val hasShapes = shapes.isNotEmpty()
+
     val lugaresByNodoId = remember(lugares) {
         lugares.associateBy { it.idNodo }
     }
@@ -255,7 +260,7 @@ fun CampusMap(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF6F5F0)) // Fondo crema cartográfico suave institucional
+                .background(if (shapes.isNotEmpty()) MapTheme.OUTSIDE else Color(0xFFF6F5F0)) // Oscuro con diseño de mapa físico; crema si no hay figuras
                 .onSizeChanged { size = it }
                 .pointerInput(Unit) {
                     detectTransformGestures { centroid, panChange, zoomChange, rotationChange ->
@@ -312,8 +317,8 @@ fun CampusMap(
         ) {
             val p = proj()
 
-            // 0. HUELLAS DE EDIFICIOS, ESTADIO, CANCHAS (diseño del mapa)
-            drawCampusShapes(p, shapes, zoom)
+            // 0. TERRENO Y VEGETACIÓN DEL CAMPUS (diseño del mapa físico)
+            drawCampusGround(p, ground, zoom)
 
             // 1. DIBUJAR RED PEATONAL Y ARISTAS
             aristas.forEach { edge ->
@@ -322,7 +327,16 @@ fun CampusMap(
                 val p1 = p.toScreen(u.latitud, u.longitud)
                 val p2 = p.toScreen(v.latitud, v.longitud)
 
-                if (edge.tieneEscaleras == 1) {
+                if (hasShapes) {
+                    val w = roadWidthPx(p, zoom)
+                    if (edge.tieneEscaleras == 1) {
+                        drawLine(Color(0xFFE8F1EF), p1, p2, strokeWidth = (w * 0.45f).coerceAtLeast(3f),
+                            cap = StrokeCap.Butt, pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 6f)))
+                    } else {
+                        drawLine(MapTheme.ROAD_CASING, p1, p2, strokeWidth = w + 3f, cap = StrokeCap.Round)
+                        drawLine(MapTheme.ROAD, p1, p2, strokeWidth = w, cap = StrokeCap.Round)
+                    }
+                } else if (edge.tieneEscaleras == 1) {
                     // Escaleras: línea más delgada de tono pizarra
                     drawLine(
                         color = Color(0xFF64748B),
@@ -342,6 +356,9 @@ fun CampusMap(
                     )
                 }
             }
+
+            // 1b. EDIFICIOS, ESTADIO, CANCHAS, PARQUEOS Y AGUA (sobre las vías, bajo ruta y etiquetas)
+            drawCampusShapes(p, shapes, zoom, shapeLabels)
 
             // 2. DIBUJAR INFRAESTRUCTURA DE EDIFICIOS Y BLOQUES (GEOMETRÍA Y RELLENO)
             nodos.forEach { node ->
@@ -392,7 +409,7 @@ fun CampusMap(
                         "ENTRADA" -> {
                             // Puertas de acceso institucional
                             drawCircle(
-                                color = Color(0xFF00796B),
+                                color = if (hasShapes) MapTheme.ARROW_YELLOW else Color(0xFF00796B),
                                 radius = 13f,
                                 center = center,
                                 style = Fill
@@ -435,6 +452,8 @@ fun CampusMap(
             if (zoom >= 1.2f) {
                 nodos.forEach { node ->
                     val place = lugaresByNodoId[node.id] ?: return@forEach
+                    // Con huellas dibujadas el código del bloque ya va dentro del edificio (salvo con zoom alto)
+                    if (hasShapes && zoom < 2.8f && node.tipo == "DESTINO" && !place.codigo.isNullOrBlank()) return@forEach
                     val center = p.toScreen(node.latitud, node.longitud)
 
                     val label = when {
@@ -496,7 +515,7 @@ fun CampusMap(
                     // Halo de contraste exterior
                     for (i in 0 until points.size - 1) {
                         drawLine(
-                            color = Color(0x550D47A1),
+                            color = if (hasShapes) Color(0xCCFFFFFF) else Color(0x550D47A1),
                             start = points[i],
                             end = points[i + 1],
                             strokeWidth = 15f,
@@ -506,7 +525,7 @@ fun CampusMap(
                     // Línea principal azul ULEAM
                     for (i in 0 until points.size - 1) {
                         drawLine(
-                            color = Color(0xFF1976D2),
+                            color = if (hasShapes) Color(0xFF0288D1) else Color(0xFF1976D2),
                             start = points[i],
                             end = points[i + 1],
                             strokeWidth = 8.5f,
