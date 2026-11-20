@@ -78,6 +78,7 @@ fun CampusMap(
     nodos: List<NodoEntity>,
     aristas: List<AristaEntity>,
     lugares: List<LugarEntity>,
+    shapes: List<CampusShape> = emptyList(),
     nodoById: Map<Int, NodoEntity>,
     routeNodeIds: List<Int>?,
     originNodeId: Int?,
@@ -311,6 +312,9 @@ fun CampusMap(
         ) {
             val p = proj()
 
+            // 0. HUELLAS DE EDIFICIOS, ESTADIO, CANCHAS (diseño del mapa)
+            drawCampusShapes(p, shapes, zoom)
+
             // 1. DIBUJAR RED PEATONAL Y ARISTAS
             aristas.forEach { edge ->
                 val u = nodoById[edge.idOrigen] ?: return@forEach
@@ -356,6 +360,12 @@ fun CampusMap(
                                 else -> Color(0xFFE3F2FD) to Color(0xFF1565C0)             // Bloques de aulas / FCVT
                             }
 
+                            if (shapes.isNotEmpty()) {
+                                // Con huellas dibujadas, la entrada del lugar es solo un punto sobre el edificio
+                                drawCircle(Color.White, 10f, center)
+                                drawCircle(strokeColor, 7f, center)
+                                return@forEach
+                            }
                             // Polígono/rectángulo de edificio
                             val w = 54f
                             val h = 38f

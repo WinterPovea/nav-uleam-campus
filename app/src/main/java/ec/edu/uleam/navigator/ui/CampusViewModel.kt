@@ -18,6 +18,7 @@ import ec.edu.uleam.navigator.routing.astar.NavigationGuidance
 import ec.edu.uleam.navigator.routing.astar.NavigationInstruction
 import ec.edu.uleam.navigator.routing.astar.RouteOptions
 import ec.edu.uleam.navigator.routing.astar.RouteResult
+import ec.edu.uleam.navigator.ui.map.CampusShape
 import ec.edu.uleam.navigator.ui.map.GeoPoint
 import ec.edu.uleam.navigator.ui.map.RouteProgressCalc
 import kotlinx.coroutines.Dispatchers
@@ -102,6 +103,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     val nodos: List<NodoEntity> get() = repo.nodos
     val aristas: List<AristaEntity> get() = repo.aristas
     val lugares: List<LugarEntity> get() = repo.lugares
+    val shapes: List<CampusShape> get() = repo.shapes
     val nodoById: Map<Int, NodoEntity> get() = nodos.associateBy { it.id }
 
     val userPosition: UserPosition?

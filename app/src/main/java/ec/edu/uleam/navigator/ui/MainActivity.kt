@@ -218,6 +218,7 @@ fun CampusApp(vm: CampusViewModel) {
             nodos = vm.nodos,
             aristas = vm.aristas,
             lugares = vm.lugares,
+            shapes = vm.shapes,
             nodoById = vm.nodoById,
             routeNodeIds = s.route?.nodeIds,
             originNodeId = s.origenId,
