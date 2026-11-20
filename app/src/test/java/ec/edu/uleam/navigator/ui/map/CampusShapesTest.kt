@@ -84,4 +84,39 @@ class CampusShapesTest {
         assertTrue("B-04" in bloques && "B-25" in bloques)
         assertTrue(labels.any { it.tipo == "ESTADIO" })
     }
+
+    @Test
+    fun hayViasDecorativasYSoloSeRotulanLosBloquesDelCatalogo() {
+        val shapes = realShapes()
+        assertTrue(shapes.count { it.tipo == "VIA" } >= 5)
+        assertTrue(shapes.filter { it.tipo == "VIA" }.all { (it.codigo.toFloatOrNull() ?: 0f) in 2f..20f })
+        val etiquetas = CampusShapesGeometry.labels(shapes).filter { it.tipo == "EDIFICIO" }.map { it.texto }
+        assertTrue(etiquetas.all { Regex("B-\\d{2}").matches(it) }, "etiquetas fuera del catálogo: $etiquetas")
+    }
+
+    @Test
+    fun laHuellaDeCadaBloqueTocaElNodoDeSuEntrada() {
+        val shapes = realShapes().filter { it.tipo == "EDIFICIO" }
+        val g = RealCampusData.graph()
+        // el nodo 230 es el laboratorio gastronómico (J-10), que lleva el código B-05 pero no es la entrada del bloque
+        for (l in RealCampusData.lugares().filter { it.codigo?.contains("B-") == true && it.idNodo != 230 }) {
+            val b = Regex("B-\\d+").find(l.codigo!!)!!.value
+            val n = g.node(l.idNodo)!!
+            val d = shapes.filter { it.codigo == b }.minOf { s ->
+                s.puntos.indices.minOf { i ->
+                    val a = s.puntos[i]; val c = s.puntos[(i + 1) % s.puntos.size]
+                    distanciaASegmentoM(GeoPoint(n.latitude, n.longitude), a, c)
+                }
+            }
+            assertTrue(d < 12.0, "$b: su entrada está a ${d.toInt()} m de la huella")
+        }
+    }
+
+    private fun distanciaASegmentoM(p: GeoPoint, a: GeoPoint, b: GeoPoint): Double {
+        val kx = 111_320.0 * Math.cos(Math.toRadians(p.lat))
+        val px = (p.lon - a.lon) * kx; val py = (p.lat - a.lat) * 111_320.0
+        val bx = (b.lon - a.lon) * kx; val by = (b.lat - a.lat) * 111_320.0
+        val t = ((px * bx + py * by) / (bx * bx + by * by).coerceAtLeast(1e-9)).coerceIn(0.0, 1.0)
+        return Math.hypot(px - t * bx, py - t * by)
+    }
 }

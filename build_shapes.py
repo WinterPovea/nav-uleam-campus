@@ -85,6 +85,22 @@ o('Plaza Cultural',[(446,350),(500,342),(572,485),(480,448)],'PLAZA')
 PITCH=[(547,812),(639,722),(795,882),(697,967)]
 PARK=[(692,250),(445,315),(252,532),(770,540),(952,630),(252,742),(405,840),(487,872),(575,1047),(375,1252),(272,1310),(730,1322),(850,1462)]
 WATER=[(297,325),(717,395),(610,515),(952,535),(857,690),(900,925),(575,987),(320,1027),(782,1132),(935,1345),(632,1437),(672,1482)]
+# Vias decorativas trazadas sobre la foto (ancho en px de foto, polilinea). Es solo diseno: NO son las aristas del grafo.
+ROADS=[
+ (45,[(175,410),(260,382),(330,352),(400,322),(470,298),(540,268),(605,278)]),
+ (50,[(520,505),(530,570),(560,650),(600,715)]),
+ (42,[(605,278),(660,300),(720,335),(780,385),(830,450),(870,530),(895,610),(925,680),(955,735),(945,800),(925,870),(885,935),(860,1000),(840,1060),(835,1100)]),
+ (30,[(830,450),(890,480),(960,478),(1020,455)]),
+ (36,[(835,1100),(800,1150),(745,1190),(722,1250),(740,1310),(800,1340),(880,1345),(950,1320),(985,1285)]),
+ (42,[(235,885),(250,840),(310,805),(400,795),(470,820),(520,860),(570,900),(620,945),(680,1000),(740,1050),(790,1080),(835,1100)]),
+ (34,[(230,925),(300,952),(400,987),(500,1030),(580,1062),(650,1068),(700,1040)]),
+ (40,[(215,880),(240,960),(275,1050),(310,1130),(332,1200),(320,1270),(300,1340),(280,1410),(262,1490)]),
+ (38,[(545,715),(480,760),(400,787),(320,797),(250,822),(215,865)]),
+]
+# Entrada (nodo DESTINO) de cada edificio que no es bloque: la huella se acerca a su nodo
+OTRO_NODE={'A-01':309,'I-09':[308,319],'C-03':300,'CIEC':301,'K-11':310,'F-06':306,'E-05':302,'J-10':230,'M-13':324,
+ 'N-14':303,'Ñ-15':328,'G-07':320,'I-12':317,'EP ULEAM':323,'Tasty Food 2':326,'Tasty Food 3':327,'Tasty Food 4':321,
+ 'Cancha cesped':322,'Canchas multiples':304}
 # puntas de las flechas amarillas de ingreso -> nodos 100..103
 GATES={100:(595,287),103:(192,420),101:(227,877),102:(937,1274)}
 
@@ -225,20 +241,38 @@ def main():
     out = []
     for t, c, p in shapes:
         out.append([t, c, [to_ll(*sim.fwd(np.array(q))) for q in p]])
-    # B-23 (naranjas): acercarlos a su entrada (nodo 223)
-    n223 = np.array(to_m(*nodes[223][1:]))
-    b23 = [[to_m(*q) for q in o[2]] for o in out if o[1] == 'B-23']
-    q, d = nearest_on(b23, n223)
-    if d > 6:
-        v = (n223 - q) / d * (d - 6)
-        for o in out:
-            if o[1] == 'B-23': o[2] = [to_ll(*(np.array(to_m(*pt)) + v)) for pt in o[2]]
-        print('B-23: acercado %.1f m a su entrada (de %.1f a 6 m)' % (d - 6, d))
+    # Cada edificio se acerca a su nodo de entrada (DESTINO): la huella debe tocar el nodo, sin saltos grandes (<= 16 m)
+    def snap(code, nid, tipos):
+        polys = [o for o in out if o[1] == code and o[0] in tipos]
+        if not polys: return
+        n = np.array(to_m(*nodes[nid][1:]))
+        best = min(polys, key=lambda o: nearest_on([[to_m(*q) for q in o[2]]], n)[1])
+        target = [best] if code not in BLOQUES_MULTI else polys
+        q, d = nearest_on([[to_m(*pt) for pt in o[2]] for o in target], n)
+        inside = any(pt_in_poly(n, [to_m(*pt) for pt in o[2]]) for o in target)
+        if inside or d <= 1.5: return
+        step = min(d - 1.0, 16.0); v = (n - q) / d * step
+        for o in target: o[2] = [to_ll(*(np.array(to_m(*pt)) + v)) for pt in o[2]]
+        print('  %-18s nodo %d: acercado %.1f m (estaba a %.1f m)' % (code, nid, step, d))
+    BLOQUES_MULTI = {'B-02', 'B-05', 'B-07', 'B-11', 'B-23'}
+    for nid, (d_, la, lo) in nodes.items():
+        m = re.search(r'Entrada Bloque B-(\d+)$', d_.strip())
+        if m and 200 <= nid < 300:
+            code = 'B-%02d' % int(m.group(1))
+            if code in ('B-20', 'B-21'): code = 'B-21' if code == 'B-20' else 'B-20'   # rotulado fisico invertido
+            snap(code, nid, ('EDIFICIO',))
+    for code, ids in OTRO_NODE.items():
+        for nid in (ids if isinstance(ids, list) else [ids]):
+            snap(code, nid, ('OTRO', 'CANCHA', 'COMIDA', 'CANCHA_VERDE'))
     # Tasty Food 1: un solo edificio entre sus dos entradas (305 y 318)
     a = np.array(to_m(*nodes[305][1:])); b = np.array(to_m(*nodes[318][1:])); mid = (a + b) / 2
     hy = abs(a[1] - b[1]) / 2 - 2.0; hx = 6.5
     tasty = [(mid[0] - hx, mid[1] - hy), (mid[0] + hx, mid[1] - hy), (mid[0] + hx, mid[1] + hy), (mid[0] - hx, mid[1] + hy)]
     out.append(['COMIDA', 'Tasty Food 1', [to_ll(*q) for q in tasty]])
+    for w, pts in ROADS:
+        out.append(['VIA', '%.1f' % (w * 0.5 * float(np.hypot(*sim.s[:2]))), [to_ll(*sim.fwd(np.array(q, float))) for q in pts]])
+    ring = rrect(pc[0], pc[1], u[0], u[1], hl + 58, hw + 58, 100)
+    out.append(['VIA', '%.1f' % (30 * 0.5 * float(np.hypot(*sim.s[:2]))), [to_ll(*sim.fwd(np.array(q, float))) for q in ring + [ring[0]]]])
     for p in PARK: out.append(['PARQUEO', 'P', [to_ll(*sim.fwd(np.array(p, float)))]])
     for p in WATER: out.append(['AGUA', 'Agua', [to_ll(*sim.fwd(np.array(p, float)))]])
     path = os.path.join(ROOT, 'app/src/main/assets/campus_shapes.csv')

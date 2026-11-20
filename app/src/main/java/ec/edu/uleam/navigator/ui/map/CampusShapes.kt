@@ -119,10 +119,10 @@ object CampusShapesGeometry {
         return kotlin.math.abs(a) / 2.0
     }
 
-    /** Una etiqueta por código (sobre la figura más grande): bloques, edificios con sigla corta y el estadio. */
+    /** Una etiqueta por bloque del catálogo (B-xx, sobre la figura más grande), más estadio, plaza y cafeterías. Los códigos del mapa físico que no están en el CSV no se rotulan. */
     fun labels(shapes: List<CampusShape>): List<ShapeLabel> {
         val out = ArrayList<ShapeLabel>()
-        shapes.filter { (it.tipo == "EDIFICIO" || it.tipo == "OTRO") && it.codigo.length in 1..5 && it.puntos.size >= 3 }
+        shapes.filter { it.tipo == "EDIFICIO" && it.codigo.isNotBlank() && it.puntos.size >= 3 }
             .groupBy { it.codigo }
             .forEach { (cod, list) ->
                 val s = list.maxBy { area(it.puntos) }
@@ -223,12 +223,31 @@ private fun DrawScope.drawPlazaIcon(c: Offset, k: Float) {
     drawLine(gold, Offset(c.x, c.y + r * 0.2f), Offset(c.x, c.y + r), strokeWidth = st.width, cap = StrokeCap.Round)
 }
 
+/** Vías decorativas (tipo VIA: `codigo` = ancho en metros). Son diseño: la ruta real sigue las aristas del grafo. */
+private fun DrawScope.drawCampusRoads(p: MapProjection, shapes: List<CampusShape>, k: Float) {
+    val vias = shapes.filter { it.tipo == "VIA" && it.puntos.size >= 2 }
+    if (vias.isEmpty()) return
+    val paths = vias.map { s ->
+        val path = Path()
+        s.puntos.forEachIndexed { i, g ->
+            val o = p.toScreen(g.lat, g.lon)
+            if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
+        }
+        (s.codigo.toFloatOrNull() ?: 6f) * k to path
+    }
+    val round = androidx.compose.ui.graphics.StrokeJoin.Round
+    // primero todos los bordes y luego los rellenos, para que los cruces se fundan sin costuras
+    for ((w, path) in paths) drawPath(path, MapTheme.ROAD_CASING, style = Stroke(width = w.coerceAtLeast(5f) + 5f, cap = StrokeCap.Round, join = round))
+    for ((w, path) in paths) drawPath(path, MapTheme.ROAD, style = Stroke(width = w.coerceAtLeast(5f), cap = StrokeCap.Round, join = round))
+}
+
 /** Edificios, estadio, canchas, plaza, parqueos y agua. Va DESPUÉS de las vías para que las tape en las huellas. */
 fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom: Float, labels: List<ShapeLabel> = emptyList()) {
     val order = listOf("PISTA", "PISTA_INT", "CANCHA_ESTADIO", "GRADA", "PLAZA", "CANCHA_VERDE", "CANCHA", "COMIDA", "OTRO", "EDIFICIO")
     val flatTypes = setOf("PISTA", "PISTA_INT", "CANCHA_ESTADIO", "GRADA", "PLAZA", "CANCHA_VERDE", "CANCHA")
     val k = pxPerMeter(p, zoom)
     val shadow = Offset(2.5f, 3.5f)
+    drawCampusRoads(p, shapes, k)
     for (tipo in order) {
         for (s in shapes) {
             if (s.tipo != tipo || s.puntos.size < 3) continue

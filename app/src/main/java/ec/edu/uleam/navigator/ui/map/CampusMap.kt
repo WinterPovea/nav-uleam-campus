@@ -320,23 +320,15 @@ fun CampusMap(
             // 0. TERRENO Y VEGETACIÓN DEL CAMPUS (diseño del mapa físico)
             drawCampusGround(p, ground, zoom)
 
-            // 1. DIBUJAR RED PEATONAL Y ARISTAS
-            aristas.forEach { edge ->
+            // 1. DIBUJAR RED PEATONAL Y ARISTAS (con el diseño del mapa, las vías van en la capa de figuras
+            //    y las aristas del grafo no se pintan: solo se ve la ruta activa)
+            if (!hasShapes) aristas.forEach { edge ->
                 val u = nodoById[edge.idOrigen] ?: return@forEach
                 val v = nodoById[edge.idDestino] ?: return@forEach
                 val p1 = p.toScreen(u.latitud, u.longitud)
                 val p2 = p.toScreen(v.latitud, v.longitud)
 
-                if (hasShapes) {
-                    val w = roadWidthPx(p, zoom)
-                    if (edge.tieneEscaleras == 1) {
-                        drawLine(Color(0xFFE8F1EF), p1, p2, strokeWidth = (w * 0.45f).coerceAtLeast(3f),
-                            cap = StrokeCap.Butt, pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 6f)))
-                    } else {
-                        drawLine(MapTheme.ROAD_CASING, p1, p2, strokeWidth = w + 4f, cap = StrokeCap.Round)
-                        drawLine(MapTheme.ROAD, p1, p2, strokeWidth = w, cap = StrokeCap.Round)
-                    }
-                } else if (edge.tieneEscaleras == 1) {
+                if (edge.tieneEscaleras == 1) {
                     // Escaleras: línea más delgada de tono pizarra
                     drawLine(
                         color = Color(0xFF64748B),
