@@ -333,7 +333,7 @@ fun CampusMap(
                         drawLine(Color(0xFFE8F1EF), p1, p2, strokeWidth = (w * 0.45f).coerceAtLeast(3f),
                             cap = StrokeCap.Butt, pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 6f)))
                     } else {
-                        drawLine(MapTheme.ROAD_CASING, p1, p2, strokeWidth = w + 3f, cap = StrokeCap.Round)
+                        drawLine(MapTheme.ROAD_CASING, p1, p2, strokeWidth = w + 4f, cap = StrokeCap.Round)
                         drawLine(MapTheme.ROAD, p1, p2, strokeWidth = w, cap = StrokeCap.Round)
                     }
                 } else if (edge.tieneEscaleras == 1) {

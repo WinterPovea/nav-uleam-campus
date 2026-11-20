@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.nativeCanvas
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -42,12 +43,13 @@ internal fun facultyColor(grupo: String): Color = when (grupo) {
     else -> Color(0xFF5E8A8F)
 }
 
-/** Paleta "mapa físico": exterior oscuro, terreno del campus verdoso y vías claras. */
+/** Paleta "mapa físico": exterior oscuro, terreno claro con vegetación y vías oscuras con borde claro. */
 object MapTheme {
     val OUTSIDE = Color(0xFF2B3335)
-    val GROUND = Color(0xFF4C6F68)
-    val ROAD = Color(0xFF9DB7B3)
-    val ROAD_CASING = Color(0xFF3A5450)
+    val GROUND = Color(0xFFCFE2DC)
+    val ROAD = Color(0xFF5D838C)
+    val ROAD_CASING = Color(0xFFE3F0EC)
+    val PLAZA = Color(0xFF3F6470)
     val ARROW_YELLOW = Color(0xFFFFD21F)
 }
 
@@ -90,7 +92,7 @@ object CampusShapesGeometry {
     }
 
     /** Árboles repartidos con un generador congruencial fijo: el mapa se ve igual en cada arranque. */
-    fun trees(hull: List<GeoPoint>, count: Int = 420, seed: Long = 20260518L): List<Tree> {
+    fun trees(hull: List<GeoPoint>, count: Int = 650, seed: Long = 20260518L): List<Tree> {
         if (hull.size < 3) return emptyList()
         val minLat = hull.minOf { it.lat }; val maxLat = hull.maxOf { it.lat }
         val minLon = hull.minOf { it.lon }; val maxLon = hull.maxOf { it.lon }
@@ -101,7 +103,7 @@ object CampusShapesGeometry {
         while (out.size < count && tries < count * 12) {
             tries++
             val g = GeoPoint(minLat + next() * (maxLat - minLat), minLon + next() * (maxLon - minLon))
-            if (insideConvex(hull, g)) out.add(Tree(g.lat, g.lon, (3.0 + next() * 4.5).toFloat(), (next() * 3).toInt().coerceIn(0, 2)))
+            if (insideConvex(hull, g)) out.add(Tree(g.lat, g.lon, (4.0 + next() * 6.0).toFloat(), (next() * 3).toInt().coerceIn(0, 2)))
         }
         return out
     }
@@ -126,8 +128,11 @@ object CampusShapesGeometry {
                 val s = list.maxBy { area(it.puntos) }
                 out.add(ShapeLabel(cod, s.tipo, GeoPoint(s.puntos.map { it.lat }.average(), s.puntos.map { it.lon }.average())))
             }
-        shapes.firstOrNull { it.tipo == "CANCHA_ESTADIO" && it.puntos.size >= 3 }?.let { s ->
-            out.add(ShapeLabel("Estadio\nUniversitario", "ESTADIO", GeoPoint(s.puntos.map { it.lat }.average(), s.puntos.map { it.lon }.average())))
+        fun centro(s: CampusShape) = GeoPoint(s.puntos.map { it.lat }.average(), s.puntos.map { it.lon }.average())
+        shapes.firstOrNull { it.tipo == "CANCHA_ESTADIO" && it.puntos.size >= 3 }?.let { out.add(ShapeLabel("Estadio\nUniversitario", "ESTADIO", centro(it))) }
+        shapes.firstOrNull { it.tipo == "PLAZA" && it.puntos.size >= 3 }?.let { out.add(ShapeLabel("Plaza\nCultural", "PLAZA", centro(it))) }
+        shapes.filter { it.tipo == "COMIDA" && it.puntos.size >= 3 }.forEach { s ->
+            out.add(ShapeLabel("Tasty " + s.codigo.filter { c -> c.isDigit() }, "COMIDA", centro(s)))
         }
         return out
     }
@@ -140,7 +145,7 @@ private val labelPaint = Paint().apply {
 
 private fun pxPerMeter(p: MapProjection, zoom: Float) = p.base * zoom / 111_320f
 
-/** Terreno verdoso del campus con vegetación, sobre el fondo oscuro. Se dibuja ANTES que las vías. */
+/** Terreno claro del campus con vegetación, sobre el fondo oscuro. Se dibuja ANTES que las vías. */
 fun DrawScope.drawCampusGround(p: MapProjection, ground: CampusGround, zoom: Float) {
     if (ground.hull.size < 3) return
     val k = pxPerMeter(p, zoom)
@@ -153,7 +158,7 @@ fun DrawScope.drawCampusGround(p: MapProjection, ground: CampusGround, zoom: Flo
     // El trazo grueso infla el contorno unos metros para que el terreno envuelva los edificios del borde
     drawPath(path, MapTheme.GROUND, style = Stroke(width = 26f * k, join = androidx.compose.ui.graphics.StrokeJoin.Round))
     drawPath(path, MapTheme.GROUND, style = Fill)
-    val tones = listOf(Color(0x883F7A55), Color(0x882F6446), Color(0x775E8F6B))
+    val tones = listOf(Color(0x99338A52), Color(0x992E7A47), Color(0x8860A870))
     for (t in ground.trees) {
         val r = t.radioM * k
         if (r < 1.5f) continue
@@ -164,58 +169,125 @@ fun DrawScope.drawCampusGround(p: MapProjection, ground: CampusGround, zoom: Flo
 /** Anchura de una vía peatonal en píxeles (≈5 m, con mínimo legible). */
 fun roadWidthPx(p: MapProjection, zoom: Float): Float = (5f * pxPerMeter(p, zoom)).coerceIn(4f, 60f)
 
-/** Edificios, estadio, canchas, parqueos y agua. Va DESPUÉS de las vías para que las tape en las huellas. */
+private fun DrawScope.pathOf(p: MapProjection, s: CampusShape): Path {
+    val path = Path()
+    s.puntos.forEachIndexed { i, g ->
+        val o = p.toScreen(g.lat, g.lon)
+        if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
+    }
+    path.close()
+    return path
+}
+
+/** Marcas del campo del estadio (línea central, círculo, áreas) a partir de su rectángulo p0-p1-p2-p3. */
+private fun DrawScope.drawPitchMarks(p: MapProjection, s: CampusShape) {
+    if (s.puntos.size != 4) return
+    val q = s.puntos.map { p.toScreen(it.lat, it.lon) }
+    val m1 = (q[0] + q[1]) / 2f; val m2 = (q[2] + q[3]) / 2f   // centros de las dos líneas de meta
+    val w = q[1] - q[0]; val e = m2 - m1
+    val line = Color.White.copy(alpha = 0.75f); val st = Stroke(width = 1.6f)
+    fun rect(c: Offset, hw: Float, depth: Float, dir: Float) {
+        val a = c - w * hw; val b = c + w * hw
+        val pa = Path().apply {
+            moveTo(a.x, a.y); lineTo(a.x + e.x * depth * dir, a.y + e.y * depth * dir)
+            lineTo(b.x + e.x * depth * dir, b.y + e.y * depth * dir); lineTo(b.x, b.y)
+        }
+        drawPath(pa, line, style = st)
+    }
+    rect(m1, 0.28f, 0.17f, 1f); rect(m1, 0.13f, 0.06f, 1f)
+    rect(m2, 0.28f, 0.17f, -1f); rect(m2, 0.13f, 0.06f, -1f)
+    val c = (m1 + m2) / 2f
+    drawLine(line, c - w / 2f, c + w / 2f, strokeWidth = 1.6f)
+    drawCircle(line, w.getDistance() * 0.17f, c, style = st)
+}
+
+/** Gradas: bloque con franjas a lo largo del lado largo. */
+private fun DrawScope.drawStands(p: MapProjection, s: CampusShape) {
+    if (s.puntos.size != 4) return
+    val q = s.puntos.map { p.toScreen(it.lat, it.lon) }
+    val n = 14
+    for (i in 1 until n) {
+        val t = i / n.toFloat()
+        drawLine(Color(0x66344650), q[0] + (q[3] - q[0]) * t, q[1] + (q[2] - q[1]) * t, strokeWidth = 1.4f)
+    }
+}
+
+/** Símbolo dorado de la Plaza Cultural (dos brazos curvos sobre un tronco). */
+private fun DrawScope.drawPlazaIcon(c: Offset, k: Float) {
+    val r = 6f * k
+    val gold = Color(0xFFD9B84A)
+    val st = Stroke(width = (1.3f * k).coerceAtLeast(2.5f), cap = StrokeCap.Round)
+    val left = Path().apply { moveTo(c.x - r, c.y - r); quadraticBezierTo(c.x - r * 0.2f, c.y, c.x, c.y + r * 0.2f) }
+    val right = Path().apply { moveTo(c.x + r, c.y - r); quadraticBezierTo(c.x + r * 0.2f, c.y, c.x, c.y + r * 0.2f) }
+    drawPath(left, gold, style = st); drawPath(right, gold, style = st)
+    drawLine(gold, Offset(c.x, c.y + r * 0.2f), Offset(c.x, c.y + r), strokeWidth = st.width, cap = StrokeCap.Round)
+}
+
+/** Edificios, estadio, canchas, plaza, parqueos y agua. Va DESPUÉS de las vías para que las tape en las huellas. */
 fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom: Float, labels: List<ShapeLabel> = emptyList()) {
-    val order = listOf("PISTA", "CANCHA_ESTADIO", "GRADA", "CANCHA_VERDE", "CANCHA", "COMIDA", "OTRO", "EDIFICIO")
+    val order = listOf("PISTA", "PISTA_INT", "CANCHA_ESTADIO", "GRADA", "PLAZA", "CANCHA_VERDE", "CANCHA", "COMIDA", "OTRO", "EDIFICIO")
+    val flatTypes = setOf("PISTA", "PISTA_INT", "CANCHA_ESTADIO", "GRADA", "PLAZA", "CANCHA_VERDE", "CANCHA")
     val k = pxPerMeter(p, zoom)
     val shadow = Offset(2.5f, 3.5f)
     for (tipo in order) {
         for (s in shapes) {
             if (s.tipo != tipo || s.puntos.size < 3) continue
-            val path = Path()
-            s.puntos.forEachIndexed { i, g ->
-                val o = p.toScreen(g.lat, g.lon)
-                if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
-            }
-            path.close()
+            val path = pathOf(p, s)
             val fill = when (tipo) {
-                "PISTA" -> Color(0xFFBFD8C8)
-                "CANCHA_ESTADIO", "CANCHA_VERDE" -> Color(0xFF6FC27F)
-                "GRADA" -> Color(0xFFB8C4C8)
-                "CANCHA" -> Color(0xFF4FB3E8)
-                "COMIDA" -> Color(0xFFF1CF7A)
+                "PISTA" -> Color(0xFFDCEDE8)
+                "PISTA_INT" -> Color(0xFFC9E2D6)
+                "CANCHA_ESTADIO", "CANCHA_VERDE" -> Color(0xFF74C283)
+                "GRADA" -> Color(0xFFC4CFD2)
+                "PLAZA" -> MapTheme.PLAZA
+                "CANCHA" -> Color(0xFF6FB6E0)
+                "COMIDA" -> Color(0xFFF1D29A)
                 else -> facultyColor(if (tipo == "OTRO") "OTRO" else s.grupo)
             }
-            val flat = tipo == "PISTA" || tipo == "CANCHA_ESTADIO" || tipo == "CANCHA_VERDE" || tipo == "CANCHA"
+            val flat = tipo in flatTypes
             if (!flat) {
                 // sombra proyectada: la misma huella desplazada unos píxeles
                 drawContext.canvas.save(); drawContext.canvas.translate(shadow.x, shadow.y)
-                drawPath(path, Color(0x66000000), style = Fill); drawContext.canvas.restore()
+                drawPath(path, Color(0x55000000), style = Fill); drawContext.canvas.restore()
             }
             drawPath(path, fill, style = Fill)
-            drawPath(path, OUTLINE.copy(alpha = if (flat) 0.55f else 0.9f), style = Stroke(width = if (flat) 1.5f else 2f))
+            val outline = when (tipo) {
+                "PISTA" -> OUTLINE.copy(alpha = 0.9f)
+                "PISTA_INT" -> OUTLINE.copy(alpha = 0.75f)
+                else -> OUTLINE.copy(alpha = if (flat) 0.55f else 0.9f)
+            }
+            drawPath(path, outline, style = Stroke(width = if (tipo == "PISTA") 2.5f else if (flat) 1.5f else 2f))
+            if (tipo == "CANCHA_ESTADIO") drawPitchMarks(p, s)
+            if (tipo == "GRADA") drawStands(p, s)
         }
     }
-    // Centro del campo del estadio: círculo central blanco
-    shapes.firstOrNull { it.tipo == "CANCHA_ESTADIO" && it.puntos.size >= 3 }?.let { s ->
+    shapes.firstOrNull { it.tipo == "PLAZA" && it.puntos.size >= 3 }?.let { s ->
         val c = p.toScreen(s.puntos.map { it.lat }.average(), s.puntos.map { it.lon }.average())
-        drawCircle(Color.White.copy(alpha = 0.8f), 9f * k, c, style = Stroke(width = 1.6f))
+        drawPlazaIcon(c - Offset(0f, 9f * k), k)
     }
     // Etiquetas dentro de las figuras (con zoom alto las sustituyen las del nodo: sigla · carrera)
     if (zoom >= 1.0f) {
         val nc = drawContext.canvas.nativeCanvas
-        labelPaint.textSize = if (zoom >= 2f) 30f else 23f
         for (l in labels) {
             val isBlock = l.tipo == "EDIFICIO"
             if (isBlock && zoom >= 2.8f) continue
-            if (!isBlock && l.tipo != "ESTADIO" && zoom < 1.6f) continue
+            val minZoom = when (l.tipo) { "EDIFICIO", "ESTADIO" -> 1.0f; "PLAZA" -> 1.4f; else -> 1.6f }
+            if (zoom < minZoom) continue
+            labelPaint.textSize = when (l.tipo) { "COMIDA" -> 19f; else -> if (zoom >= 2f) 30f else 23f }
             val o = p.toScreen(l.centro.lat, l.centro.lon)
             val lines = l.texto.split('\n')
+            val dark = l.tipo == "ESTADIO"
             lines.forEachIndexed { i, t ->
-                val y = o.y + labelPaint.textSize * 0.35f + (i - (lines.size - 1) / 2f) * labelPaint.textSize * 1.05f
-                labelPaint.color = android.graphics.Color.argb(150, 0, 0, 0)
-                nc.drawText(t, o.x + 1.5f, y + 1.5f, labelPaint)
-                labelPaint.color = if (l.tipo == "ESTADIO") android.graphics.Color.rgb(20, 70, 30) else android.graphics.Color.WHITE
+                val y = o.y + labelPaint.textSize * 0.35f + (i - (lines.size - 1) / 2f) * labelPaint.textSize * 1.05f +
+                    (if (l.tipo == "PLAZA") 6f * k else 0f)
+                if (!dark) {
+                    labelPaint.color = android.graphics.Color.argb(150, 0, 0, 0)
+                    nc.drawText(t, o.x + 1.5f, y + 1.5f, labelPaint)
+                }
+                labelPaint.color = when (l.tipo) {
+                    "ESTADIO" -> android.graphics.Color.rgb(20, 70, 30)
+                    "COMIDA" -> android.graphics.Color.rgb(110, 70, 20)
+                    else -> android.graphics.Color.WHITE
+                }
                 nc.drawText(t, o.x, y, labelPaint)
             }
         }
@@ -230,13 +302,13 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
             when (s.tipo) {
                 "PARQUEO" -> {
                     drawRoundRect(Color.White, o - Offset(15f, 15f), Size(30f, 30f), CornerRadius(7f, 7f))
-                    drawRoundRect(Color(0xFF1E6FD9), o - Offset(13f, 13f), Size(26f, 26f), CornerRadius(6f, 6f))
+                    drawRoundRect(Color(0xFF1E88E5), o - Offset(13f, 13f), Size(26f, 26f), CornerRadius(6f, 6f))
                     labelPaint.color = android.graphics.Color.WHITE
                     nc.drawText("P", o.x, o.y + 8f, labelPaint)
                 }
                 "AGUA" -> {
                     drawCircle(Color.White, 15f, o)
-                    drawCircle(Color(0xFF1AA7EC), 13f, o)
+                    drawCircle(Color(0xFF29B6F6), 13f, o)
                     val gota = Path().apply {
                         moveTo(o.x, o.y - 8f)
                         cubicTo(o.x + 7f, o.y + 1f, o.x + 6f, o.y + 8f, o.x, o.y + 8f)

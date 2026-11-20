@@ -1,95 +1,122 @@
 # -*- coding: utf-8 -*-
-"""Genera app/src/main/assets/campus_shapes.csv (huellas de edificios del campus, solo diseno)
-y docs/mapa_preview.png a partir de coordenadas de la foto del mapa fisico (PHOTO_*), calibradas
-con los nodos reales (nodos_u.csv) mediante una transformacion afin (minimos cuadrados).
-Uso: python build_shapes.py   (requiere numpy y Pillow solo para la vista previa)"""
-import csv, re, math, os
+"""Genera app/src/main/assets/campus_shapes.csv (capa vectorial del mapa del campus, solo diseno).
+
+Los contornos se trazaron sobre la foto del mapa fisico (1200x1600 px). Se calibran con los nodos reales
+(data/nodos_u.csv) con una semejanza (giro + escala + traslacion) refinada por ICP: cada entrada de bloque
+se acerca al borde mas cercano de su edificio. Ajustes de diseno pedidos (B-20/B-21 invertidos en el mapa,
+Tasty Food 1 entre sus dos entradas, I-09 y B-23 desplazados) se aplican en metros tras la calibracion.
+Uso: python3 build_shapes.py   (requiere numpy)
+"""
+import csv, math, os, re
 import numpy as np
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 LA0, LO0 = -0.9525, -80.745
-KLAT, KLON = 111320.0, 111320.0 * math.cos(math.radians(0.9525))
+KLAT = 111320.0
+KLON = KLAT * math.cos(math.radians(0.9525))
 
-# ---- Puntos de control: (px,py) en la foto  ->  nodo real ----
-CTRL_BLOCKS = {'B-01': (405, 550), 'B-02': (395, 586), 'B-03': (382, 613), 'B-04': (513, 531),
-               'B-06': (474, 710), 'B-07': (508, 757), 'B-08': (535, 858), 'B-09': (535, 960),
-               'B-10': (547, 1088), 'B-11': (565, 1138), 'B-12': (522, 1138), 'B-13': (508, 1017),
-               'B-14': (465, 1020), 'B-15': (478, 958), 'B-16': (308, 858), 'B-17': (210, 880),
-               'B-18': (242, 935), 'B-19': (245, 980), 'B-20': (222, 1081), 'B-21': (146, 1127),
-               'B-22': (237, 704), 'B-24': (172, 975), 'B-25': (222, 1048)}
+# Trazado sobre la foto 1200x1600 (mapa fisico, version detallada)
+E=[]
+def b(c,pts): E.append(('EDIFICIO',c,pts))
+b('B-01',[(639,435),(676,384),(761,444),(739,484),(702,469),(697,457)])
+b('B-02',[(650,475),(665,467),(716,505),(694,544),(637,504)])
+b('B-02',[(623,479),(645,456),(657,469),(635,497)])
+b('B-03',[(627,512),(650,530),(667,537),(680,550),(662,580),(642,555),(634,530)])
+b('B-04',[(851,326),(869,319),(942,379),(900,440),(870,475),(834,434),(847,422),(852,397)])
+b('B-05',[(955,457),(1000,435),(1027,490),(970,522)])
+b('B-05',[(1015,455),(1042,442),(1065,435),(1100,440),(1090,480),(1043,488)])
+b('B-06',[(757,717),(802,661),(874,716),(806,777),(774,747)])
+b('B-07',[(809,796),(860,759),(890,735),(922,772),(930,790),(920,810),(872,860),(827,835),(812,812)])
+b('B-07',[(825,834),(867,860),(882,872),(875,892),(861,895),(845,880)])
+b('B-08',[(931,880),(981,901),(902,1074),(856,1050)])
+b('B-09',[(889,1114),(916,1107),(931,1135),(939,1202),(915,1197),(906,1182),(895,1165),(890,1150)])
+b('B-10',[(891,1361),(920,1349),(952,1365),(969,1382),(942,1404)])
+b('B-11',[(939,1412),(970,1407),(977,1467),(952,1462),(955,1452),(940,1440)])
+b('B-11',[(910,1445),(945,1442),(945,1472),(910,1472)])
+b('B-12',[(867,1442),(882,1432),(902,1435),(907,1472),(872,1467)])
+b('B-13',[(836,1236),(872,1209),(925,1260),(930,1277),(895,1300),(837,1336),(805,1304),(830,1280),(850,1260)])
+b('B-14',[(755,1232),(785,1210),(795,1215),(810,1225),(825,1240),(835,1267),(805,1297),(785,1300),(772,1272),(757,1250)])
+b('B-15',[(773,1134),(812,1111),(852,1137),(822,1186),(802,1186)])
+b('B-16',[(481,970),(500,945),(520,935),(550,965),(580,995),(585,1015),(555,1040),(522,1020),(510,995),(495,987)])
+b('B-17',[(324,995),(345,970),(393,990),(381,1017),(405,1035),(392,1060),(370,1058),(335,1030)])
+b('B-18',[(362,1087),(390,1072),(430,1067),(442,1077),(440,1115),(395,1125),(385,1107),(367,1097)])
+b('B-19',[(387,1140),(432,1135),(442,1215),(400,1220)])
+b('MAP-B-20',[(327,1337),(420,1329),(424,1352),(380,1365),(377,1381),(332,1385),(328,1365)])
+b('MAP-B-21',[(225,1385),(245,1392),(275,1400),(270,1425),(262,1452),(217,1445),(217,1427),(225,1405)])
+b('B-22',[(341,706),(451,676),(467,720),(430,727),(408,712),(406,760),(386,761),(382,730),(362,722)])
+b('B-23',[(325,202),(350,210),(367,232),(362,255),(350,280),(312,247)])
+b('B-23',[(265,271),(295,284),(329,294),(322,307),(282,302)])
+b('B-24',[(269,1105),(296,1103),(297,1135),(316,1145),(320,1222),(300,1224),(293,1200),(274,1205),(272,1147),(269,1140)])
+b('B-25',[(335,1287),(350,1282),(365,1287),(412,1275),(415,1295),(397,1300),(380,1312),(360,1310),(350,1300),(335,1297)])
+O=[]
+def o(c,pts,t='OTRO'): O.append((t,c,pts))
+o('A-01',[(342,372),(425,332),(470,437),(395,472)])
+o('I-09',[(416,476),(474,450),(495,482),(486,496),(465,496),(456,512),(434,505)])
+o('K-11',[(291,436),(312,431),(326,467),(312,475)])
+o('C-03',[(747,325),(795,275),(847,325),(800,392),(777,372)])
+o('CIEC',[(842,138),(1097,393),(1033,457),(778,202)])
+o('D-04',[(217,315),(245,305),(272,325),(280,347),(250,365),(232,350),(220,330)])
+o('E-05',[(510,564),(549,562),(552,585),(595,597),(585,620),(555,630),(522,612)])
+o('F-06',[(680,620),(737,547),(805,607),(762,665)])
+o('J-10',[(900,500),(940,475),(962,470),(962,492),(940,490),(937,507),(915,510)])
+o('I-12',[(1090,570),(1115,560),(1122,590),(1100,605)])
+o('M-13',[(425,912),(457,885),(482,900),(472,925),(450,930)])
+o('N-14',[(300,880),(322,870),(332,885),(315,902),(302,895)])
+o('N-14',[(335,870),(357,862),(370,877),(350,890)])
+o('N-14',[(365,870),(390,877),(407,885),(397,900),(375,890)])
+o('',[(350,895),(375,887),(387,902),(377,920),(360,912)])
+o('Ñ-15',[(405,1015),(425,1000),(450,1015),(445,1040),(425,1050),(407,1040)])
+o('H-08',[(455,1077),(472,1057),(487,1067),(470,1087)])
+o('G-07',[(515,1120),(527,1115),(565,1147),(557,1162),(545,1165),(512,1135)])
+o('I-09',[(447,1130),(462,1122),(477,1132),(500,1147),(515,1165),(510,1185),(495,1192),(477,1182),(470,1157),(450,1147),(440,1140)])
+o('O-16',[(207,1455),(232,1452),(242,1470),(232,1490),(207,1485)])
+o('JUAN MONTALVO ANTIGUO',[(580,1492),(607,1470),(645,1465),(650,1500)])
+o('JUAN MONTALVO NUEVO',[(695,1500),(712,1472),(750,1462),(755,1500)])
+o('EP ULEAM',[(764,1447),(820,1440),(823,1465),(767,1470)])
+o('Canchas multiples',[(978,590),(1005,520),(1115,478),(1140,545)],'CANCHA')
+o('Canchas multiples',[(650,1425),(735,1362),(800,1405),(715,1462)],'CANCHA')
+o('Cancha',[(370,642),(437,632),(440,672),(375,675)],'CANCHA')
+o('Cancha cesped',[(320,1437),(367,1435),(362,1500),(312,1497)],'CANCHA_VERDE')
+o('Tasty Food 2',[(845,1065),(862,1060),(900,1085),(902,1100),(885,1117),(870,1112),(850,1100)],'COMIDA')
+o('Tasty Food 3',[(767,1470),(823,1465),(827,1487),(772,1490)],'COMIDA')
+o('Tasty Food 4',[(322,1410),(377,1405),(375,1420),(335,1425)],'COMIDA')
+o('Gradas',[(687,715),(712,707),(795,805),(772,820)],'GRADA')
+o('Plaza Cultural',[(446,350),(500,342),(572,485),(480,448)],'PLAZA')
+PITCH=[(547,812),(639,722),(795,882),(697,967)]
+PARK=[(692,250),(445,315),(252,532),(770,540),(952,630),(252,742),(405,840),(487,872),(575,1047),(375,1252),(272,1310),(730,1322),(850,1462)]
+WATER=[(297,325),(717,395),(610,515),(952,535),(857,690),(900,925),(575,987),(320,1027),(782,1132),(935,1345),(632,1437),(672,1482)]
+# puntas de las flechas amarillas de ingreso -> nodos 100..103
+GATES={100:(595,287),103:(192,420),101:(227,877),102:(937,1274)}
 
-# ---- Huellas en pixeles de la foto: (tipo, codigo, grupo, [(x,y)...]) ----
-S = []
-def poly(t, c, g, pts): S.append((t, c, g, pts))
-poly('EDIFICIO', 'A-01', 'ADMIN_C', [(199,515),(245,491),(274,545),(227,570)])
-poly('EDIFICIO', 'B-01', '', [(372,544),(397,519),(441,552),(420,577)])
-poly('EDIFICIO', 'B-02', '', [(374,576),(390,567),(418,590),(402,609)])
-poly('EDIFICIO', 'B-03', '', [(367,600),(385,607),(399,622),(385,630)])
-poly('EDIFICIO', 'B-04', '', [(490,505),(510,482),(545,505),(540,540),(512,570),(500,567)])
-poly('EDIFICIO', 'B-05', '', [(555,567),(570,552),(595,570),(582,597),(560,590)])
-poly('EDIFICIO', 'B-05', '', [(590,555),(602,542),(635,545),(625,572),(592,570)])
-poly('EDIFICIO', 'B-06', '', [(442,707),(479,677),(502,710),(475,742)])
-poly('EDIFICIO', 'B-07', '', [(474,757),(497,722),(540,747),(530,780),(505,791)])
-poly('EDIFICIO', 'B-07', '', [(482,777),(495,772),(515,805),(500,812)])
-poly('EDIFICIO', 'B-08', '', [(512,900),(550,805),(570,810),(532,912)])
-poly('EDIFICIO', 'B-09', '', [(522,935),(535,934),(550,985),(537,992)])
-poly('EDIFICIO', 'B-10', '', [(525,1080),(542,1072),(560,1087),(567,1092),(545,1107),(532,1097)])
-poly('EDIFICIO', 'B-11', '', [(551,1110),(569,1107),(574,1140),(560,1145)])
-poly('EDIFICIO', 'B-11', '', [(535,1131),(555,1129),(556,1147),(537,1147)])
-poly('EDIFICIO', 'B-12', '', [(512,1130),(535,1125),(537,1147),(515,1150)])
-poly('EDIFICIO', 'B-13', '', [(475,1047),(497,1007),(510,992),(540,1017),(532,1047),(502,1067)])
-poly('EDIFICIO', 'B-14', '', [(445,1005),(460,994),(490,1017),(485,1031),(470,1047),(452,1048)])
-poly('EDIFICIO', 'B-15', '', [(457,957),(482,937),(500,957),(475,974)])
-poly('EDIFICIO', 'B-16', '', [(285,855),(310,840),(317,852),(345,857),(347,877),(330,897),(302,882),(290,872)])
-poly('EDIFICIO', 'B-17', '', [(192,865),(207,860),(232,872),(232,895),(227,910),(212,905),(202,882)])
-poly('EDIFICIO', 'B-18', '', [(217,922),(229,919),(256,917),(260,935),(256,947),(230,947),(217,935)])
-poly('EDIFICIO', 'B-19', '', [(230,957),(256,955),(262,1002),(236,1006)])
-poly('EDIFICIO', 'B-20', '', [(192,1075),(250,1070),(252,1087),(202,1102),(195,1102)])
-poly('EDIFICIO', 'B-21', '', [(129,1110),(162,1112),(160,1135),(147,1145),(132,1135)])
-poly('EDIFICIO', 'B-22', '', [(200,705),(265,687),(275,710),(237,737),(227,730),(212,715)])
-poly('EDIFICIO', 'B-23', '', [(184,417),(190,412),(200,415),(212,430),(205,457),(190,447)])
-poly('EDIFICIO', 'B-23', '', [(152,455),(165,454),(190,465),(182,480),(165,477)])
-poly('EDIFICIO', 'B-24', '', [(157,940),(174,939),(185,965),(189,985),(187,1007),(165,1002),(161,980)])
-poly('EDIFICIO', 'B-25', '', [(199,1045),(212,1041),(242,1038),(244,1050),(212,1055),(200,1052)])
-# Otros edificios (gris): codigo de la leyenda
-poly('OTRO', 'C-03', '', [(431,480),(465,457),(492,480),(480,510),(460,525)])
-poly('OTRO', 'CIEC', '', [(444,415),(470,382),(625,522),(605,533)])
-poly('OTRO', 'D-04', '', [(132,480),(147,470),(157,477),(167,487),(157,505),(142,507)])
-poly('OTRO', 'E-05', '', [(300,625),(320,622),(342,640),(357,652),(335,670),(312,660),(300,650)])
-poly('OTRO', 'F-06', '', [(401,650),(435,610),(474,640),(455,677),(424,675)])
-poly('OTRO', 'I-09', '', [(242,572),(272,555),(290,577),(260,592)])
-poly('OTRO', 'I-09', '', [(260,957),(275,950),(290,962),(295,982),(285,987),(277,972),(262,965)])
-poly('OTRO', 'J-10', '', [(519,585),(555,566),(557,585),(532,592)])
-poly('OTRO', 'K-11', '', [(169,545),(182,555),(190,570),(177,567)])
-poly('OTRO', 'I-12', '', [(630,625),(648,620),(652,645),(637,650)])
-poly('OTRO', 'M-13', '', [(250,810),(275,807),(285,825),(265,837),(252,830)])
-poly('OTRO', 'N-14', '', [(175,800),(200,795),(215,808),(190,815)])
-poly('OTRO', 'N-14', '', [(205,796),(235,800),(240,817),(215,815)])
-poly('OTRO', 'N-15', '', [(240,885),(257,877),(265,895),(255,907),(242,905)])
-poly('OTRO', 'JUAN MONTALVO ANTIGUO', '', [(340,1160),(375,1140),(390,1160),(375,1177),(352,1180)])
-poly('OTRO', 'JUAN MONTALVO NUEVO', '', [(402,1160),(430,1147),(447,1150),(447,1170),(410,1172)])
-poly('OTRO', 'EP ULEAM', '', [(454,1135),(485,1129),(486,1157),(455,1160)])
-# Deporte / comida
-poly('CANCHA', 'Canchas multiples', '', [(565,615),(630,568),(665,578),(600,640)])
-poly('CANCHA', 'Canchas multiples', '', [(390,1122),(440,1077),(470,1107),(420,1150)])
-poly('CANCHA', 'Cancha', '', [(216,665),(255,662),(257,692),(219,692)])
-poly('CANCHA_VERDE', 'Cancha cesped', '', [(177,1140),(215,1145),(207,1192),(177,1190)])
-poly('GRADA', 'Gradas', '', [(402,707),(412,706),(465,760),(457,767)])
-poly('COMIDA', 'Tasty Food', '', [(582,642),(615,628),(615,660),(590,655)])
-poly('COMIDA', 'Tasty Food', '', [(495,912),(520,910),(527,930),(510,944),(495,925)])
-poly('COMIDA', 'Tasty Food', '', [(195,1117),(225,1115),(222,1127),(195,1127)])
-# Estadio: pista elipse + cancha
-def ellipse(cx, cy, a, b, ang, n=40):
-    r = math.radians(ang)
-    return [(cx + a*math.cos(t)*math.cos(r) - b*math.sin(t)*math.sin(r),
-             cy + a*math.cos(t)*math.sin(r) + b*math.sin(t)*math.cos(r))
-            for t in [2*math.pi*i/n for i in range(n)]]
-poly('PISTA', 'Estadio', '', ellipse(381, 777, 112, 86, 35))
-poly('CANCHA_ESTADIO', 'Estadio', '', [(307,735),(385,705),(465,805),(410,847)])
-for x, y in [(260,482),(407,437),(147,607),(455,607),(555,660),(147,727),(237,782),(287,802),(340,905),(222,1025),(162,1060),(430,1060),(500,1142)]:
-    poly('PARQUEO', 'P', '', [(x, y)])
-for x, y in [(172,482),(417,525),(357,595),(551,607),(502,693),(524,827),(339,867),(188,894),(460,948),(548,1070),(374,1129),(397,1155)]:
-    poly('AGUA', 'Agua', '', [(x, y)])
+
+# ---------------------------------------------------------------- geometria auxiliar
+def rrect(cx, cy, ux, uy, hl, hw, r, n=10):
+    """Rectangulo redondeado (eje largo ux,uy; semiejes hl,hw; radio r) como poligono."""
+    vx, vy = -uy, ux
+    pts = []
+    for sl, sw in [(1, 1), (-1, 1), (-1, -1), (1, -1)]:     # esquinas en sentido antihorario
+        ccx, ccy = sl * (hl - r), sw * (hw - r)
+        base = math.atan2(sw, sl) - math.pi / 4
+        pts += [(ccx + r * math.cos(base + k * math.pi / 2 / n), ccy + r * math.sin(base + k * math.pi / 2 / n))
+                for k in range(n + 1)]
+    return [(cx + l * ux + w * vx, cy + l * uy + w * vy) for l, w in pts]
+
+
+def seg_dist(p, a, b):
+    ab = b - a
+    t = max(0.0, min(1.0, np.dot(p - a, ab) / max(np.dot(ab, ab), 1e-9)))
+    q = a + t * ab
+    return q, float(np.linalg.norm(p - q))
+
+
+def nearest_on(polys, p):
+    best, bd = None, 1e18
+    for poly in polys:
+        P = np.array(poly, float)
+        for i in range(len(P)):
+            q, d = seg_dist(p, P[i], P[(i + 1) % len(P)])
+            if d < bd: best, bd = q, d
+    return best, bd
 
 
 def load_nodes():
@@ -99,85 +126,139 @@ def load_nodes():
             nodes[int(r['ID'])] = (r['Descri'], float(r['Latitud']), float(r['Longitud']))
     return nodes
 
-def grupos_por_bloque():
-    out = {}
-    with open(os.path.join(ROOT, 'app/src/main/assets/lugares.csv'), encoding='utf-8', newline='') as f:
-        for r in csv.DictReader(f):
-            m = re.match(r'([A-Z]+)·(B-\d+)', r['codigo'] or '')
-            if m: out[m.group(2)] = m.group(1)
-    return out
 
-def fit(nodes):
-    P, G = [], []
+def to_m(la, lo): return ((lo - LO0) * KLON, (la - LA0) * KLAT)
+def to_ll(x, y): return (LA0 + y / KLAT, LO0 + x / KLON)
+
+
+class Sim:
+    """Semejanza foto -> metros: X = a*px - b*qy + tx ; Y = b*px + a*qy + ty (qy = -py)."""
+    def __init__(self, s): self.s = s
+    def fwd(self, p):
+        a, b, tx, ty = self.s; qy = -p[1]
+        return np.array([a * p[0] - b * qy + tx, b * p[0] + a * qy + ty])
+    def inv(self, g):
+        a, b, tx, ty = self.s; d = a * a + b * b
+        X, Y = g[0] - tx, g[1] - ty
+        return np.array([(a * X + b * Y) / d, -((-b * X + a * Y) / d)])
+
+def fit_sim(P, G, W):
+    M, y = [], []
+    for (px, py), (gx, gy), w in zip(P, G, W):
+        qy = -py
+        M.append([w * px, -w * qy, w, 0]); y.append(w * gx)
+        M.append([w * qy, w * px, 0, w]); y.append(w * gy)
+    return Sim(np.linalg.lstsq(np.array(M), np.array(y), rcond=None)[0])
+
+
+def calibrate(nodes):
+    byblock = {}
+    for t, c, p in E:
+        if c.startswith('MAP-'):
+            c = {'MAP-B-20': 'B-21', 'MAP-B-21': 'B-20'}[c]
+        if t == 'EDIFICIO': byblock.setdefault(c, []).append(p)
+    # B-20/B-21: los nodos 220/221 siguen la rotulacion fisica del mapa (ver BLOQUE_REAL en build_lugares.py)
+    ctrl = {}  # nodo -> codigo de bloque del edificio donde esta fisicamente
     for nid, (d, la, lo) in nodes.items():
         m = re.search(r'Entrada Bloque B-(\d+)$', d.strip())
         if m:
             k = 'B-%02d' % int(m.group(1))
-            if k in CTRL_BLOCKS:
-                P.append(CTRL_BLOCKS[k]); G.append(((lo-LO0)*KLON, (la-LA0)*KLAT))
-    X = np.c_[np.array(P, float), np.ones(len(P))]
-    sol = np.linalg.lstsq(X, np.array(G), rcond=None)[0]
-    err = np.hypot(*(X@sol - np.array(G)).T)
-    return sol, err
+            if k in ('B-20', 'B-21'): k = 'B-21' if k == 'B-20' else 'B-20'
+            ctrl[nid] = k
+    P, G, W = [], [], []
+    for nid, k in ctrl.items():
+        if k in byblock:
+            P.append(np.mean([np.mean(p, axis=0) for p in byblock[k]], axis=0))
+            G.append(to_m(*nodes[nid][1:])); W.append(1.0)
+    for g, pt in GATES.items():
+        P.append(np.array(pt, float)); G.append(to_m(*nodes[g][1:])); W.append(3.0)
+    sim = fit_sim(P, G, W)
+    for _ in range(12):  # ICP: cada entrada -> borde mas cercano de su edificio
+        P2, G2, W2 = [], [], []
+        for nid, k in ctrl.items():
+            if k not in byblock: continue
+            q, _d = nearest_on(byblock[k], sim.inv(np.array(to_m(*nodes[nid][1:]))))
+            P2.append(q); G2.append(to_m(*nodes[nid][1:])); W2.append(1.0)
+        for g, pt in GATES.items():
+            P2.append(np.array(pt, float)); G2.append(to_m(*nodes[g][1:])); W2.append(3.0)
+        sim = fit_sim(P2, G2, W2)
+    errs = []
+    for nid, k in ctrl.items():
+        if k in byblock:
+            q, d = nearest_on(byblock[k], sim.inv(np.array(to_m(*nodes[nid][1:])))); errs.append(d * np.hypot(*sim.s[:2]))
+    print('distancia entrada-edificio: media %.1f m, max %.1f m  | %.3f m/px' % (np.mean(errs), max(errs), np.hypot(*sim.s[:2])))
+    return sim
 
-def to_geo(sol, x, y):
-    gx, gy = np.array([x, y, 1.0]) @ sol
-    return LA0 + gy/KLAT, LO0 + gx/KLON
+
+def pt_in_poly(p, poly):
+    x, y = p; ins = False; n = len(poly)
+    for i in range(n):
+        x1, y1 = poly[i]; x2, y2 = poly[(i + 1) % n]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1: ins = not ins
+    return ins
+
 
 def main():
-    nodes = load_nodes(); sol, err = fit(nodes)
-    print('error medio de calibracion: %.1f m (max %.1f m)' % (err.mean(), err.max()))
-    grp = grupos_por_bloque()
-    rows = []
-    for t, c, g, pts in S:
-        g = g or grp.get(c, 'OTRO')
-        if g == 'ADMIN_C': g = 'OTRO'
-        geo = [to_geo(sol, x, y) for x, y in pts]
-        rows.append([t, c, g, ' '.join('%.6f %.6f' % p for p in geo)])
-    out = os.path.join(ROOT, 'app/src/main/assets/campus_shapes.csv')
-    with open(out, 'w', encoding='utf-8', newline='') as f:
-        w = csv.writer(f, lineterminator='\n'); w.writerow(['tipo', 'codigo', 'grupo', 'puntos']); w.writerows(rows)
-    print(len(rows), 'figuras ->', out)
+    nodes = load_nodes(); sim = calibrate(nodes)
+    # ---- ajustes en espacio de foto (px) ----
+    shapes = []   # (tipo, codigo, [(x,y) px])
+    for t, c, p in E:
+        c = {'MAP-B-20': 'B-21', 'MAP-B-21': 'B-20'}.get(c, c)   # el mapa fisico las rotula al reves
+        shapes.append([t, c, [tuple(map(float, q)) for q in p]])
+    for t, c, p in O:
+        shapes.append([t, c, [tuple(map(float, q)) for q in p]])
+    # A-01 e I-09 (junto a la Plaza Cultural): se separan un poco. A-01 sigue conteniendo la entrada del Rectorado (309)
+    # e I-09 pasa a contener la del Departamento de Bienestar (308), que antes quedaba en el hueco entre ambos.
+    n308 = sim.inv(np.array(to_m(*nodes[308][1:]))); n309 = sim.inv(np.array(to_m(*nodes[309][1:])))
+    for s_ in shapes:
+        if s_[1] == 'A-01': s_[2] = [(x - 10, y - 6) for x, y in s_[2]]; print('A-01 contiene al nodo 309 (Rectorado):', pt_in_poly(n309, s_[2]))
+        if s_[1] == 'I-09' and s_[0] == 'OTRO' and s_[2][0][1] < 600:
+            s_[2] = [(x + 2, y - 14) for x, y in s_[2]]; print('I-09 contiene al nodo 308 (Bienestar):', pt_in_poly(n308, s_[2]))
+    # Estadio: pista (anillo), borde interior de pista y cancha con marcas
+    pc = np.mean(PITCH, axis=0); u = np.array(PITCH[1], float) - np.array(PITCH[0]) if False else np.array(PITCH[2], float) - np.array(PITCH[1])
+    L = np.linalg.norm(u); u = u / L
+    hl, hw = L / 2, np.linalg.norm(np.array(PITCH[1], float) - np.array(PITCH[0])) / 2
+    shapes.append(['PISTA', 'Estadio', rrect(pc[0], pc[1], u[0], u[1], hl + 30, hw + 30, 80)])
+    shapes.append(['PISTA_INT', 'Estadio', rrect(pc[0], pc[1], u[0], u[1], hl + 12, hw + 12, 62)])
+    shapes.append(['CANCHA_ESTADIO', 'Estadio', [tuple(map(float, q)) for q in PITCH]])
+    # ---- a geografia ----
+    out = []
+    for t, c, p in shapes:
+        out.append([t, c, [to_ll(*sim.fwd(np.array(q))) for q in p]])
+    # B-23 (naranjas): acercarlos a su entrada (nodo 223)
+    n223 = np.array(to_m(*nodes[223][1:]))
+    b23 = [[to_m(*q) for q in o[2]] for o in out if o[1] == 'B-23']
+    q, d = nearest_on(b23, n223)
+    if d > 6:
+        v = (n223 - q) / d * (d - 6)
+        for o in out:
+            if o[1] == 'B-23': o[2] = [to_ll(*(np.array(to_m(*pt)) + v)) for pt in o[2]]
+        print('B-23: acercado %.1f m a su entrada (de %.1f a 6 m)' % (d - 6, d))
+    # Tasty Food 1: un solo edificio entre sus dos entradas (305 y 318)
+    a = np.array(to_m(*nodes[305][1:])); b = np.array(to_m(*nodes[318][1:])); mid = (a + b) / 2
+    hy = abs(a[1] - b[1]) / 2 - 2.0; hx = 6.5
+    tasty = [(mid[0] - hx, mid[1] - hy), (mid[0] + hx, mid[1] - hy), (mid[0] + hx, mid[1] + hy), (mid[0] - hx, mid[1] + hy)]
+    out.append(['COMIDA', 'Tasty Food 1', [to_ll(*q) for q in tasty]])
+    for p in PARK: out.append(['PARQUEO', 'P', [to_ll(*sim.fwd(np.array(p, float)))]])
+    for p in WATER: out.append(['AGUA', 'Agua', [to_ll(*sim.fwd(np.array(p, float)))]])
+    path = os.path.join(ROOT, 'app/src/main/assets/campus_shapes.csv')
+    with open(path, 'w', encoding='utf-8', newline='') as f:
+        w = csv.writer(f, lineterminator='\n'); w.writerow(['tipo', 'codigo', 'grupo', 'puntos'])
+        grp = grupos_por_bloque()
+        for t, c, p in out:
+            g = grp.get(c, 'OTRO') if t == 'EDIFICIO' else 'OTRO'
+            w.writerow([t, c, g, ' '.join('%.6f %.6f' % q for q in p)])
+    print(len(out), 'figuras ->', path)
 
-COLORES = {'FCS': '#29B6F6', 'FIIA': '#1E40AF', 'FACIVITEC': '#2E9E4F', 'FETAH': '#F08A3C',
-           'FCACC': '#2563EB', 'FCSDB': '#B94A5A', 'OTRO': '#8FA6AE'}
 
-def preview(path):
-    """Vista previa norte-arriba (misma geometria que dibuja la app)."""
-    from PIL import Image, ImageDraw
-    rows = list(csv.DictReader(open(os.path.join(ROOT, 'app/src/main/assets/campus_shapes.csv'), encoding='utf-8')))
-    nod = {}
-    for r in csv.DictReader(open(os.path.join(ROOT, 'app/src/main/assets/nodos.csv'), encoding='utf-8')):
-        nod[int(r['id'])] = (float(r['latitud']), float(r['longitud']))
-    ars = [(int(r['id_origen']), int(r['id_destino'])) for r in csv.DictReader(open(os.path.join(ROOT, 'app/src/main/assets/aristas.csv'), encoding='utf-8'))]
-    las = [v[0] for v in nod.values()]; los = [v[1] for v in nod.values()]
-    mla, Mla, mlo, Mlo = min(las)-0.0004, max(las)+0.0004, min(los)-0.0004, max(los)+0.0004
-    W = 1100; k = W/(Mlo-mlo)*1.0; H = int((Mla-mla)*k*(KLAT/KLON)**0 )
-    kx = W/(Mlo-mlo); ky = kx*(1/math.cos(math.radians(0.9525)))**0
-    H = int((Mla-mla)*kx)
-    P = lambda la, lo: ((lo-mlo)*kx, (Mla-la)*kx)
-    im = Image.new('RGB', (W, H), '#F6F5F0'); d = ImageDraw.Draw(im)
-    for a, b in ars:
-        if a in nod and b in nod: d.line([P(*nod[a]), P(*nod[b])], fill='#D1D5DB', width=4)
-    order = ['PISTA','CANCHA_ESTADIO','GRADA','CANCHA_VERDE','CANCHA','COMIDA','OTRO','EDIFICIO']
-    fill = {'PISTA':'#CFE8D5','CANCHA_ESTADIO':'#7FC98F','GRADA':'#B8C4C8','CANCHA_VERDE':'#7FC98F','CANCHA':'#8FD3F4','COMIDA':'#F6D58E'}
-    for t in order:
-        for r in rows:
-            if r['tipo'] != t: continue
-            v = list(map(float, r['puntos'].split())); pts = [P(v[i], v[i+1]) for i in range(0, len(v), 2)]
-            col = COLORES.get(r['grupo'], '#8FA6AE') if t in ('EDIFICIO','OTRO') else fill[t]
-            d.polygon(pts, fill=col, outline='#33434A')
-            if t == 'EDIFICIO':
-                cx = sum(p[0] for p in pts)/len(pts); cy = sum(p[1] for p in pts)/len(pts)
-                d.text((cx-10, cy-5), r['codigo'], fill='white')
-    for r in rows:
-        v = list(map(float, r['puntos'].split()))
-        if r['tipo'] in ('PARQUEO','AGUA'):
-            x, y = P(v[0], v[1]); c = '#1565C0' if r['tipo']=='PARQUEO' else '#29B6F6'
-            d.ellipse([x-6, y-6, x+6, y+6], fill=c); d.text((x-3, y-5), 'P' if r['tipo']=='PARQUEO' else '', fill='white')
-    im.save(path); print('preview ->', path, im.size)
+def grupos_por_bloque():
+    res = {}
+    with open(os.path.join(ROOT, 'app/src/main/assets/lugares.csv'), encoding='utf-8', newline='') as f:
+        for r in csv.DictReader(f):
+            m = re.match(r'([A-Z]+)·(B-\d+)', r['codigo'] or '')
+            if m: res[m.group(2)] = m.group(1)
+    return res
+
 
 if __name__ == '__main__':
     main()
-    import sys
-    if '--preview' in sys.argv: preview(os.path.join(ROOT, 'docs', 'mapa_preview.png'))

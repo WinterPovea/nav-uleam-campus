@@ -25,6 +25,10 @@ FIXES = {
     "Ingeneria": "Ingenieria",
     "Billingue": "Bilingue",
 }
+# El mapa físico rotula al revés dos bloques: el edificio que el mapa llama B-21 es en realidad el B-20 y viceversa.
+# El id_nodo no cambia; solo el número de bloque que se muestra y se busca.
+BLOQUE_REAL = {220: "B-21", 221: "B-20"}
+
 # Sinónimos que ayudan a encontrar la facultad por palabras sueltas.
 SINONIMOS = {
     "FCS": "salud",
@@ -127,7 +131,7 @@ def main() -> None:
             carreras = fix(src["Carrera"])
             carreras = "" if carreras.lower() in NO_DISPONIBLE else carreras
             m = re.search(r"B-\d+", r["codigo"])  # idempotente: acepta "B-16" o "FCS·B-16"
-            bloque = m.group(0) if m else ""
+            bloque = BLOQUE_REAL.get(nid) or (m.group(0) if m else "")
             if bloque:
                 acceso2 = ", acceso 2" if nid == 314 else ""
                 if nid == 230:
