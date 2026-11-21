@@ -63,8 +63,12 @@ ec.edu.uleam.navigator/
     ├── CampusViewModel.kt     # Estado global de la pantalla (UiState) y orquestación
     ├── MainActivity.kt        # Actividad principal, permisos y tarjeta flotante colapsable
     └── map/
-        ├── CampusMap.kt       # Canvas gráfico con infraestructura, cono de visión 45° y pulsing dot
-        └── MapProjection.kt   # Proyección WGS84 <-> Pantalla con transformaciones afines de rotación
+        ├── CampusMap.kt            # Canvas: capa base del campus, caminos, ruta, etiquetas, usuario y botones
+        ├── CampusShapes.kt         # Carga y dibujo de la capa base (edificios, estadio, canchas, plaza, íconos),
+        │                           # paleta MapTheme, etiquetas y PathVisibility (qué aristas se pintan)
+        ├── MapProjection.kt        # Proyección WGS84 <-> Pantalla con zoom, paneo y rotación
+        ├── RouteProgress.kt        # Progreso sobre la ruta, rumbo y hit-test de lugares
+        └── AnimatedUserPosition.kt # Desplazamiento suave del marcador del usuario
 ```
 
 ---
@@ -75,6 +79,7 @@ ec.edu.uleam.navigator/
 - **Archivos de Origen (`app/src/main/assets/`):**
   - `nodos.csv`: 135 nodos con columnas `id, lat, lon, tipo` (`CALLE`, `DESTINO`, `ZONA_SEGURA`), `tiene_escaleras`, `etiqueta`.
   - `aristas.csv`: 185 conexiones peatonales con `id_origen, id_destino, distancia_metros, tiene_escaleras`.
+  - `campus_shapes.csv`: capa base visual del mapa (solo diseño, no interviene en las rutas). Columnas `tipo, codigo, grupo, puntos` (lista `lat lon` separada por espacios). Tipos: `EDIFICIO` (bloques B-xx, `grupo` = sigla de facultad para el color), `OTRO` (edificios administrativos), `COMIDA`, `PISTA`, `CANCHA_ESTADIO`, `GRADA`, `CANCHA`, `CANCHA_VERDE`, `PLAZA`, y puntos `PARQUEO`, `AGUA`, `CAFE` y `ESCALERA` (escalera decorativa de 2 puntos). Se genera con `build_shapes_osm.py` a partir de `data/osm/osm_poligonos.geojson` (exportado de QGIS con QuickOSM: `building` / `highway` / `leisure`). Datos © OpenStreetMap contributors (ODbL); se incluyen en la app, por lo que el mapa sigue siendo 100% offline. `build_shapes.py` (trazado manual sobre fotos) queda obsoleto.
   - `lugares.csv`: Puntos de interés del campus con `id_nodo, codigo, nombre, descripcion, categoria, etiquetas, busqueda, activo`. Los bloques B-01..B-25 se buscan por **Facultad, sigla (FETAH, FCSDB, FCACC, FIIA, FACIVITEC, FCS), carreras y código de bloque**; `codigo` tiene la forma `SIGLA·B-xx`. Se genera con `build_lugares.py` a partir de `data/nodos_u.csv` (sin alterar `nodos.csv` ni `aristas.csv`). Como el CSV de QGIS no trae tildes, el script las restaura al mostrar (`nombre`, `descripcion`) con un diccionario de palabras (`ACENTOS`); `busqueda` queda siempre sin tildes. Para agregar una palabra nueva basta añadirla a `ACENTOS` y volver a ejecutar el script.
 - **`CsvSeeder.kt`:** En la primera inicialización de Room inserta nodos, aristas y lugares. En arranques posteriores refresca solo la tabla `lugares` (`clearLugares()` + `insertLugares()`), de modo que las instalaciones existentes reciben el catálogo de facultades sin tocar el grafo.
 - **`CampusDao.kt`:** Realiza consultas directas a SQLite. La búsqueda (`CampusRepository.filtrar`) normaliza a minúsculas, sin tildes ni puntuación, y exige que todos los términos aparezcan en `busqueda` ("facultad ciencias tecnologia", "facivitec", "odontologia", "b-16").
@@ -118,7 +123,10 @@ ec.edu.uleam.navigator/
 
 ### 4.4. Renderizado Cartográfico en Compose (`ui/map/CampusMap.kt` y `MapProjection.kt`)
 - **Canvas Paramétrico y Rotación Afín (`MapProjection.kt`):** Proyecta las coordenadas geográficas reales del campus (latitud aproximada $-0.953$, longitud $-80.747$) a coordenadas de pantalla $(X, Y)$ con soporte interactivo para zoom, paneo compensado y rotación con dos dedos o alineada con la brújula.
-- **Infraestructura Diferenciada por Colores Institucionales:**
+- **Capa base estilo OpenStreetMap (`CampusShapes.kt`):** terreno crema sobre fondo oscuro con vegetación decorativa; edificios con la huella real de OSM, sombra, borde blanco y color por facultad (FCS celeste, FIIA azul oscuro, FACIVITEC verde, FETAH naranja, FCACC azul, FCSDB vino; administrativos gris azulado); estadio con pista, gradas y cancha con líneas; canchas, Plaza Cultural Centenario, cafeterías en amarillo, íconos de parqueo (P), hidratación y cafetería (El bosque, Tasty Food 2). Solo se rotulan los bloques del catálogo (B-xx), el estadio, la plaza y las Tasty.
+- **Caminos:** se dibujan sobre las aristas del grafo (trazadas en QGIS sobre OSM) como veredas blancas con borde gris; las escaleras, en terracota con peldaños y recortadas para no tapar el camino. `PathVisibility` decide qué se pinta (solo visual, A* usa todas las aristas): oculta los accesos finales a lugares (`DESTINO`/`ZONA_SEGURA`) y tramos marcados por el equipo, pinta como escalera tramos que prolongan escaleras reales y agrega escaleras decorativas (`ESCALERA`).
+- **Crédito OSM:** botón ⓘ en la esquina inferior izquierda que abre el diálogo "Créditos del mapa" (licencia ODbL).
+- **Infraestructura Diferenciada por Colores Institucionales (modo sin capa base):**
   - `BLOQUE`: Azul pizarra (`0xFF2C3E50`)
   - `ADMINISTRATIVO`: Azul profundo (`0xFF1A365D`)
   - `COMIDA`: Naranja cálido (`0xFFD35400`)
@@ -158,4 +166,7 @@ ec.edu.uleam.navigator/
 11. **Zoom anclado, "Mi ubicación" y "Empezar ruta":** el pellizco hace zoom sobre el punto bajo los dedos (`MapProjection.panForZoomAt`); botón extendido "Mi ubicación" cuando el usuario queda fuera de pantalla (y los botones flotantes ya no quedan tapados por la tarjeta inferior); botón "Empezar ruta" en la tarjeta de destino que activa el modo navegación (`CampusViewModel.empezarRuta/terminarRuta`): la cámara sigue al usuario, el marcador se desliza entre lecturas (`AnimatedUserPosition.kt`), el tramo recorrido se atenúa y se muestran los metros restantes (`RouteProgress.kt`). Durante la navegación el mapa gira suavemente para dejar el rumbo del usuario hacia arriba (GPS real: brújula, con el rumbo del tramo como respaldo; simulación: rumbo del tramo); se desactiva si el usuario gira el mapa a mano o toca la brújula. En Modo Simulación un caminante virtual recorre la ruta a 1,4 m/s (paso humano); en GPS real se detecta la llegada a ≤ 15 m del destino. Pruebas en `MapMathTest`.
 12. **Elegir destino tocando el mapa:** un toque sobre un lugar (radio de 28 dp, `PlaceHitTest`) lo selecciona como destino, traza la ruta de vista previa y la tarjeta inferior muestra sus carreras y el botón "Empezar ruta". Un toque en espacio vacío conserva el comportamiento anterior (fijar origen en Modo Simulación) y mantener pulsado fija el origen aunque haya un lugar debajo. Los toques se ignoran mientras se navega.
 13. **Ajustes de búsqueda y catálogo:** la tarjeta de búsqueda se oculta mientras se navega y reaparece al terminar o llegar; el teclado se cierra al elegir un destino; placeholder "Buscar Bloque, Facultad, Carrera, Otros…"; Tasty Food 1 figura con sus dos entradas (nodos 305 y 318) y El bosque pasa a categoría COMIDA (cafetería).
-14. **Pruebas y Verificación:** 51 pruebas previas en verde; las nuevas pruebas de catálogo/búsqueda quedan pendientes de ejecutar con `./gradlew :app:testDebugUnitTest` en un entorno con Android SDK.
+14. **Mapa del campus con datos de OpenStreetMap:** capa base vectorial (`campus_shapes.csv` + `CampusShapes.kt`) generada desde QGIS/QuickOSM con `build_shapes_osm.py`: edificios con dimensiones reales y color por facultad, estadio, canchas, Plaza Cultural, CIEC, Vicerrectorado y Agromarket como edificios, íconos de parqueo, agua y cafetería. Caminos dibujados sobre las aristas con estilo de vereda y escaleras con peldaños; tramos sobrantes ocultos y escaleras ajustadas según capturas del equipo. Crédito OSM en un botón ⓘ.
+15. **Catálogo B-20 / B-21:** el B-20 (nodo 220) agrupa Psicología, Fisioterapia, Fonoaudiología, Terapia Ocupacional y Nutrición; el B-21 (nodo 221) figura como "No disponible por el momento" (`CARRERAS_DE` / `SIN_CARRERAS` en `build_lugares.py`).
+16. **Interfaz:** barra de búsqueda más compacta (placeholder en una línea) y la barra de Puertas (P1–P4) también se oculta mientras se navega.
+17. **Pruebas y Verificación:** 51 pruebas previas en verde; las nuevas pruebas (`RealCampusDataTest`, `MapMathTest`, `CampusShapesTest`: huellas junto a su entrada, envolvente, etiquetas y visibilidad de caminos) deben ejecutarse con `./gradlew :app:testDebugUnitTest` en un entorno con Android SDK.

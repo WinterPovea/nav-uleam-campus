@@ -14,7 +14,7 @@ Tras evaluar minuciosamente las 15 diapositivas de la presentación oficial fren
 ```
 [Presentación Teórica]                     [Estado Actual en Código]
 - Tubería GeoJSON estandarizada ---------> Se cargan 3 archivos CSV manuales en assets
-- Decisión de Renderizado (MapLibre/OSM)-> Canvas paramétrico 2D propio (muy ligero, pero sin tiles)
+- Decisión de Renderizado (MapLibre/OSM)-> ✅ Canvas 2D propio con capa base vectorial de OSM (QuickOSM -> campus_shapes.csv), sin tiles y 100% offline
 - Calibración física en terreno ---------> ✅ IMPLEMENTADO (T4.2: LocationFilter descarta saltos >20m/s e incertidumbre >30m)
 - Pruebas End-to-End completas ----------> Existen 51 pruebas unitarias (A*, geometría, GNSS y brújula), faltan pruebas de UI Compose
 - Orientación y Brújula peatonal -------> ✅ IMPLEMENTADO (T4.1 + T5.1: CompassSource paso bajo + Cono de visión 45° y rotación en Canvas)
@@ -58,6 +58,7 @@ Como especialista en sistemas de información geográfica móvil y aplicaciones 
 - **Solución Técnica:** Ampliar el esquema de nodos con la propiedad `piso: Int` (0 = PB, 1 = Piso 1, 2 = Piso 2). Modelar las aristas verticales de escaleras conectando nodos del mismo bloque con diferente piso. En la UI, mostrar un selector de nivel (PB, 1, 2) cuando la ruta involucre interiores.
 
 ### 2.6. Búsqueda Enriquecida, Categorías y Ficha de Lugar (Bottom Sheet)
+- **Avance (✅ mapa base):** edificios, estadio, canchas y caminos con estilo OSM y colores por facultad; para actualizarlo, volver a exportar `building/highway/leisure` con QuickOSM a `data/osm/osm_poligonos.geojson` y ejecutar `python3 build_shapes_osm.py`.
 - **Avance (✅ búsqueda por Facultad/Carrera/Sigla):** los bloques se encuentran por nombre de facultad, sigla, carrera o código `B-xx`. Pendiente: chips de categorías y `ModalBottomSheet`.
 - **Solución Técnica:** Implementar chips horizontales de categorías (`Aulas`, `Administración`, `Cafeterías`, `Canchas`, `Baños`, `Zonas Seguras`). Al seleccionar un lugar, desplegar un `ModalBottomSheet` con información ampliada (descripción, carreras o departamentos que funcionan ahí, horario de atención y botón directo de "Cómo llegar").
 
