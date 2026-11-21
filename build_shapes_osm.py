@@ -166,7 +166,7 @@ def main():
     puntos = [r for r in viejo if r[0] in ("PARQUEO", "AGUA", "CAFE")]
     # Escaleras que no son arista del grafo (solo dibujo), ajustadas sobre capturas del equipo
     ESCALERAS = [
-        ("Infraestructura", nodos["453"], (-0.952378, -80.744450)),   # de la Dirección de Infraestructura a la vía
+        ("Infraestructura", nodos["453"], (-0.952416, -80.744401)),   # sigue la arista 453-328 hasta la vía
         ("Cine", nodos["458"], (-0.952750, -80.743992)),              # del Instituto de Idiomas / Cine a la vía de B-17
         ("Cancha multiple", nodos["407"], (-0.953478, -80.746871)),   # media cuesta de la cancha múltiple
     ]
