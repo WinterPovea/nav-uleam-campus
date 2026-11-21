@@ -70,15 +70,16 @@ object PathVisibility {
         429 to 430, 430 to 444, 433 to 444,     // B-13 / B-14 / B-15
         455 to 457,                             // Cine / Instituto de Idiomas
         462 to 472,                             // junto a B-17
-        451 to 452,                             // bajo la escalera de Infraestructura
-        456 to 457, 454 to 455,                 // restos de camino junto al Cine
+        451 to 452, 453 to 473,                 // junto a la escalera de Infraestructura
+        456 to 457, 454 to 455, 458 to 472,     // restos de camino junto al Cine
+        446 to 447,                             // bajo la escalera de B-15
+        407 to 409,                             // la escalera de la cancha múltiple solo llega a media cuesta
     ).map { (a, b) -> minOf(a, b) to maxOf(a, b) }.toSet()
 
     /** Tramos que se pintan como escalera aunque en el grafo no lo sean (prolongan escaleras reales). */
     private val COMO_ESCALERA: Set<Pair<Int, Int>> = setOf(
         300 to 401,                             // escalera del Paraninfo hasta el edificio
-        453 to 473,                             // escalera de Infraestructura hasta la vía
-        407 to 409, 406 to 407,                 // bajada de la cancha múltiple / B-05
+        406 to 407,                             // bajada de la cancha múltiple / B-05
     ).map { (a, b) -> minOf(a, b) to maxOf(a, b) }.toSet()
 
     /** Accesos a lugares que sí se pintan como camino. */
