@@ -25,6 +25,8 @@ FUERA = {"Reef Hostel", "Chocolate Cyber", "Manadialisis", "Rico Ice", "Las Deli
 ANCHO_VIA = {"service": 5.0, "residential": 6.0, "unclassified": 6.0, "tertiary": 7.0, "living_street": 5.0,
              "pedestrian": 4.0, "path": 2.5, "track": 3.0, "cycleway": 2.5, "steps": 2.0}
 VEREDA = {"footway"}
+# Polígonos OSM que se incluyen siempre aunque su centro quede fuera de la envolvente de nodos
+INCLUIR = {"1515520316": ("OTRO", "CIEC")}   # Centro de Innovación, Emprendimiento y Convenciones (en construcción en OSM)
 
 
 def m_xy(lat, lon, lat0=-0.9525):
@@ -96,13 +98,22 @@ def main():
 
     # Zona del campus: envolvente convexa de los nodos (incluye puertas) con 12 m de margen
     campus = hull([m_xy(*v) for v in nodos.values()])
-    dentro = lambda ring: dist_to_hull(campus, m_xy(*centroid(ring))) <= 12.0
+    # Un polígono entra si su centro cae en el campus o si toca la entrada de un lugar del catálogo
+    # (p. ej. el CIEC, cuyo centro queda fuera de la envolvente de nodos)
+    lugar_xy = [m_xy(*nodos[l["id_nodo"]]) for l in lugares if l["id_nodo"] in nodos]
+    def dentro(ring):
+        if dist_to_hull(campus, m_xy(*centroid(ring))) <= 12.0: return True
+        rm = [m_xy(*q) for q in ring]
+        return any(min(seg_dist(n, rm[i], rm[(i + 1) % len(rm)]) for i in range(len(rm))) <= 10.0 for n in lugar_xy)
 
     feats = json.load(open(OSM / "osm_poligonos.geojson", encoding="utf-8"))["features"]
     out = []   # [tipo, codigo, grupo, ring]
     for f in feats:
         p = f["properties"]; ring = ring_of(f["geometry"])
-        if len(ring) < 3 or not dentro(ring) or (p.get("name") or "") in FUERA: continue
+        if len(ring) < 3: continue
+        if str(p.get("osm_id")) in INCLUIR:
+            t, c = INCLUIR[str(p.get("osm_id"))]; out.append([t, c, "OTRO", ring]); continue
+        if not dentro(ring) or (p.get("name") or "") in FUERA: continue
         name = (p.get("name") or "").strip(); b = p.get("building"); lei = p.get("leisure"); hw = p.get("highway")
         if hw == "pedestrian":
             if "Plaza" in name: out.append(["PLAZA", "Plaza Cultural", "OTRO", ring])
@@ -115,7 +126,7 @@ def main():
             continue
         if lei == "swimming_pool": out.append(["CANCHA", "Piscina", "OTRO", ring]); continue
         if lei == "bleachers" or b == "grandstand": out.append(["GRADA", "Gradas", "OTRO", ring]); continue
-        if lei == "playground" and p.get("surface") == "artificial_turf": out.append(["CANCHA_VERDE", "Cancha", "OTRO", ring]); continue
+        if lei in ("playground", "park", "garden"): continue   # parques vecinos (Parque Los Eléctricos), fuera de la U
         if not b: continue
         if BLOQUE.match(name): out.append(["EDIFICIO", name, grupo_bloque.get(name, "OTRO"), ring])
         elif p.get("amenity") in ("restaurant", "fast_food") and "Agro" not in name: out.append(["COMIDA", name or "Cafetería", "OTRO", ring])
