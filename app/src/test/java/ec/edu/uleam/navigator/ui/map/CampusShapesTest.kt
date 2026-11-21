@@ -126,5 +126,7 @@ class CampusShapesTest {
         assertTrue(!PathVisibility.visible(500, 400, "ZONA_SEGURA", "CONEXION", false))
         assertTrue(PathVisibility.visible(309, 490, "DESTINO", "CONEXION", true))    // escaleras siempre
         assertTrue(!PathVisibility.visible(442, 437, "CONEXION", "CONEXION", false)) // en cualquier sentido
+        assertTrue(PathVisibility.visible(317, 423, "DESTINO", "CONEXION", false))   // camino al Vicerrectorado
+        assertTrue(PathVisibility.visible(401, 300, "CONEXION", "DESTINO", false) && PathVisibility.drawnAsStairs(401, 300, false))
     }
 }

@@ -324,18 +324,32 @@ fun CampusMap(
             //    OpenStreetMap) con estilo de vereda, y las escaleras con peldaños; sin diseño, líneas simples.
             if (hasShapes && shapes.none { it.tipo == "VIA" }) {
                 val w = (4f * p.base * zoom / 111_320f).coerceIn(5f, 46f)
+                // (p1, p2, ¿escalera?, id1, id2); las escaleras decorativas (tipo ESCALERA) usan ids negativos
+                data class Seg(val a: Offset, val b: Offset, val esc: Boolean, val ia: Int, val ib: Int)
                 val segs = aristas.mapNotNull { e ->
                     val u = nodoById[e.idOrigen] ?: return@mapNotNull null
                     val v = nodoById[e.idDestino] ?: return@mapNotNull null
-                    if (!PathVisibility.visible(u.id, v.id, u.tipo, v.tipo, e.tieneEscaleras == 1)) return@mapNotNull null
-                    Triple(p.toScreen(u.latitud, u.longitud), p.toScreen(v.latitud, v.longitud), e.tieneEscaleras == 1)
+                    val esc = e.tieneEscaleras == 1
+                    if (!PathVisibility.visible(u.id, v.id, u.tipo, v.tipo, esc)) return@mapNotNull null
+                    Seg(p.toScreen(u.latitud, u.longitud), p.toScreen(v.latitud, v.longitud),
+                        PathVisibility.drawnAsStairs(u.id, v.id, esc), u.id, v.id)
+                } + shapes.filter { it.tipo == "ESCALERA" && it.puntos.size == 2 }.map { s ->
+                    Seg(p.toScreen(s.puntos[0].lat, s.puntos[0].lon), p.toScreen(s.puntos[1].lat, s.puntos[1].lon), true, -1, -2)
                 }
                 // bordes de todos los caminos primero y rellenos después: los cruces quedan limpios
-                for ((a, b, esc) in segs) if (!esc) drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Round)
-                for ((a, b, esc) in segs) if (!esc) drawLine(MapTheme.ROAD, a, b, strokeWidth = w, cap = StrokeCap.Round)
+                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD_CASING, s.a, s.b, strokeWidth = w + 4f, cap = StrokeCap.Round)
+                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD, s.a, s.b, strokeWidth = w, cap = StrokeCap.Round)
+                // Una escalera que llega a un camino se recorta medio ancho para no tapar la vereda
+                val nodosConCamino = segs.filter { !it.esc }.flatMap { listOf(it.ia, it.ib) }.toSet()
+                fun recorte(desde: Offset, hacia: Offset): Offset {
+                    val d = hacia - desde; val len = d.getDistance()
+                    return if (len < 1f) desde else desde + d * ((w / 2f + 2f).coerceAtMost(len / 3f) / len)
+                }
                 // escaleras: base clara + peldaños (trazo grueso discontinuo = barras perpendiculares)
                 val step = (1.2f * p.base * zoom / 111_320f).coerceIn(2.5f, 10f)
-                for ((a, b, esc) in segs) if (esc) {
+                for (s in segs) if (s.esc) {
+                    val a = if (s.ia in nodosConCamino) recorte(s.a, s.b) else s.a
+                    val b = if (s.ib in nodosConCamino || s.ib == -2) recorte(s.b, s.a) else s.b
                     drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Butt)
                     drawLine(MapTheme.STAIRS_BASE, a, b, strokeWidth = w, cap = StrokeCap.Butt)
                     drawLine(MapTheme.STAIRS, a, b, strokeWidth = w * 0.9f, cap = StrokeCap.Butt,

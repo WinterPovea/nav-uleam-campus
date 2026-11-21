@@ -164,6 +164,8 @@ def main():
     else:
         vias = []   # sin líneas OSM la app dibuja los caminos a partir de las aristas del grafo
     puntos = [r for r in viejo if r[0] in ("PARQUEO", "AGUA", "CAFE")]
+    # Escaleras que no son arista del grafo (solo dibujo): Instituto de Idiomas / Cine hasta la vía de B-17
+    puntos.append(["ESCALERA", "Cine", "OTRO", "%.6f %.6f %.6f %.6f" % (*nodos["458"], -0.952713, -80.744037)])
     for nombre, g in sin_huella:
         if not any(r[0] == "CAFE" and r[1] == nombre for r in puntos):
             puntos.append(["CAFE", nombre, "OTRO", "%.6f %.6f" % g])

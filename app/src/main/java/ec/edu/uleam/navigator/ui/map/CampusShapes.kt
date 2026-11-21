@@ -70,15 +70,31 @@ object PathVisibility {
         429 to 430, 430 to 444, 433 to 444,     // B-13 / B-14 / B-15
         455 to 457,                             // Cine / Instituto de Idiomas
         462 to 472,                             // junto a B-17
-        451 to 452, 453 to 473,                 // tramos a los lados de la escalera de Infraestructura
+        451 to 452,                             // bajo la escalera de Infraestructura
+        456 to 457, 454 to 455,                 // restos de camino junto al Cine
     ).map { (a, b) -> minOf(a, b) to maxOf(a, b) }.toSet()
+
+    /** Tramos que se pintan como escalera aunque en el grafo no lo sean (prolongan escaleras reales). */
+    private val COMO_ESCALERA: Set<Pair<Int, Int>> = setOf(
+        300 to 401,                             // escalera del Paraninfo hasta el edificio
+        453 to 473,                             // escalera de Infraestructura hasta la vía
+        407 to 409, 406 to 407,                 // bajada de la cancha múltiple / B-05
+    ).map { (a, b) -> minOf(a, b) to maxOf(a, b) }.toSet()
+
+    /** Accesos a lugares que sí se pintan como camino. */
+    private val SIEMPRE: Set<Pair<Int, Int>> = setOf(317 to 423)   // camino al Vicerrectorado
+        .map { (a, b) -> minOf(a, b) to maxOf(a, b) }.toSet()
+
+    fun drawnAsStairs(a: Int, b: Int, escaleras: Boolean): Boolean =
+        escaleras || (minOf(a, b) to maxOf(a, b)) in COMO_ESCALERA
 
     private val SIN_CAMINO = setOf("DESTINO", "ZONA_SEGURA")
 
     fun visible(a: Int, b: Int, tipoA: String?, tipoB: String?, escaleras: Boolean): Boolean {
-        if (escaleras) return true
+        val k = minOf(a, b) to maxOf(a, b)
+        if (escaleras || k in COMO_ESCALERA || k in SIEMPRE) return true
         if (tipoA in SIN_CAMINO || tipoB in SIN_CAMINO) return false
-        return (minOf(a, b) to maxOf(a, b)) !in OCULTOS
+        return k !in OCULTOS
     }
 }
 
