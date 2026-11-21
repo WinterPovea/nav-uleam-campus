@@ -218,6 +218,7 @@ fun CampusApp(vm: CampusViewModel) {
             nodos = vm.nodos,
             aristas = vm.aristas,
             lugares = vm.lugares,
+            shapes = vm.shapes,
             nodoById = vm.nodoById,
             routeNodeIds = s.route?.nodeIds,
             originNodeId = s.origenId,
@@ -242,17 +243,25 @@ fun CampusApp(vm: CampusViewModel) {
             AnimatedVisibility(visible = !s.navigating) {
               Column {
             ElevatedCard(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(Modifier.padding(6.dp)) {
+                Column(Modifier.padding(horizontal = 4.dp, vertical = 0.dp)) {
                     OutlinedTextField(
                         value = s.query,
                         onValueChange = vm::onQuery,
                         singleLine = true,
-                        placeholder = { Text("Buscar Bloque, Facultad, Carrera, Otros…") },
+                        placeholder = {
+                            Text(
+                                "Buscar Bloque, Facultad, Carrera, Otros…",
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        textStyle = MaterialTheme.typography.bodyMedium,
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color(0xFFA01B2C)) },
                         trailingIcon = {
                             if (s.query.isNotEmpty()) {
@@ -317,12 +326,13 @@ fun CampusApp(vm: CampusViewModel) {
               }
             }
 
-            // Barra rápida de selección de puertas origen
+            // Barra rápida de selección de puertas origen: también se oculta mientras se navega
+            AnimatedVisibility(visible = !s.navigating) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xCCFFFFFF), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .padding(horizontal = 10.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -348,6 +358,7 @@ fun CampusApp(vm: CampusViewModel) {
                         )
                     }
                 }
+            }
             }
 
             // AVISO RESILIENTE DE PERMISOS DENEGADOS (ROL 2)

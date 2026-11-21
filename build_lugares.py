@@ -25,6 +25,12 @@ FIXES = {
     "Ingeneria": "Ingenieria",
     "Billingue": "Bilingue",
 }
+# Bloque B-21 (nodo 221): sin carreras por el momento. Las carreras de Ciencias de la Salud que figuraban en él
+# (Psicología, Fisioterapia, Fonoaudiología, Terapia Ocupacional, Nutrición) se atienden en el B-20 (nodo 220).
+CARRERAS_DE = {220: 221}        # nodo -> nodo del que toma las carreras
+SIN_CARRERAS = {221}            # nodos sin carreras por el momento
+BLOQUE_REAL = {}                # id_nodo -> bloque a mostrar si difiere del que trae el CSV (hoy ninguno)
+
 # Sinónimos que ayudan a encontrar la facultad por palabras sueltas.
 SINONIMOS = {
     "FCS": "salud",
@@ -126,8 +132,14 @@ def main() -> None:
             fac, sigla = split_facultad(fac_raw)
             carreras = fix(src["Carrera"])
             carreras = "" if carreras.lower() in NO_DISPONIBLE else carreras
+            if nid in CARRERAS_DE:
+                c2 = fix(fuente[CARRERAS_DE[nid]]["Carrera"])
+                carreras = "" if c2.lower() in NO_DISPONIBLE else c2
+            elif nid in SIN_CARRERAS:
+                carreras = ""
             m = re.search(r"B-\d+", r["codigo"])  # idempotente: acepta "B-16" o "FCS·B-16"
-            bloque = m.group(0) if m else ""
+            md = re.search(r"B-\d+", src.get("Descri", ""))  # el bloque sale de la descripción original del nodo
+            bloque = BLOQUE_REAL.get(nid) or (md.group(0) if md else (m.group(0) if m else ""))
             if bloque:
                 acceso2 = ", acceso 2" if nid == 314 else ""
                 if nid == 230:
@@ -135,7 +147,8 @@ def main() -> None:
                 else:
                     r["nombre"] = f"Facultad de {fac} (Bloque {bloque}{acceso2})"
                 r["codigo"] = f"{sigla}·{bloque}"
-                r["descripcion"] = carreras or f"Facultad de {fac}"
+                r["descripcion"] = carreras or (
+                    "No disponible por el momento" if nid in SIN_CARRERAS else f"Facultad de {fac}")
             else:
                 r["descripcion"] = carreras or f"Facultad de {fac}"
             r["etiquetas"] = f"{sigla.lower()} {SINONIMOS.get(sigla, '')}".strip()

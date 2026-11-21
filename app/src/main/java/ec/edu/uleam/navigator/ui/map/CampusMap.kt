@@ -20,6 +20,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -45,6 +51,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -78,6 +85,7 @@ fun CampusMap(
     nodos: List<NodoEntity>,
     aristas: List<AristaEntity>,
     lugares: List<LugarEntity>,
+    shapes: List<CampusShape> = emptyList(),
     nodoById: Map<Int, NodoEntity>,
     routeNodeIds: List<Int>?,
     originNodeId: Int?,
@@ -151,6 +159,10 @@ fun CampusMap(
             nodos.minOf { it.longitud }, nodos.maxOf { it.longitud }
         )
     }
+
+    val ground = remember(shapes) { CampusShapesGeometry.ground(shapes) }
+    val shapeLabels = remember(shapes) { CampusShapesGeometry.labels(shapes) }
+    val hasShapes = shapes.isNotEmpty()
 
     val lugaresByNodoId = remember(lugares) {
         lugares.associateBy { it.idNodo }
@@ -254,7 +266,7 @@ fun CampusMap(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF6F5F0)) // Fondo crema cartográfico suave institucional
+                .background(if (shapes.isNotEmpty()) MapTheme.OUTSIDE else Color(0xFFF6F5F0)) // Oscuro con diseño de mapa físico; crema si no hay figuras
                 .onSizeChanged { size = it }
                 .pointerInput(Unit) {
                     detectTransformGestures { centroid, panChange, zoomChange, rotationChange ->
@@ -311,8 +323,46 @@ fun CampusMap(
         ) {
             val p = proj()
 
-            // 1. DIBUJAR RED PEATONAL Y ARISTAS
-            aristas.forEach { edge ->
+            // 0. TERRENO Y VEGETACIÓN DEL CAMPUS (diseño del mapa físico)
+            drawCampusGround(p, ground, zoom)
+
+            // 1. RED PEATONAL. Con el diseño del mapa, los caminos se dibujan siguiendo las aristas (trazadas sobre
+            //    OpenStreetMap) con estilo de vereda, y las escaleras con peldaños; sin diseño, líneas simples.
+            if (hasShapes && shapes.none { it.tipo == "VIA" }) {
+                val w = (4f * p.base * zoom / 111_320f).coerceIn(5f, 46f)
+                // (p1, p2, ¿escalera?, id1, id2); las escaleras decorativas (tipo ESCALERA) usan ids negativos
+                data class Seg(val a: Offset, val b: Offset, val esc: Boolean, val ia: Int, val ib: Int)
+                val segs = aristas.mapNotNull { e ->
+                    val u = nodoById[e.idOrigen] ?: return@mapNotNull null
+                    val v = nodoById[e.idDestino] ?: return@mapNotNull null
+                    val esc = e.tieneEscaleras == 1
+                    if (!PathVisibility.visible(u.id, v.id, u.tipo, v.tipo, esc)) return@mapNotNull null
+                    Seg(p.toScreen(u.latitud, u.longitud), p.toScreen(v.latitud, v.longitud),
+                        PathVisibility.drawnAsStairs(u.id, v.id, esc), u.id, v.id)
+                } + shapes.filter { it.tipo == "ESCALERA" && it.puntos.size == 2 }.map { s ->
+                    Seg(p.toScreen(s.puntos[0].lat, s.puntos[0].lon), p.toScreen(s.puntos[1].lat, s.puntos[1].lon), true, -1, -2)
+                }
+                // bordes de todos los caminos primero y rellenos después: los cruces quedan limpios
+                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD_CASING, s.a, s.b, strokeWidth = w + 4f, cap = StrokeCap.Round)
+                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD, s.a, s.b, strokeWidth = w, cap = StrokeCap.Round)
+                // Una escalera que llega a un camino se recorta medio ancho para no tapar la vereda
+                val nodosConCamino = segs.filter { !it.esc }.flatMap { listOf(it.ia, it.ib) }.toSet()
+                fun recorte(desde: Offset, hacia: Offset): Offset {
+                    val d = hacia - desde; val len = d.getDistance()
+                    return if (len < 1f) desde else desde + d * ((w / 2f + 2f).coerceAtMost(len / 3f) / len)
+                }
+                // escaleras: base clara + peldaños (trazo grueso discontinuo = barras perpendiculares)
+                val step = (1.2f * p.base * zoom / 111_320f).coerceIn(2.5f, 10f)
+                for (s in segs) if (s.esc) {
+                    val a = if (s.ia in nodosConCamino) recorte(s.a, s.b) else s.a
+                    val b = if (s.ib in nodosConCamino || s.ib == -2) recorte(s.b, s.a) else s.b
+                    drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Butt)
+                    drawLine(MapTheme.STAIRS_BASE, a, b, strokeWidth = w, cap = StrokeCap.Butt)
+                    drawLine(MapTheme.STAIRS, a, b, strokeWidth = w * 0.9f, cap = StrokeCap.Butt,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(step * 0.45f, step * 0.55f)))
+                }
+            }
+            if (!hasShapes) aristas.forEach { edge ->
                 val u = nodoById[edge.idOrigen] ?: return@forEach
                 val v = nodoById[edge.idDestino] ?: return@forEach
                 val p1 = p.toScreen(u.latitud, u.longitud)
@@ -339,6 +389,9 @@ fun CampusMap(
                 }
             }
 
+            // 1b. EDIFICIOS, ESTADIO, CANCHAS, PARQUEOS Y AGUA (sobre las vías, bajo ruta y etiquetas)
+            drawCampusShapes(p, shapes, zoom, shapeLabels)
+
             // 2. DIBUJAR INFRAESTRUCTURA DE EDIFICIOS Y BLOQUES (GEOMETRÍA Y RELLENO)
             nodos.forEach { node ->
                 if (node.tipo == "DESTINO" || node.tipo == "ENTRADA" || node.tipo == "ZONA_SEGURA") {
@@ -356,6 +409,12 @@ fun CampusMap(
                                 else -> Color(0xFFE3F2FD) to Color(0xFF1565C0)             // Bloques de aulas / FCVT
                             }
 
+                            if (shapes.isNotEmpty()) {
+                                // Con huellas dibujadas, la entrada del lugar es solo un punto sobre el edificio
+                                drawCircle(Color.White, 10f, center)
+                                drawCircle(strokeColor, 7f, center)
+                                return@forEach
+                            }
                             // Polígono/rectángulo de edificio
                             val w = 54f
                             val h = 38f
@@ -382,7 +441,7 @@ fun CampusMap(
                         "ENTRADA" -> {
                             // Puertas de acceso institucional
                             drawCircle(
-                                color = Color(0xFF00796B),
+                                color = if (hasShapes) MapTheme.ARROW_YELLOW else Color(0xFF00796B),
                                 radius = 13f,
                                 center = center,
                                 style = Fill
@@ -425,6 +484,8 @@ fun CampusMap(
             if (zoom >= 1.2f) {
                 nodos.forEach { node ->
                     val place = lugaresByNodoId[node.id] ?: return@forEach
+                    // Con huellas dibujadas el código del bloque ya va dentro del edificio (salvo con zoom alto)
+                    if (hasShapes && zoom < 2.8f && node.tipo == "DESTINO" && !place.codigo.isNullOrBlank()) return@forEach
                     val center = p.toScreen(node.latitud, node.longitud)
 
                     val label = when {
@@ -486,7 +547,7 @@ fun CampusMap(
                     // Halo de contraste exterior
                     for (i in 0 until points.size - 1) {
                         drawLine(
-                            color = Color(0x550D47A1),
+                            color = if (hasShapes) Color(0xCCFFFFFF) else Color(0x550D47A1),
                             start = points[i],
                             end = points[i + 1],
                             strokeWidth = 15f,
@@ -496,7 +557,7 @@ fun CampusMap(
                     // Línea principal azul ULEAM
                     for (i in 0 until points.size - 1) {
                         drawLine(
-                            color = Color(0xFF1976D2),
+                            color = if (hasShapes) Color(0xFF0288D1) else Color(0xFF1976D2),
                             start = points[i],
                             end = points[i + 1],
                             strokeWidth = 8.5f,
@@ -589,6 +650,42 @@ fun CampusMap(
                     color = Color(0xFF0D47A1),
                     radius = 8f,
                     center = userScreen
+                )
+            }
+        }
+
+        // Crédito obligatorio de los datos del mapa (licencia ODbL de OpenStreetMap): botón ⓘ que lo muestra al tocarlo
+        if (hasShapes) {
+            var showCredits by remember { mutableStateOf(false) }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 10.dp, bottom = controlsBottomPadding)
+                    .size(28.dp)
+                    .background(Color(0xD9FFFFFF), CircleShape)
+                    .clickable { showCredits = true }
+            ) {
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = "Créditos del mapa",
+                    tint = Color(0xFF546E7A),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            if (showCredits) {
+                AlertDialog(
+                    onDismissRequest = { showCredits = false },
+                    confirmButton = { TextButton(onClick = { showCredits = false }) { Text("Cerrar") } },
+                    title = { Text("Créditos del mapa") },
+                    text = {
+                        Text(
+                            "Edificios, estadio y canchas: © OpenStreetMap contributors, " +
+                                "disponibles bajo la licencia Open Database License (ODbL).\n" +
+                                "openstreetmap.org/copyright\n\n" +
+                                "Los datos están incluidos en la app: el mapa funciona sin conexión."
+                        )
+                    }
                 )
             }
         }
