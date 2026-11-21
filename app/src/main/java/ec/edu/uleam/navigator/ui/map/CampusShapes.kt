@@ -51,6 +51,8 @@ object MapTheme {
     val ROAD = Color(0xFFFFFFFF)
     val ROAD_CASING = Color(0xFF9C977F)
     val SIDEWALK = Color(0xFFE0796B)
+    val STAIRS_BASE = Color(0xFFF3E3D3)
+    val STAIRS = Color(0xFFB5654F)
     val PLAZA = Color(0xFFC9CDE8)
     val ARROW_YELLOW = Color(0xFFFFD21F)
 }

@@ -320,8 +320,27 @@ fun CampusMap(
             // 0. TERRENO Y VEGETACIÓN DEL CAMPUS (diseño del mapa físico)
             drawCampusGround(p, ground, zoom)
 
-            // 1. DIBUJAR RED PEATONAL Y ARISTAS (con el diseño del mapa, las vías van en la capa de figuras
-            //    y las aristas del grafo no se pintan: solo se ve la ruta activa)
+            // 1. RED PEATONAL. Con el diseño del mapa, los caminos se dibujan siguiendo las aristas (trazadas sobre
+            //    OpenStreetMap) con estilo de vereda, y las escaleras con peldaños; sin diseño, líneas simples.
+            if (hasShapes && shapes.none { it.tipo == "VIA" }) {
+                val w = (4f * p.base * zoom / 111_320f).coerceIn(5f, 46f)
+                val segs = aristas.mapNotNull { e ->
+                    val u = nodoById[e.idOrigen] ?: return@mapNotNull null
+                    val v = nodoById[e.idDestino] ?: return@mapNotNull null
+                    Triple(p.toScreen(u.latitud, u.longitud), p.toScreen(v.latitud, v.longitud), e.tieneEscaleras == 1)
+                }
+                // bordes de todos los caminos primero y rellenos después: los cruces quedan limpios
+                for ((a, b, esc) in segs) if (!esc) drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Round)
+                for ((a, b, esc) in segs) if (!esc) drawLine(MapTheme.ROAD, a, b, strokeWidth = w, cap = StrokeCap.Round)
+                // escaleras: base clara + peldaños (trazo grueso discontinuo = barras perpendiculares)
+                val step = (1.2f * p.base * zoom / 111_320f).coerceIn(2.5f, 10f)
+                for ((a, b, esc) in segs) if (esc) {
+                    drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Butt)
+                    drawLine(MapTheme.STAIRS_BASE, a, b, strokeWidth = w, cap = StrokeCap.Butt)
+                    drawLine(MapTheme.STAIRS, a, b, strokeWidth = w * 0.9f, cap = StrokeCap.Butt,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(step * 0.45f, step * 0.55f)))
+                }
+            }
             if (!hasShapes) aristas.forEach { edge ->
                 val u = nodoById[edge.idOrigen] ?: return@forEach
                 val v = nodoById[edge.idDestino] ?: return@forEach

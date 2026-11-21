@@ -86,9 +86,8 @@ class CampusShapesTest {
     }
 
     @Test
-    fun hayViasDecorativasYSoloSeRotulanLosBloquesDelCatalogo() {
+    fun viasConAnchoValidoYSoloSeRotulanLosBloquesDelCatalogo() {
         val shapes = realShapes()
-        assertTrue(shapes.count { it.tipo == "VIA" } >= 5)
         assertTrue(shapes.filter { it.tipo == "VIA" }.all { (it.codigo.toFloatOrNull() ?: 0f) in 2f..20f })
         val etiquetas = CampusShapesGeometry.labels(shapes).filter { it.tipo == "EDIFICIO" }.map { it.texto }
         assertTrue(etiquetas.all { Regex("B-\\d{2}").matches(it) }, "etiquetas fuera del catálogo: $etiquetas")

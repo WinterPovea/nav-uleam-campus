@@ -162,7 +162,7 @@ def main():
                 if hwy in VEREDA: vias.append(["VEREDA", "2.0", "OTRO", line])
                 elif hwy in ANCHO_VIA: vias.append(["VIA", "%.1f" % ANCHO_VIA[hwy], "OTRO", line])
     else:
-        vias = [[r[0], r[1], r[2], None, r[3]] for r in viejo if r[0] in ("VIA", "VEREDA")]
+        vias = []   # sin líneas OSM la app dibuja los caminos a partir de las aristas del grafo
     puntos = [r for r in viejo if r[0] in ("PARQUEO", "AGUA", "CAFE")]
     for nombre, g in sin_huella:
         if not any(r[0] == "CAFE" and r[1] == nombre for r in puntos):
