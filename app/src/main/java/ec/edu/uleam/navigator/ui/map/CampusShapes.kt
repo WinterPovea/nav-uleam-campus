@@ -16,7 +16,8 @@ import android.graphics.Typeface
 /**
  * Figura del mapa del campus (huella de un edificio, estadio, cancha, parqueo, punto de hidratación...).
  * Es solo diseño: no interviene en el grafo ni en la ruta. Se carga de assets/campus_shapes.csv.
- * @property tipo EDIFICIO, OTRO, PISTA, CANCHA_ESTADIO, GRADA, CANCHA, CANCHA_VERDE, COMIDA, PARQUEO o AGUA.
+ * @property tipo EDIFICIO, OTRO, PISTA, CANCHA_ESTADIO, GRADA, CANCHA, CANCHA_VERDE, COMIDA, PLAZA, VIA, VEREDA,
+ *   PARQUEO, AGUA o CAFE. Las figuras salen de OpenStreetMap (© OpenStreetMap contributors, ODbL).
  * @property grupo Sigla de la facultad (FCS, FIIA, FACIVITEC, FETAH, FCACC, FCSDB) u OTRO.
  */
 data class CampusShape(val tipo: String, val codigo: String, val grupo: String, val puntos: List<GeoPoint>)
@@ -49,6 +50,7 @@ object MapTheme {
     val GROUND = Color(0xFFF5F1D3)
     val ROAD = Color(0xFFFFFFFF)
     val ROAD_CASING = Color(0xFF9C977F)
+    val SIDEWALK = Color(0xFFE0796B)
     val PLAZA = Color(0xFFC9CDE8)
     val ARROW_YELLOW = Color(0xFFFFD21F)
 }
@@ -131,7 +133,7 @@ object CampusShapesGeometry {
         fun centro(s: CampusShape) = GeoPoint(s.puntos.map { it.lat }.average(), s.puntos.map { it.lon }.average())
         shapes.firstOrNull { it.tipo == "CANCHA_ESTADIO" && it.puntos.size >= 3 }?.let { out.add(ShapeLabel("Estadio\nUniversitario", "ESTADIO", centro(it))) }
         shapes.firstOrNull { it.tipo == "PLAZA" && it.puntos.size >= 3 }?.let { out.add(ShapeLabel("Plaza\nCultural", "PLAZA", centro(it))) }
-        shapes.filter { it.tipo == "COMIDA" && it.puntos.size >= 3 }.forEach { s ->
+        shapes.filter { it.tipo == "COMIDA" && it.puntos.size >= 3 && it.codigo.startsWith("Tasty") }.forEach { s ->
             out.add(ShapeLabel("Tasty " + s.codigo.filter { c -> c.isDigit() }, "COMIDA", centro(s)))
         }
         return out
@@ -226,7 +228,6 @@ private fun DrawScope.drawPlazaIcon(c: Offset, k: Float) {
 /** Vías decorativas (tipo VIA: `codigo` = ancho en metros). Son diseño: la ruta real sigue las aristas del grafo. */
 private fun DrawScope.drawCampusRoads(p: MapProjection, shapes: List<CampusShape>, k: Float) {
     val vias = shapes.filter { it.tipo == "VIA" && it.puntos.size >= 2 }
-    if (vias.isEmpty()) return
     val paths = vias.map { s ->
         val path = Path()
         s.puntos.forEachIndexed { i, g ->
@@ -239,6 +240,17 @@ private fun DrawScope.drawCampusRoads(p: MapProjection, shapes: List<CampusShape
     // primero todos los bordes y luego los rellenos, para que los cruces se fundan sin costuras
     for ((w, path) in paths) drawPath(path, MapTheme.ROAD_CASING, style = Stroke(width = w.coerceAtLeast(6f) + 6f, cap = StrokeCap.Round, join = round))
     for ((w, path) in paths) drawPath(path, MapTheme.ROAD, style = Stroke(width = w.coerceAtLeast(6f), cap = StrokeCap.Round, join = round))
+    // Veredas (highway=footway): línea punteada rojiza como en OpenStreetMap
+    val dash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(9f, 6f))
+    for (s in shapes) {
+        if (s.tipo != "VEREDA" || s.puntos.size < 2) continue
+        val path = Path()
+        s.puntos.forEachIndexed { i, g ->
+            val o = p.toScreen(g.lat, g.lon)
+            if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
+        }
+        drawPath(path, MapTheme.SIDEWALK, style = Stroke(width = 2.2f, cap = StrokeCap.Butt, join = round, pathEffect = dash))
+    }
 }
 
 /** Edificios, estadio, canchas, plaza, parqueos y agua. Va DESPUÉS de las vías para que las tape en las huellas. */

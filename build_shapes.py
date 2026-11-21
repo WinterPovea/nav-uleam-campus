@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Genera app/src/main/assets/campus_shapes.csv (capa vectorial del mapa del campus, solo diseno).
+"""OBSOLETO: las figuras ahora salen de OpenStreetMap con build_shapes_osm.py (este script sobrescribe ese resultado).
+Genera app/src/main/assets/campus_shapes.csv (capa vectorial del mapa del campus, solo diseno).
 
 Los contornos se trazaron sobre la foto del mapa fisico (1200x1600 px). Se calibran con los nodos reales
 (data/nodos_u.csv) con una semejanza (giro + escala + traslacion) refinada por ICP: cada entrada de bloque

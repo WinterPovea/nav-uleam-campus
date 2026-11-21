@@ -614,6 +614,20 @@ fun CampusMap(
             }
         }
 
+        // Crédito obligatorio de los datos del mapa (licencia ODbL de OpenStreetMap)
+        if (hasShapes) {
+            Text(
+                text = "© OpenStreetMap contributors",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xCC37474F),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 8.dp, bottom = controlsBottomPadding)
+                    .background(Color(0xB3FFFFFF))
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            )
+        }
+
         // 7. BOTONES FLOTANTES DE BRÚJULA / NORTE Y RECENTRADO
         Column(
             modifier = Modifier
