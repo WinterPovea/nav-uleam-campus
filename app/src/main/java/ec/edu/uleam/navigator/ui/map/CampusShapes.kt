@@ -48,7 +48,7 @@ object MapTheme {
     val OUTSIDE = Color(0xFF2B3335)
     val GROUND = Color(0xFFF5F1D3)
     val ROAD = Color(0xFFFFFFFF)
-    val ROAD_CASING = Color(0xFFBDB9A3)
+    val ROAD_CASING = Color(0xFF9C977F)
     val PLAZA = Color(0xFFC9CDE8)
     val ARROW_YELLOW = Color(0xFFFFD21F)
 }
@@ -237,8 +237,8 @@ private fun DrawScope.drawCampusRoads(p: MapProjection, shapes: List<CampusShape
     }
     val round = androidx.compose.ui.graphics.StrokeJoin.Round
     // primero todos los bordes y luego los rellenos, para que los cruces se fundan sin costuras
-    for ((w, path) in paths) drawPath(path, MapTheme.ROAD_CASING, style = Stroke(width = w.coerceAtLeast(5f) + 5f, cap = StrokeCap.Round, join = round))
-    for ((w, path) in paths) drawPath(path, MapTheme.ROAD, style = Stroke(width = w.coerceAtLeast(5f), cap = StrokeCap.Round, join = round))
+    for ((w, path) in paths) drawPath(path, MapTheme.ROAD_CASING, style = Stroke(width = w.coerceAtLeast(6f) + 6f, cap = StrokeCap.Round, join = round))
+    for ((w, path) in paths) drawPath(path, MapTheme.ROAD, style = Stroke(width = w.coerceAtLeast(6f), cap = StrokeCap.Round, join = round))
 }
 
 /** Edificios, estadio, canchas, plaza, parqueos y agua. Va DESPUÉS de las vías para que las tape en las huellas. */
@@ -312,6 +312,14 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
             }
         }
     }
+    // Cafeterías sin huella propia (El bosque): taza sobre el nodo, visible desde zoom bajo
+    if (zoom >= 1.0f) {
+        for (s in shapes) {
+            if (s.tipo != "CAFE" || s.puntos.size != 1) continue
+            val n = p.toScreen(s.puntos[0].lat, s.puntos[0].lon)
+            drawCafeIcon(Offset(n.x, n.y - 30f))
+        }
+    }
     // Iconos puntuales: parqueo (P) y punto de hidratación (gota)
     if (zoom >= 1.6f) {
         val nc = drawContext.canvas.nativeCanvas
@@ -339,5 +347,20 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
                 }
             }
         }
+    }
+}
+
+/** Ícono de cafetería: círculo café con una taza blanca humeante. */
+private fun DrawScope.drawCafeIcon(o: Offset) {
+    drawCircle(Color.White, 18f, o)
+    drawCircle(Color(0xFF6D4C41), 16f, o)
+    // taza
+    drawRoundRect(Color.White, Offset(o.x - 8f, o.y - 3f), Size(13f, 11f), CornerRadius(2.5f, 2.5f))
+    drawCircle(Color.White, 4.2f, Offset(o.x + 6f, o.y + 2f), style = Stroke(width = 2.2f))
+    // plato
+    drawLine(Color.White, Offset(o.x - 10f, o.y + 10f), Offset(o.x + 8f, o.y + 10f), strokeWidth = 2.2f, cap = StrokeCap.Round)
+    // vapor
+    for (dx in listOf(-5f, 0f)) {
+        drawLine(Color.White.copy(alpha = 0.9f), Offset(o.x + dx, o.y - 6f), Offset(o.x + dx + 1.5f, o.y - 11f), strokeWidth = 1.6f, cap = StrokeCap.Round)
     }
 }

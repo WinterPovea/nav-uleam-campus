@@ -96,7 +96,7 @@ ROADS=[
  (38,[(545,715),(480,760),(400,787),(320,797),(250,822),(215,865)]),
 ]
 # Entrada (nodo DESTINO) de cada edificio que no es bloque: la huella se acerca a su nodo
-OTRO_NODE={'A-01':309,'I-09':[308,319],'C-03':300,'CIEC':301,'K-11':310,'F-06':306,'E-05':302,'J-10':230,'M-13':324,
+OTRO_NODE={'Agromarket':315,'A-01':309,'I-09':[308,319],'C-03':300,'CIEC':301,'K-11':310,'F-06':306,'E-05':302,'J-10':230,'M-13':324,
  'N-14':303,'Ñ-15':328,'G-07':320,'I-12':317,'EP ULEAM':323,'Tasty Food 2':326,'Tasty Food 3':327,'Tasty Food 4':321,
  'Cancha cesped':322,'Canchas multiples':304}
 
@@ -143,7 +143,8 @@ OSM_O=[
  ('OTRO','N-14',[(412,392),(440,383),(455,395),(445,414),(418,413)]),
  ('OTRO','Ñ-15',[(427,312),(448,305),(460,330),(440,340)]),
  ('OTRO','G-07',[(386,232),(402,226),(410,248),(392,254)]),
- ('OTRO','I-12',[(46,412),(66,410),(68,430),(48,433)]),
+ ('OTRO','I-12',[(40,408),(68,405),(72,432),(44,437)]),
+ ('OTRO','Agromarket',[(316,302),(334,298),(338,316),(320,320)]),
  ('OTRO','EP ULEAM',[(312,58),(378,52),(382,95),(318,100)]),
  ('OTRO','JUAN MONTALVO ANTIGUO',[(300,8),(335,8),(338,42),(302,42)]),
  ('OTRO','JUAN MONTALVO NUEVO',[(398,57),(432,50),(445,90),(405,100)]),
@@ -164,6 +165,17 @@ OSM_ROADS=[  # (ancho en metros, polilinea en px de OSM)
  (5,[(590,112),(560,140),(530,175),(512,205)]),
  (5,[(180,505),(165,540),(175,590),(210,630),(245,660),(255,690),(262,725)]),
  (5,[(250,655),(300,665),(350,672),(400,660),(440,655),(470,650)]),
+ (5,[(190,92),(250,82),(300,70),(340,62),(400,50),(435,40),(470,25)]),
+ (5,[(235,232),(205,205),(195,150),(190,100)]),
+ (5,[(240,236),(262,248),(300,270),(318,292)]),
+ (5,[(318,292),(360,285),(395,278),(440,268),(498,265)]),
+ (4,[(395,330),(368,350),(362,375),(380,400),(440,420),(495,425)]),
+ (4,[(205,300),(212,350),(220,400),(230,450),(245,470)]),
+ (4,[(130,392),(170,390),(210,385)]),
+ (5,[(75,530),(110,527),(150,520),(175,505)]),
+ (4,[(338,480),(335,560),(330,600)]),
+ (5,[(345,525),(400,525),(440,520),(470,530)]),
+ (5,[(470,480),(465,560),(460,650)]),
 ]
 # puntas de las flechas amarillas de ingreso -> nodos 100..103
 GATES={100:(595,287),103:(192,420),101:(227,877),102:(937,1274)}
@@ -374,6 +386,19 @@ def main():
     for w, pts in osm_roads:
         out.append(['VIA', '%.1f' % w, pts])
     for g in osm_park: out.append(['PARQUEO', 'P', [g]])
+    # Ajustes finos pedidos (metros este, norte) despues de pegar cada edificio a su nodo
+    MANUAL_SHIFT_M = {'B-06': (0.0, 8.0)}   # B-06 queda junto a B-07, como en OSM
+    for o in out:
+        if o[1] in MANUAL_SHIFT_M and o[0] == 'EDIFICIO':
+            dv = np.array(MANUAL_SHIFT_M[o[1]])
+            o[2] = [to_ll(*(np.array(to_m(*pt)) + dv)) for pt in o[2]]
+    # Vicerrectorado (I-12/L-12): edificio al oeste de su entrada (nodo 317), sin tapar a Tasty Food 1
+    for o in out:
+        if o[1] == 'I-12':
+            o[2] = [(-0.952985, -80.747565), (-0.952985, -80.747405), (-0.953150, -80.747405), (-0.953150, -80.747565)]
+    # Iconos de cafeteria en lugares sin huella propia (El bosque)
+    for nid in (312,):
+        out.append(['CAFE', nodes[nid][0].strip(), [nodes[nid][1:]]])
     for p in WATER: out.append(['AGUA', 'Agua', [to_ll(*sim.fwd(np.array(p, float)))]])
     path = os.path.join(ROOT, 'app/src/main/assets/campus_shapes.csv')
     with open(path, 'w', encoding='utf-8', newline='') as f:
