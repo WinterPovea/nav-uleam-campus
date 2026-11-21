@@ -20,6 +20,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -648,18 +654,40 @@ fun CampusMap(
             }
         }
 
-        // Crédito obligatorio de los datos del mapa (licencia ODbL de OpenStreetMap)
+        // Crédito obligatorio de los datos del mapa (licencia ODbL de OpenStreetMap): botón ⓘ que lo muestra al tocarlo
         if (hasShapes) {
-            Text(
-                text = "© OpenStreetMap contributors",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xCC37474F),
+            var showCredits by remember { mutableStateOf(false) }
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 8.dp, bottom = controlsBottomPadding)
-                    .background(Color(0xB3FFFFFF))
-                    .padding(horizontal = 4.dp, vertical = 1.dp)
-            )
+                    .padding(start = 10.dp, bottom = controlsBottomPadding)
+                    .size(28.dp)
+                    .background(Color(0xD9FFFFFF), CircleShape)
+                    .clickable { showCredits = true }
+            ) {
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = "Créditos del mapa",
+                    tint = Color(0xFF546E7A),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            if (showCredits) {
+                AlertDialog(
+                    onDismissRequest = { showCredits = false },
+                    confirmButton = { TextButton(onClick = { showCredits = false }) { Text("Cerrar") } },
+                    title = { Text("Créditos del mapa") },
+                    text = {
+                        Text(
+                            "Edificios, estadio y canchas: © OpenStreetMap contributors, " +
+                                "disponibles bajo la licencia Open Database License (ODbL).\n" +
+                                "openstreetmap.org/copyright\n\n" +
+                                "Los datos están incluidos en la app: el mapa funciona sin conexión."
+                        )
+                    }
+                )
+            }
         }
 
         // 7. BOTONES FLOTANTES DE BRÚJULA / NORTE Y RECENTRADO
