@@ -118,4 +118,13 @@ class CampusShapesTest {
         val t = ((px * bx + py * by) / (bx * bx + by * by).coerceAtLeast(1e-9)).coerceIn(0.0, 1.0)
         return Math.hypot(px - t * bx, py - t * by)
     }
+
+    @Test
+    fun caminosVisiblesOcultanAccesosFinalesYTramosMarcados() {
+        assertTrue(PathVisibility.visible(400, 401, "CONEXION", "CONEXION", false))
+        assertTrue(!PathVisibility.visible(201, 485, "DESTINO", "CONEXION", false))
+        assertTrue(!PathVisibility.visible(500, 400, "ZONA_SEGURA", "CONEXION", false))
+        assertTrue(PathVisibility.visible(309, 490, "DESTINO", "CONEXION", true))    // escaleras siempre
+        assertTrue(!PathVisibility.visible(442, 437, "CONEXION", "CONEXION", false)) // en cualquier sentido
+    }
 }

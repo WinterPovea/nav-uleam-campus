@@ -57,6 +57,31 @@ object MapTheme {
     val ARROW_YELLOW = Color(0xFFFFD21F)
 }
 
+/**
+ * Qué aristas del grafo se pintan como camino en el mapa. Es solo visual: el cálculo de rutas usa todas.
+ * - Las escaleras se pintan siempre.
+ * - Los accesos finales a un lugar (aristas que tocan un nodo DESTINO o ZONA_SEGURA) no se pintan: el edificio
+ *   o el ícono ya marca el lugar y esos tramos cruzaban jardines y edificios.
+ * - Tramos entre conexiones que no existen como camino visible (marcados por el equipo sobre el mapa).
+ */
+object PathVisibility {
+    private val OCULTOS: Set<Pair<Int, Int>> = setOf(
+        436 to 437, 437 to 442,                 // B-10 / B-11 / Tasty Food 3
+        429 to 430, 430 to 444, 433 to 444,     // B-13 / B-14 / B-15
+        455 to 457,                             // Cine / Instituto de Idiomas
+        462 to 472,                             // junto a B-17
+        451 to 452, 453 to 473,                 // tramos a los lados de la escalera de Infraestructura
+    ).map { (a, b) -> minOf(a, b) to maxOf(a, b) }.toSet()
+
+    private val SIN_CAMINO = setOf("DESTINO", "ZONA_SEGURA")
+
+    fun visible(a: Int, b: Int, tipoA: String?, tipoB: String?, escaleras: Boolean): Boolean {
+        if (escaleras) return true
+        if (tipoA in SIN_CAMINO || tipoB in SIN_CAMINO) return false
+        return (minOf(a, b) to maxOf(a, b)) !in OCULTOS
+    }
+}
+
 /** Etiqueta que se dibuja sobre una figura (código de bloque, sigla de edificio, "Estadio"...). */
 data class ShapeLabel(val texto: String, val tipo: String, val centro: GeoPoint)
 

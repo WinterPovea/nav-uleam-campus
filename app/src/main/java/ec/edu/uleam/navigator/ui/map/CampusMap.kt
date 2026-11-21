@@ -327,6 +327,7 @@ fun CampusMap(
                 val segs = aristas.mapNotNull { e ->
                     val u = nodoById[e.idOrigen] ?: return@mapNotNull null
                     val v = nodoById[e.idDestino] ?: return@mapNotNull null
+                    if (!PathVisibility.visible(u.id, v.id, u.tipo, v.tipo, e.tieneEscaleras == 1)) return@mapNotNull null
                     Triple(p.toScreen(u.latitud, u.longitud), p.toScreen(v.latitud, v.longitud), e.tieneEscaleras == 1)
                 }
                 // bordes de todos los caminos primero y rellenos después: los cruces quedan limpios
