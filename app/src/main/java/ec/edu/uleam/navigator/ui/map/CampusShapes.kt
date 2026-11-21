@@ -43,13 +43,13 @@ internal fun facultyColor(grupo: String): Color = when (grupo) {
     else -> Color(0xFF5E8A8F)
 }
 
-/** Paleta "mapa físico": exterior oscuro, terreno claro con vegetación y vías oscuras con borde claro. */
+/** Paleta: exterior oscuro, terreno crema (como OpenStreetMap) con poca vegetación y vías blancas con borde gris. */
 object MapTheme {
     val OUTSIDE = Color(0xFF2B3335)
-    val GROUND = Color(0xFFCFE2DC)
-    val ROAD = Color(0xFF5D838C)
-    val ROAD_CASING = Color(0xFFE3F0EC)
-    val PLAZA = Color(0xFF3F6470)
+    val GROUND = Color(0xFFF5F1D3)
+    val ROAD = Color(0xFFFFFFFF)
+    val ROAD_CASING = Color(0xFFBDB9A3)
+    val PLAZA = Color(0xFFC9CDE8)
     val ARROW_YELLOW = Color(0xFFFFD21F)
 }
 
@@ -92,7 +92,7 @@ object CampusShapesGeometry {
     }
 
     /** Árboles repartidos con un generador congruencial fijo: el mapa se ve igual en cada arranque. */
-    fun trees(hull: List<GeoPoint>, count: Int = 650, seed: Long = 20260518L): List<Tree> {
+    fun trees(hull: List<GeoPoint>, count: Int = 140, seed: Long = 20260518L): List<Tree> {
         if (hull.size < 3) return emptyList()
         val minLat = hull.minOf { it.lat }; val maxLat = hull.maxOf { it.lat }
         val minLon = hull.minOf { it.lon }; val maxLon = hull.maxOf { it.lon }
@@ -103,7 +103,7 @@ object CampusShapesGeometry {
         while (out.size < count && tries < count * 12) {
             tries++
             val g = GeoPoint(minLat + next() * (maxLat - minLat), minLon + next() * (maxLon - minLon))
-            if (insideConvex(hull, g)) out.add(Tree(g.lat, g.lon, (4.0 + next() * 6.0).toFloat(), (next() * 3).toInt().coerceIn(0, 2)))
+            if (insideConvex(hull, g)) out.add(Tree(g.lat, g.lon, (2.5 + next() * 3.5).toFloat(), (next() * 3).toInt().coerceIn(0, 2)))
         }
         return out
     }
@@ -158,7 +158,7 @@ fun DrawScope.drawCampusGround(p: MapProjection, ground: CampusGround, zoom: Flo
     // El trazo grueso infla el contorno unos metros para que el terreno envuelva los edificios del borde
     drawPath(path, MapTheme.GROUND, style = Stroke(width = 26f * k, join = androidx.compose.ui.graphics.StrokeJoin.Round))
     drawPath(path, MapTheme.GROUND, style = Fill)
-    val tones = listOf(Color(0x99338A52), Color(0x992E7A47), Color(0x8860A870))
+    val tones = listOf(Color(0x8878B98A), Color(0x8868A87A), Color(0x7788C497))
     for (t in ground.trees) {
         val r = t.radioM * k
         if (r < 1.5f) continue
@@ -294,7 +294,7 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
             labelPaint.textSize = when (l.tipo) { "COMIDA" -> 19f; else -> if (zoom >= 2f) 30f else 23f }
             val o = p.toScreen(l.centro.lat, l.centro.lon)
             val lines = l.texto.split('\n')
-            val dark = l.tipo == "ESTADIO"
+            val dark = l.tipo == "ESTADIO" || l.tipo == "PLAZA"
             lines.forEachIndexed { i, t ->
                 val y = o.y + labelPaint.textSize * 0.35f + (i - (lines.size - 1) / 2f) * labelPaint.textSize * 1.05f +
                     (if (l.tipo == "PLAZA") 6f * k else 0f)
@@ -304,6 +304,7 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
                 }
                 labelPaint.color = when (l.tipo) {
                     "ESTADIO" -> android.graphics.Color.rgb(20, 70, 30)
+                    "PLAZA" -> android.graphics.Color.rgb(55, 60, 110)
                     "COMIDA" -> android.graphics.Color.rgb(110, 70, 20)
                     else -> android.graphics.Color.WHITE
                 }

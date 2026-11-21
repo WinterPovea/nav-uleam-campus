@@ -41,8 +41,6 @@ b('B-16',[(481,970),(500,945),(520,935),(550,965),(580,995),(585,1015),(555,1040
 b('B-17',[(324,995),(345,970),(393,990),(381,1017),(405,1035),(392,1060),(370,1058),(335,1030)])
 b('B-18',[(362,1087),(390,1072),(430,1067),(442,1077),(440,1115),(395,1125),(385,1107),(367,1097)])
 b('B-19',[(387,1140),(432,1135),(442,1215),(400,1220)])
-b('MAP-B-20',[(327,1337),(420,1329),(424,1352),(380,1365),(377,1381),(332,1385),(328,1365)])
-b('MAP-B-21',[(225,1385),(245,1392),(275,1400),(270,1425),(262,1452),(217,1445),(217,1427),(225,1405)])
 b('B-22',[(341,706),(451,676),(467,720),(430,727),(408,712),(406,760),(386,761),(382,730),(362,722)])
 b('B-23',[(325,202),(350,210),(367,232),(362,255),(350,280),(312,247)])
 b('B-23',[(265,271),(295,284),(329,294),(322,307),(282,302)])
@@ -101,6 +99,72 @@ ROADS=[
 OTRO_NODE={'A-01':309,'I-09':[308,319],'C-03':300,'CIEC':301,'K-11':310,'F-06':306,'E-05':302,'J-10':230,'M-13':324,
  'N-14':303,'Ñ-15':328,'G-07':320,'I-12':317,'EP ULEAM':323,'Tasty Food 2':326,'Tasty Food 3':327,'Tasty Food 4':321,
  'Cancha cesped':322,'Canchas multiples':304}
+
+# ======================= Referencia OpenStreetMap (665x725 px, norte arriba) =======================
+# Huellas trazadas sobre la captura de OSM (mismas dimensiones reales que el campus). Tienen prioridad sobre las de la foto.
+OSM_B=[
+ ('B-01',[(180,545),(215,538),(228,570),(195,588)]),
+ ('B-02',[(216,535),(245,530),(250,555),(225,565)]),
+ ('B-03',[(210,502),(250,496),(258,520),(225,530)]),
+ ('B-04',[(90,545),(125,522),(140,545),(128,580),(100,585)]),
+ ('B-05',[(18,495),(46,492),(47,512),(20,513)]),
+ ('B-05',[(54,490),(92,486),(95,520),(58,522)]),
+ ('B-06',[(168,403),(200,398),(212,425),(185,440),(168,430)]),
+ ('B-07',[(146,330),(185,320),(198,345),(190,380),(150,385)]),
+ ('B-08',[(205,210),(222,218),(160,292),(140,280)]),
+ ('B-09',[(162,150),(185,148),(198,205),(172,215)]),
+ ('B-10',[(222,48),(262,42),(268,68),(235,75),(222,65)]),
+ ('B-11',[(215,3),(262,3),(262,40),(228,48),(215,40)]),
+ ('B-13',[(224,98),(283,88),(290,120),(268,138),(222,128)]),
+ ('B-14',[(263,125),(305,118),(315,165),(275,170)]),
+ ('B-15',[(240,180),(275,175),(285,200),(255,208)]),
+ ('B-16',[(353,295),(385,288),(392,320),(380,345),(358,340)]),
+ ('B-17',[(462,325),(490,320),(497,352),(470,365)]),
+ ('B-18',[(434,278),(462,271),(470,298),(445,308)]),
+ ('B-19',[(455,238),(480,230),(487,262),(458,268)]),
+ ('B-20',[(495,155),(530,148),(540,175),(505,185)]),
+ ('B-21',[(582,148),(612,143),(620,170),(592,178)]),
+ ('B-22',[(358,468),(398,466),(415,488),(412,515),(362,518)]),
+ ('B-23',[(325,690),(360,685),(365,715),(330,722)]),
+ ('B-24',[(498,240),(528,236),(530,300),(508,322),(498,300)]),
+ ('B-25',[(498,188),(530,184),(535,205),(503,210)]),
+]
+OSM_O=[
+ ('OTRO','A-01',[(316,600),(358,596),(366,640),(325,652)]),
+ ('OTRO','I-09',[(310,565),(340,560),(342,588),(312,592)]),
+ ('OTRO','I-09',[(423,232),(445,225),(455,250),(432,258)]),
+ ('OTRO','K-11',[(374,613),(398,611),(400,634),(377,636)]),
+ ('OTRO','C-03',[(122,585),(150,568),(162,598),(140,620),(120,610)]),
+ ('OTRO','CIEC',[(38,555),(70,540),(158,655),(150,700),(125,692)]),
+ ('OTRO','F-06',[(180,466),(234,461),(238,494),(186,500)]),
+ ('OTRO','E-05',[(270,490),(295,484),(302,508),(280,520)]),
+ ('OTRO','J-10',[(98,476),(128,473),(130,494),(100,496)]),
+ ('OTRO','M-13',[(383,368),(402,362),(407,385),(388,390)]),
+ ('OTRO','N-14',[(412,392),(440,383),(455,395),(445,414),(418,413)]),
+ ('OTRO','Ñ-15',[(427,312),(448,305),(460,330),(440,340)]),
+ ('OTRO','G-07',[(386,232),(402,226),(410,248),(392,254)]),
+ ('OTRO','I-12',[(46,412),(66,410),(68,430),(48,433)]),
+ ('OTRO','EP ULEAM',[(312,58),(378,52),(382,95),(318,100)]),
+ ('OTRO','JUAN MONTALVO ANTIGUO',[(300,8),(335,8),(338,42),(302,42)]),
+ ('OTRO','JUAN MONTALVO NUEVO',[(398,57),(432,50),(445,90),(405,100)]),
+ ('CANCHA_VERDE','Cancha cesped',[(557,75),(582,91),(553,130),(534,111)]),
+ ('CANCHA','Canchas multiples',[(14,445),(50,443),(52,487),(16,488)]),
+ ('CANCHA','Canchas multiples',[(52,443),(90,440),(91,478),(53,480)]),
+ ('PLAZA','Plaza Cultural',[(266,558),(300,558),(302,655),(268,655)]),
+ ('GRADA','Gradas',[(221,384),(237,382),(251,421),(237,426)]),
+]
+OSM_STADIUM=dict(c=(285.0,375.0),u=(0.386,0.922),hl=66.0,hw=38.0,track_hl=97.0,track_hw=62.0)
+OSM_PARK=[(271,61),(321,135),(485,211),(341,297),(395,278),(370,376),(403,414),(445,485),(169,500),(311,626),(405,591),(170,655)]
+OSM_ROADS=[  # (ancho en metros, polilinea en px de OSM)
+ (6,[(268,97),(300,108),(320,140),(318,168),(298,190),(268,215),(240,235)]),
+ (6,[(240,236),(215,262),(185,288),(150,310),(132,350),(127,400),(135,450),(160,480),(200,500)]),
+ (6,[(305,292),(360,292),(405,310),(440,345),(472,395),(492,425),(496,440)]),
+ (6,[(165,470),(220,490),(290,492),(340,480),(400,455),(450,440),(496,436)]),
+ (6,[(535,203),(515,228),(502,255),(500,300),(498,360),(496,436),(498,470)]),
+ (5,[(590,112),(560,140),(530,175),(512,205)]),
+ (5,[(180,505),(165,540),(175,590),(210,630),(245,660),(255,690),(262,725)]),
+ (5,[(250,655),(300,665),(350,672),(400,660),(440,655),(470,650)]),
+]
 # puntas de las flechas amarillas de ingreso -> nodos 100..103
 GATES={100:(595,287),103:(192,420),101:(227,877),102:(937,1274)}
 
@@ -170,8 +234,6 @@ def fit_sim(P, G, W):
 def calibrate(nodes):
     byblock = {}
     for t, c, p in E:
-        if c.startswith('MAP-'):
-            c = {'MAP-B-20': 'B-21', 'MAP-B-21': 'B-20'}[c]
         if t == 'EDIFICIO': byblock.setdefault(c, []).append(p)
     # B-20/B-21: los nodos 220/221 siguen la rotulacion fisica del mapa (ver BLOQUE_REAL en build_lugares.py)
     ctrl = {}  # nodo -> codigo de bloque del edificio donde esta fisicamente
@@ -179,7 +241,6 @@ def calibrate(nodes):
         m = re.search(r'Entrada Bloque B-(\d+)$', d.strip())
         if m:
             k = 'B-%02d' % int(m.group(1))
-            if k in ('B-20', 'B-21'): k = 'B-21' if k == 'B-20' else 'B-20'
             ctrl[nid] = k
     P, G, W = [], [], []
     for nid, k in ctrl.items():
@@ -214,12 +275,51 @@ def pt_in_poly(p, poly):
     return ins
 
 
+def build_osm(nodes):
+    """Calibra la captura de OSM con los nodos (semejanza + ICP) y devuelve (figuras geograficas, codigos, parqueos, calles, sim)."""
+    shapes = [['EDIFICIO', c, [tuple(map(float, q)) for q in p]] for c, p in OSM_B]
+    shapes += [[t, c, [tuple(map(float, q)) for q in p]] for t, c, p in OSM_O]
+    ctrl = []   # (codigo, nodo)
+    for nid, (d, la, lo) in nodes.items():
+        m = re.search(r'Entrada Bloque B-(\d+)$', d.strip())
+        if m and 200 <= nid < 300: ctrl.append(('B-%02d' % int(m.group(1)), nid))
+    for code, ids in OTRO_NODE.items():
+        for nid in (ids if isinstance(ids, list) else [ids]): ctrl.append((code, nid))
+    polys = lambda code: [sh[2] for sh in shapes if sh[1] == code]
+    ctrl = [(c, n) for c, n in ctrl if polys(c)]
+    def nearest_poly(code, g):
+        best = None
+        for P in polys(code):
+            q, d = nearest_on([P], g)
+            if best is None or d < best[1]: best = (q, d)
+        return best
+    P0 = [np.mean([np.mean(P, axis=0) for P in polys(c)], axis=0) for c, n in ctrl]
+    G0 = [to_m(*nodes[n][1:]) for c, n in ctrl]
+    sim = fit_sim(P0, G0, [1.0] * len(P0))
+    for _ in range(15):
+        P2 = [nearest_poly(c, sim.inv(np.array(to_m(*nodes[n][1:]))))[0] for c, n in ctrl]
+        sim = fit_sim(P2, G0, [1.0] * len(P2))
+    errs = [nearest_poly(c, sim.inv(np.array(to_m(*nodes[n][1:]))))[1] * np.hypot(*sim.s[:2]) for c, n in ctrl]
+    print('OSM: distancia entrada-edificio media %.1f m, max %.1f m | %.3f m/px' % (np.mean(errs), max(errs), np.hypot(*sim.s[:2])))
+    st = OSM_STADIUM; c = np.array(st['c']); u = np.array(st['u']); v = np.array([-u[1], u[0]])
+    shapes.append(['PISTA', 'Estadio', rrect(c[0], c[1], u[0], u[1], st['track_hl'], st['track_hw'], 58)])
+    shapes.append(['PISTA_INT', 'Estadio', rrect(c[0], c[1], u[0], u[1], st['track_hl'] - 9, st['track_hw'] - 9, 50)])
+    pitch = [c - st['hl'] * u - st['hw'] * v, c - st['hl'] * u + st['hw'] * v, c + st['hl'] * u + st['hw'] * v, c + st['hl'] * u - st['hw'] * v]
+    shapes.append(['CANCHA_ESTADIO', 'Estadio', [tuple(map(float, q)) for q in pitch]])
+    geo = [[t, c_, [to_ll(*sim.fwd(np.array(q))) for q in p]] for t, c_, p in shapes]
+    park = [to_ll(*sim.fwd(np.array(p, float))) for p in OSM_PARK]
+    k = float(np.hypot(*sim.s[:2]))
+    roads = [(w, [to_ll(*sim.fwd(np.array(q, float))) for q in pts]) for w, pts in OSM_ROADS]
+    ring = rrect(c[0], c[1], u[0], u[1], st['track_hl'] + 16, st['track_hw'] + 16, 70)
+    roads.append((6, [to_ll(*sim.fwd(np.array(q, float))) for q in ring + [ring[0]]]))
+    return geo, {sh[1] for sh in shapes}, park, roads
+
+
 def main():
     nodes = load_nodes(); sim = calibrate(nodes)
     # ---- ajustes en espacio de foto (px) ----
     shapes = []   # (tipo, codigo, [(x,y) px])
     for t, c, p in E:
-        c = {'MAP-B-20': 'B-21', 'MAP-B-21': 'B-20'}.get(c, c)   # el mapa fisico las rotula al reves
         shapes.append([t, c, [tuple(map(float, q)) for q in p]])
     for t, c, p in O:
         shapes.append([t, c, [tuple(map(float, q)) for q in p]])
@@ -241,6 +341,9 @@ def main():
     out = []
     for t, c, p in shapes:
         out.append([t, c, [to_ll(*sim.fwd(np.array(q))) for q in p]])
+    # Referencia OSM: sus huellas, calles, estadio y parqueos sustituyen a las trazadas sobre la foto
+    osm_geo, osm_codes, osm_park, osm_roads = build_osm(nodes)
+    out = [o for o in out if o[1] not in osm_codes] + osm_geo
     # Cada edificio se acerca a su nodo de entrada (DESTINO): la huella debe tocar el nodo, sin saltos grandes (<= 16 m)
     def snap(code, nid, tipos):
         polys = [o for o in out if o[1] == code and o[0] in tipos]
@@ -251,7 +354,7 @@ def main():
         q, d = nearest_on([[to_m(*pt) for pt in o[2]] for o in target], n)
         inside = any(pt_in_poly(n, [to_m(*pt) for pt in o[2]]) for o in target)
         if inside or d <= 1.5: return
-        step = min(d - 1.0, 16.0); v = (n - q) / d * step
+        step = min(d - 1.0, 10.0); v = (n - q) / d * step
         for o in target: o[2] = [to_ll(*(np.array(to_m(*pt)) + v)) for pt in o[2]]
         print('  %-18s nodo %d: acercado %.1f m (estaba a %.1f m)' % (code, nid, step, d))
     BLOQUES_MULTI = {'B-02', 'B-05', 'B-07', 'B-11', 'B-23'}
@@ -259,7 +362,6 @@ def main():
         m = re.search(r'Entrada Bloque B-(\d+)$', d_.strip())
         if m and 200 <= nid < 300:
             code = 'B-%02d' % int(m.group(1))
-            if code in ('B-20', 'B-21'): code = 'B-21' if code == 'B-20' else 'B-20'   # rotulado fisico invertido
             snap(code, nid, ('EDIFICIO',))
     for code, ids in OTRO_NODE.items():
         for nid in (ids if isinstance(ids, list) else [ids]):
@@ -269,11 +371,9 @@ def main():
     hy = abs(a[1] - b[1]) / 2 - 2.0; hx = 6.5
     tasty = [(mid[0] - hx, mid[1] - hy), (mid[0] + hx, mid[1] - hy), (mid[0] + hx, mid[1] + hy), (mid[0] - hx, mid[1] + hy)]
     out.append(['COMIDA', 'Tasty Food 1', [to_ll(*q) for q in tasty]])
-    for w, pts in ROADS:
-        out.append(['VIA', '%.1f' % (w * 0.5 * float(np.hypot(*sim.s[:2]))), [to_ll(*sim.fwd(np.array(q, float))) for q in pts]])
-    ring = rrect(pc[0], pc[1], u[0], u[1], hl + 58, hw + 58, 100)
-    out.append(['VIA', '%.1f' % (30 * 0.5 * float(np.hypot(*sim.s[:2]))), [to_ll(*sim.fwd(np.array(q, float))) for q in ring + [ring[0]]]])
-    for p in PARK: out.append(['PARQUEO', 'P', [to_ll(*sim.fwd(np.array(p, float)))]])
+    for w, pts in osm_roads:
+        out.append(['VIA', '%.1f' % w, pts])
+    for g in osm_park: out.append(['PARQUEO', 'P', [g]])
     for p in WATER: out.append(['AGUA', 'Agua', [to_ll(*sim.fwd(np.array(p, float)))]])
     path = os.path.join(ROOT, 'app/src/main/assets/campus_shapes.csv')
     with open(path, 'w', encoding='utf-8', newline='') as f:
