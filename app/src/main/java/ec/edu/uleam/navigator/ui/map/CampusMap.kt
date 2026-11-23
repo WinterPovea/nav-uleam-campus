@@ -26,10 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.filled.BrightnessAuto
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -102,9 +99,8 @@ fun CampusMap(
     azimuthDeg: Float? = null,
     navigating: Boolean = false,
     controlsBottomPadding: Dp = 16.dp,
-    /** Estilo del mapa actual y acción del botón que alterna Claro → Oscuro → Sistema (null = sin botón). */
-    mapStyle: MapStyle = MapStyle.CLARO,
-    onMapStyleToggle: (() -> Unit)? = null
+    /** Estilo del mapa actual (el botón para alternarlo está en la pantalla principal, bajo las puertas). */
+    mapStyle: MapStyle = MapStyle.CLARO
 ) {
     var size by remember { mutableStateOf(IntSize(1, 1)) }
     var zoom by remember { mutableFloatStateOf(1.2f) }
@@ -203,15 +199,21 @@ fun CampusMap(
     }
 
     /**
-     * Mantiene la cámara sobre el campus: si el centro de la pantalla sale del rectángulo del campus,
-     * se devuelve al borde más cercano. Así no se puede arrastrar el mapa hacia zonas vacías.
+     * Mantiene la cámara sobre el campus: el borde del campus (con un margen pequeño) no puede
+     * pasar del borde de la pantalla, así el mapa no se aleja hacia zonas vacías al arrastrar.
+     * Si en un eje el campus cabe entero en la pantalla, queda centrado en ese eje.
      */
     fun clampPan(z: Float, pn: Offset): Offset {
         if (size.width <= 1) return pn
         val pr = proj(z, pn)
         val (lat, lon) = pr.toGeo(pr.center)
-        val cl = lat.coerceIn(bounds[0], bounds[1])
-        val co = lon.coerceIn(bounds[2], bounds[3])
+        val m = CAMERA_MARGIN_DEG
+        val halfLat = size.height / 2.0 / (pr.base * z)
+        val halfLon = size.width / 2.0 / (pr.base * z)
+        fun limit(v: Double, lo: Double, hi: Double, half: Double): Double =
+            if (hi - lo <= 2 * half) (lo + hi) / 2 else v.coerceIn(lo + half, hi - half)
+        val cl = limit(lat, bounds[0] - m, bounds[1] + m, halfLat)
+        val co = limit(lon, bounds[2] - m, bounds[3] + m, halfLon)
         return if (cl == lat && co == lon) pn else panToCenter(cl, co, z)
     }
 
@@ -745,7 +747,7 @@ fun CampusMap(
                 color = Color.White,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 140.dp)
+                    .padding(top = 196.dp)
                     .background(Color(0xE6A01B2C), RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             )
@@ -759,24 +761,6 @@ fun CampusMap(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Estilo del mapa: cada toque alterna Claro → Oscuro → Según el sistema
-            if (onMapStyleToggle != null) {
-                SmallFloatingActionButton(
-                    onClick = onMapStyleToggle,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = Color(0xFFA01B2C),
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = when (mapStyle) {
-                            MapStyle.CLARO -> Icons.Default.LightMode
-                            MapStyle.OSCURO -> Icons.Default.DarkMode
-                            MapStyle.SISTEMA -> Icons.Default.BrightnessAuto
-                        },
-                        contentDescription = "Estilo del mapa: ${mapStyle.etiqueta}"
-                    )
-                }
-            }
             if (abs(mapRotationDeg) > 0.5f || azimuthDeg != null) {
                 SmallFloatingActionButton(
                     onClick = {
@@ -829,3 +813,5 @@ fun CampusMap(
     }
 }
 
+/** Margen (grados, ≈ 45 m) que se deja ver alrededor del campus al limitar la cámara. */
+private const val CAMERA_MARGIN_DEG = 0.0004

@@ -99,6 +99,8 @@ import ec.edu.uleam.navigator.location.LocationState
 import ec.edu.uleam.navigator.routing.astar.DirectionType
 import ec.edu.uleam.navigator.routing.astar.NavigationInstruction
 import ec.edu.uleam.navigator.ui.map.CampusMap
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.SmallFloatingActionButton
 import ec.edu.uleam.navigator.ui.map.MapTheme
 import ec.edu.uleam.navigator.ui.map.MapStylePrefs
 import ec.edu.uleam.navigator.ui.map.MapStyle
@@ -255,12 +257,7 @@ fun CampusApp(vm: CampusViewModel) {
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
             controlsBottomPadding = cardHeightDp + 24.dp,
-            mapStyle = effectiveStyle,
-            onMapStyleToggle = {
-                val nuevo = effectiveStyle.siguiente()
-                guardarEstilo(nuevo)
-                Toast.makeText(context, "Mapa: ${nuevo.etiqueta}", Toast.LENGTH_SHORT).show()
-            }
+            mapStyle = effectiveStyle
         )
 
         // CAPA 2: CONTROLES SUPERIORES (Búsqueda + Selector de Puertas + Conmutador Demo)
@@ -389,6 +386,28 @@ fun CampusApp(vm: CampusViewModel) {
                     }
                 }
             }
+            }
+
+            // ESTILO DEL MAPA (arriba a la izquierda, bajo las puertas): alterna Claro → Oscuro → Sistema
+            Spacer(Modifier.height(8.dp))
+            SmallFloatingActionButton(
+                onClick = {
+                    val nuevo = effectiveStyle.siguiente()
+                    guardarEstilo(nuevo)
+                    Toast.makeText(context, "Mapa: ${nuevo.etiqueta}", Toast.LENGTH_SHORT).show()
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = Color(0xFFA01B2C),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+            ) {
+                Icon(
+                    imageVector = when (effectiveStyle) {
+                        MapStyle.CLARO -> Icons.Default.LightMode
+                        MapStyle.OSCURO -> Icons.Default.DarkMode
+                        MapStyle.SISTEMA -> Icons.Default.BrightnessAuto
+                    },
+                    contentDescription = "Estilo del mapa: ${effectiveStyle.etiqueta}"
+                )
             }
 
             // AVISO RESILIENTE DE PERMISOS DENEGADOS (ROL 2)
