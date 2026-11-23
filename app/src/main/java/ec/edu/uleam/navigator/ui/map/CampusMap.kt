@@ -507,25 +507,8 @@ fun CampusMap(
                         }
 
                         "ZONA_SEGURA" -> {
-                            // Zonas seguras de evacuación rápida
-                            drawCircle(
-                                color = Color(0xFFFFEBEE),
-                                radius = 22f,
-                                center = center,
-                                style = Fill
-                            )
-                            drawCircle(
-                                color = Color(0xFFD32F2F),
-                                radius = 22f,
-                                center = center,
-                                style = Stroke(4f)
-                            )
-                            drawCircle(
-                                color = Color(0xFFD32F2F),
-                                radius = 10f,
-                                center = center,
-                                style = Fill
-                            )
+                            // Punto de encuentro / zona segura: señal verde de evacuación (flechas hacia las personas)
+                            drawSafeZoneIcon(center)
                         }
                     }
                 }
@@ -834,3 +817,29 @@ fun CampusMap(
 
 /** Margen (grados, ≈ 45 m) que se deja ver alrededor del campus al limitar la cámara. */
 private const val CAMERA_MARGIN_DEG = 0.0004
+
+/**
+ * Señal de "Zona segura / Punto de encuentro" como la de evacuación: cuadro verde con borde blanco,
+ * cuatro flechas blancas que apuntan al centro y una persona en medio.
+ */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSafeZoneIcon(c: Offset) {
+    val half = 22f
+    drawRoundRect(Color(0x55000000), c - Offset(half - 2f, half - 3f), Size(half * 2, half * 2), CornerRadius(7f, 7f))
+    drawRoundRect(Color.White, c - Offset(half + 2f, half + 2f), Size(half * 2 + 4f, half * 2 + 4f), CornerRadius(8f, 8f))
+    drawRoundRect(Color(0xFF1B8A3A), c - Offset(half, half), Size(half * 2, half * 2), CornerRadius(6f, 6f))
+    // flechas hacia el centro (arriba, abajo, izquierda, derecha)
+    val tip = 9f; val base = 17f; val w = 5f
+    for ((dx, dy) in listOf(0f to -1f, 0f to 1f, -1f to 0f, 1f to 0f)) {
+        val px = -dy; val py = dx
+        val arrow = androidx.compose.ui.graphics.Path().apply {
+            moveTo(c.x + dx * tip, c.y + dy * tip)
+            lineTo(c.x + dx * base + px * w, c.y + dy * base + py * w)
+            lineTo(c.x + dx * base - px * w, c.y + dy * base - py * w)
+            close()
+        }
+        drawPath(arrow, Color.White)
+    }
+    // personas en el centro
+    drawCircle(Color.White, 2.8f, c + Offset(0f, -4.6f))
+    drawRoundRect(Color.White, c + Offset(-4f, -0.8f), Size(8f, 6.8f), CornerRadius(4f, 3f))
+}
