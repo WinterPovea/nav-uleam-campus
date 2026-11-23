@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -198,22 +199,40 @@ fun CampusMap(
         return -(base.toScreen(lat, lon) - base.center) * z
     }
 
+    // Extensión visible del campus: nodos + edificios/canchas (los edificios del borde, como B-11 y B-12,
+    // quedan fuera del rectángulo de los nodos)
+    val cameraBounds = remember(bounds, shapes) {
+        val pts = shapes.filter { it.puntos.size >= 3 }.flatMap { it.puntos }
+        if (pts.isEmpty()) bounds else doubleArrayOf(
+            minOf(bounds[0], pts.minOf { it.lat }), maxOf(bounds[1], pts.maxOf { it.lat }),
+            minOf(bounds[2], pts.minOf { it.lon }), maxOf(bounds[3], pts.maxOf { it.lon })
+        )
+    }
+    val density = LocalDensity.current
+    // Zonas tapadas por la interfaz: arriba la búsqueda + puertas + botón de estilo, abajo la tarjeta
+    val topInsetPx = with(density) { 200.dp.toPx() }
+    val bottomInsetPx = with(density) { controlsBottomPadding.toPx() }
+
     /**
-     * Mantiene la cámara sobre el campus: el borde del campus (con un margen pequeño) no puede
-     * pasar del borde de la pantalla, así el mapa no se aleja hacia zonas vacías al arrastrar.
-     * Si en un eje el campus cabe entero en la pantalla, queda centrado en ese eje.
+     * Mantiene la cámara sobre el campus: se puede desplazar hasta que el borde del campus (con un margen
+     * pequeño) quede justo bajo la búsqueda o justo sobre la tarjeta inferior, pero no más allá.
+     * Así se ven completos los edificios de los bordes y el mapa no se aleja hacia zonas vacías.
      */
     fun clampPan(z: Float, pn: Offset): Offset {
         if (size.width <= 1) return pn
         val pr = proj(z, pn)
         val (lat, lon) = pr.toGeo(pr.center)
+        val k = pr.base * z                      // píxeles por grado
         val m = CAMERA_MARGIN_DEG
-        val halfLat = size.height / 2.0 / (pr.base * z)
-        val halfLon = size.width / 2.0 / (pr.base * z)
-        fun limit(v: Double, lo: Double, hi: Double, half: Double): Double =
-            if (hi - lo <= 2 * half) (lo + hi) / 2 else v.coerceIn(lo + half, hi - half)
-        val cl = limit(lat, bounds[0] - m, bounds[1] + m, halfLat)
-        val co = limit(lon, bounds[2] - m, bounds[3] + m, halfLon)
+        val h = size.height.toDouble(); val w = size.width.toDouble()
+        fun limit(v: Double, lo: Double, hi: Double): Double = if (lo > hi) (lo + hi) / 2 else v.coerceIn(lo, hi)
+        // Norte arriba: el borde norte puede bajar hasta topInset; el borde sur subir hasta h - bottomInset
+        val cl = limit(
+            lat,
+            cameraBounds[0] - m + (h / 2 - bottomInsetPx) / k,
+            cameraBounds[1] + m - (h / 2 - topInsetPx) / k
+        )
+        val co = limit(lon, cameraBounds[2] - m + (w / 2) / k, cameraBounds[3] + m - (w / 2) / k)
         return if (cl == lat && co == lon) pn else panToCenter(cl, co, z)
     }
 
