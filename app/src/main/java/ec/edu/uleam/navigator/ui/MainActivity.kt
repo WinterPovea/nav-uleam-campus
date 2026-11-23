@@ -99,6 +99,16 @@ import ec.edu.uleam.navigator.location.LocationState
 import ec.edu.uleam.navigator.routing.astar.DirectionType
 import ec.edu.uleam.navigator.routing.astar.NavigationInstruction
 import ec.edu.uleam.navigator.ui.map.CampusMap
+import ec.edu.uleam.navigator.ui.map.MapTheme
+import ec.edu.uleam.navigator.ui.map.MapStylePrefs
+import ec.edu.uleam.navigator.ui.map.MapStyle
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.SideEffect
+import androidx.compose.foundation.isSystemInDarkTheme
+import android.widget.Toast
 
 class MainActivity : ComponentActivity() {
     private val vm: CampusViewModel by viewModels()
@@ -208,6 +218,20 @@ fun CampusApp(vm: CampusViewModel) {
         }
     }
 
+    // ESTILO DEL MAPA: se pregunta la primera vez; luego el botón del mapa alterna Claro → Oscuro → Sistema
+    val stylePrefs = remember { MapStylePrefs(context) }
+    var mapStyle by remember { mutableStateOf<MapStyle?>(stylePrefs.load()) }
+    val systemDark = isSystemInDarkTheme()
+    val effectiveStyle = mapStyle ?: MapStyle.CLARO
+    SideEffect { MapTheme.dark = effectiveStyle.esOscuro(systemDark) }
+    fun guardarEstilo(st: MapStyle) {
+        mapStyle = st
+        stylePrefs.save(st)
+    }
+    if (mapStyle == null) {
+        MapStyleDialog(onElegir = { guardarEstilo(it) })
+    }
+
     // Altura de la tarjeta inferior: los botones flotantes del mapa quedan siempre por encima de ella
     var cardHeightPx by remember { mutableStateOf(0) }
     val cardHeightDp = with(LocalDensity.current) { cardHeightPx.toDp() }
@@ -230,7 +254,13 @@ fun CampusApp(vm: CampusViewModel) {
             modifier = Modifier.fillMaxSize(),
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
-            controlsBottomPadding = cardHeightDp + 24.dp
+            controlsBottomPadding = cardHeightDp + 24.dp,
+            mapStyle = effectiveStyle,
+            onMapStyleToggle = {
+                val nuevo = effectiveStyle.siguiente()
+                guardarEstilo(nuevo)
+                Toast.makeText(context, "Mapa: ${nuevo.etiqueta}", Toast.LENGTH_SHORT).show()
+            }
         )
 
         // CAPA 2: CONTROLES SUPERIORES (Búsqueda + Selector de Puertas + Conmutador Demo)
@@ -780,4 +810,41 @@ fun InstructionRow(instruction: NavigationInstruction) {
             modifier = Modifier.weight(1f)
         )
     }
+}
+
+/** Primera ejecución: el usuario elige el estilo del mapa (se puede cambiar luego con el botón del mapa). */
+@Composable
+private fun MapStyleDialog(onElegir: (MapStyle) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onElegir(MapStyle.SISTEMA) },
+        title = { Text("Estilo del mapa") },
+        text = {
+            Column {
+                Text("¿Cómo quieres ver el mapa del campus? Puedes cambiarlo cuando quieras con el botón ☀/🌙 del mapa.")
+                Spacer(Modifier.height(12.dp))
+                listOf(
+                    MapStyle.CLARO to "Modo claro",
+                    MapStyle.OSCURO to "Modo oscuro",
+                    MapStyle.SISTEMA to "Usar la configuración del sistema"
+                ).forEach { (st, texto) ->
+                    OutlinedButton(
+                        onClick = { onElegir(st) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                    ) {
+                        Icon(
+                            imageVector = when (st) {
+                                MapStyle.CLARO -> Icons.Default.LightMode
+                                MapStyle.OSCURO -> Icons.Default.DarkMode
+                                MapStyle.SISTEMA -> Icons.Default.BrightnessAuto
+                            },
+                            contentDescription = null
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(texto)
+                    }
+                }
+            }
+        },
+        confirmButton = {}
+    )
 }

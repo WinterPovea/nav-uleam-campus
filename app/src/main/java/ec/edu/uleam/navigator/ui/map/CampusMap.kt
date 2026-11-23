@@ -26,7 +26,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -97,7 +101,10 @@ fun CampusMap(
     modifier: Modifier = Modifier,
     azimuthDeg: Float? = null,
     navigating: Boolean = false,
-    controlsBottomPadding: Dp = 16.dp
+    controlsBottomPadding: Dp = 16.dp,
+    /** Estilo del mapa actual y acción del botón que alterna Claro → Oscuro → Sistema (null = sin botón). */
+    mapStyle: MapStyle = MapStyle.CLARO,
+    onMapStyleToggle: (() -> Unit)? = null
 ) {
     var size by remember { mutableStateOf(IntSize(1, 1)) }
     var zoom by remember { mutableFloatStateOf(1.2f) }
@@ -195,12 +202,25 @@ fun CampusMap(
         return -(base.toScreen(lat, lon) - base.center) * z
     }
 
+    /**
+     * Mantiene la cámara sobre el campus: si el centro de la pantalla sale del rectángulo del campus,
+     * se devuelve al borde más cercano. Así no se puede arrastrar el mapa hacia zonas vacías.
+     */
+    fun clampPan(z: Float, pn: Offset): Offset {
+        if (size.width <= 1) return pn
+        val pr = proj(z, pn)
+        val (lat, lon) = pr.toGeo(pr.center)
+        val cl = lat.coerceIn(bounds[0], bounds[1])
+        val co = lon.coerceIn(bounds[2], bounds[3])
+        return if (cl == lat && co == lon) pn else panToCenter(cl, co, z)
+    }
+
     /** Anima la cámara (zoom + desplazamiento) hasta centrar la posición indicada. */
     fun animateCameraTo(lat: Double, lon: Double, targetZoom: Float) {
         val z0 = zoom
         val p0 = pan
         val z1 = targetZoom
-        val p1 = panToCenter(lat, lon, z1)
+        val p1 = clampPan(z1, panToCenter(lat, lon, z1))
         scope.launch {
             Animatable(0f).animateTo(1f, tween(450, easing = FastOutSlowInEasing)) {
                 zoom = z0 + (z1 - z0) * value
@@ -241,8 +261,19 @@ fun CampusMap(
         }
     }
 
+    // Con GPS real, ¿el usuario está fuera del campus? (más de ~110 m fuera del rectángulo de los nodos)
+    val userOutsideCampus = !isSimulationMode && userPosition?.let { u ->
+        val m = 0.001
+        u.lat < bounds[0] - m || u.lat > bounds[1] + m || u.lon < bounds[2] - m || u.lon > bounds[3] + m
+    } == true
+
     /** Centra el mapa en el usuario: reanuda el seguimiento si se navega, o anima una sola vez. */
     fun centrarEnUsuario() {
+        if (userOutsideCampus) {
+            // Fuera del campus no se lleva la cámara a la calle: se muestra todo el campus
+            animateCameraTo((bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2, 1.2f)
+            return
+        }
         val target = userPosition ?: originNodeId?.let { id ->
             nodoById[id]?.let { UserPosition(it.latitud, it.longitud) }
         } ?: return
@@ -260,18 +291,18 @@ fun CampusMap(
         val m = 24f
         o.x < m || o.y < m || o.x > size.width - m || o.y > size.height - m
     } ?: false
-    val showMyLocationButton = userPosition != null && (userOffScreen || (navigating && !followUser))
+    val showMyLocationButton = userPosition != null && !userOutsideCampus && (userOffScreen || (navigating && !followUser))
 
     Box(modifier = modifier) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (shapes.isNotEmpty()) MapTheme.OUTSIDE else Color(0xFFF6F5F0)) // Oscuro con diseño de mapa físico; crema si no hay figuras
+                .background(if (shapes.isNotEmpty()) MapTheme.OUTSIDE else Color(0xFFF6F5F0)) // tono del entorno según el estilo del mapa
                 .onSizeChanged { size = it }
                 .pointerInput(Unit) {
                     detectTransformGestures { centroid, panChange, zoomChange, rotationChange ->
                         val oldZoom = zoom
-                        val newZoom = (zoom * zoomChange).coerceIn(0.9f, 15f)
+                        val newZoom = (zoom * zoomChange).coerceIn(1.0f, 15f)
                         // Un arrastre con un dedo (sin zoom ni giro) suelta el seguimiento de la cámara
                         if (followUser && zoomChange == 1f && rotationChange == 0f && panChange != Offset.Zero) {
                             followUser = false
@@ -284,7 +315,7 @@ fun CampusMap(
                             // Zoom anclado al punto de pellizco: el mapa crece desde donde están los dedos
                             if (newZoom != oldZoom) pan = proj().panForZoomAt(centroid, newZoom)
                             zoom = newZoom
-                            pan += proj().rotatePanDelta(panChange)
+                            pan = clampPan(zoom, pan + proj().rotatePanDelta(panChange))
                         }
                         if (abs(rotationChange) > 0.05f) {
                             mapRotationDeg = (mapRotationDeg + rotationChange) % 360f
@@ -504,7 +535,8 @@ fun CampusMap(
                     val textYOffset = if (node.tipo == "DESTINO") 5f else 32f
 
                     // Fondo de pastilla para contraste del texto
-                    labelPaint.color = android.graphics.Color.rgb(30, 41, 59)
+                    labelPaint.color = if (MapTheme.dark) android.graphics.Color.rgb(226, 232, 240) else android.graphics.Color.rgb(30, 41, 59)
+                    labelBgPaint.color = if (MapTheme.dark) android.graphics.Color.argb(210, 30, 38, 42) else android.graphics.Color.argb(220, 255, 255, 255)
                     labelPaint.textSize = if (zoom > 3f) 30f else 24f
 
                     val textWidth = labelPaint.measureText(label)
@@ -705,6 +737,20 @@ fun CampusMap(
             }
         }
 
+        // Aviso cuando el GPS ubica al usuario fuera de la universidad (el mapa se queda en el campus)
+        if (userOutsideCampus) {
+            Text(
+                text = "📍 No te encuentras en el campus ULEAM",
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 140.dp)
+                    .background(Color(0xE6A01B2C), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            )
+        }
+
         // 7. BOTONES FLOTANTES DE BRÚJULA / NORTE Y RECENTRADO
         Column(
             modifier = Modifier
@@ -713,6 +759,24 @@ fun CampusMap(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Estilo del mapa: cada toque alterna Claro → Oscuro → Según el sistema
+            if (onMapStyleToggle != null) {
+                SmallFloatingActionButton(
+                    onClick = onMapStyleToggle,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = Color(0xFFA01B2C),
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = when (mapStyle) {
+                            MapStyle.CLARO -> Icons.Default.LightMode
+                            MapStyle.OSCURO -> Icons.Default.DarkMode
+                            MapStyle.SISTEMA -> Icons.Default.BrightnessAuto
+                        },
+                        contentDescription = "Estilo del mapa: ${mapStyle.etiqueta}"
+                    )
+                }
+            }
             if (abs(mapRotationDeg) > 0.5f || azimuthDeg != null) {
                 SmallFloatingActionButton(
                     onClick = {

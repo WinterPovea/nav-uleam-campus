@@ -3,6 +3,9 @@ package ec.edu.uleam.navigator.ui.map
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -41,20 +44,37 @@ internal fun facultyColor(grupo: String): Color = when (grupo) {
     "FETAH" -> Color(0xFFF08A3C)
     "FCACC" -> Color(0xFF2563EB)
     "FCSDB" -> Color(0xFFB94A5A)
-    else -> Color(0xFF5E8A8F)
+    else -> MapTheme.OTHER_BUILDING
 }
 
-/** Paleta: exterior oscuro, terreno crema (como OpenStreetMap) con poca vegetación y vías blancas con borde gris. */
+/**
+ * Paleta del mapa en modo claro (terreno crema como OpenStreetMap) u oscuro.
+ * [dark] es estado de Compose: al cambiarlo el Canvas se vuelve a dibujar con la otra paleta.
+ */
 object MapTheme {
-    val OUTSIDE = Color(0xFF2B3335)
-    val GROUND = Color(0xFFF5F1D3)
-    val ROAD = Color(0xFFFFFFFF)
-    val ROAD_CASING = Color(0xFF9C977F)
-    val SIDEWALK = Color(0xFFE0796B)
-    val STAIRS_BASE = Color(0xFFF3E3D3)
-    val STAIRS = Color(0xFFB5654F)
-    val PLAZA = Color(0xFFC9CDE8)
+    var dark by mutableStateOf(false)
+    private fun c(claro: Long, oscuro: Long) = Color(if (dark) oscuro else claro)
+
+    /** Alrededor del campus: un tono apenas distinto del terreno, para que no se vea un fondo negro. */
+    val OUTSIDE get() = c(0xFFE9E5CB, 0xFF161D20)
+    val GROUND get() = c(0xFFF5F1D3, 0xFF222C30)
+    val ROAD get() = c(0xFFFFFFFF, 0xFF44535A)
+    val ROAD_CASING get() = c(0xFF9C977F, 0xFF12181A)
+    val SIDEWALK get() = c(0xFFE0796B, 0xFFB86A5E)
+    val STAIRS_BASE get() = c(0xFFF3E3D3, 0xFF4E4038)
+    val STAIRS get() = c(0xFFB5654F, 0xFFD9906F)
+    val PLAZA get() = c(0xFFC9CDE8, 0xFF3A3F63)
     val ARROW_YELLOW = Color(0xFFFFD21F)
+    val TRACK get() = c(0xFFDCEDE8, 0xFF2D4741)
+    val TRACK_INNER get() = c(0xFFC9E2D6, 0xFF263D37)
+    val PITCH get() = c(0xFF74C283, 0xFF2F6E40)
+    val STANDS get() = c(0xFFC4CFD2, 0xFF47555B)
+    val COURT get() = c(0xFF6FB6E0, 0xFF2D5F7C)
+    val FOOD get() = c(0xFFF1D29A, 0xFF8C6E3C)
+    val OTHER_BUILDING get() = c(0xFF5E8A8F, 0xFF4C6A6E)
+    val OUTLINE get() = c(0xFFFFFFFF, 0xFF0E1315)
+    val TREES get() = if (dark) listOf(Color(0x66336B48), Color(0x6629583C), Color(0x55417F56))
+        else listOf(Color(0x8878B98A), Color(0x8868A87A), Color(0x7788C497))
 }
 
 /**
@@ -184,7 +204,6 @@ object CampusShapesGeometry {
     }
 }
 
-private val OUTLINE = Color(0xFFFFFFFF)
 private val labelPaint = Paint().apply {
     isAntiAlias = true; textAlign = Paint.Align.CENTER; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
 }
@@ -204,7 +223,7 @@ fun DrawScope.drawCampusGround(p: MapProjection, ground: CampusGround, zoom: Flo
     // El trazo grueso infla el contorno unos metros para que el terreno envuelva los edificios del borde
     drawPath(path, MapTheme.GROUND, style = Stroke(width = 26f * k, join = androidx.compose.ui.graphics.StrokeJoin.Round))
     drawPath(path, MapTheme.GROUND, style = Fill)
-    val tones = listOf(Color(0x8878B98A), Color(0x8868A87A), Color(0x7788C497))
+    val tones = MapTheme.TREES
     for (t in ground.trees) {
         val r = t.radioM * k
         if (r < 1.5f) continue
@@ -254,7 +273,7 @@ private fun DrawScope.drawStands(p: MapProjection, s: CampusShape) {
     val n = 14
     for (i in 1 until n) {
         val t = i / n.toFloat()
-        drawLine(Color(0x66344650), q[0] + (q[3] - q[0]) * t, q[1] + (q[2] - q[1]) * t, strokeWidth = 1.4f)
+        drawLine(if (MapTheme.dark) Color(0x66C8D2D6) else Color(0x66344650), q[0] + (q[3] - q[0]) * t, q[1] + (q[2] - q[1]) * t, strokeWidth = 1.4f)
     }
 }
 
@@ -309,13 +328,13 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
             if (s.tipo != tipo || s.puntos.size < 3) continue
             val path = pathOf(p, s)
             val fill = when (tipo) {
-                "PISTA" -> Color(0xFFDCEDE8)
-                "PISTA_INT" -> Color(0xFFC9E2D6)
-                "CANCHA_ESTADIO", "CANCHA_VERDE" -> Color(0xFF74C283)
-                "GRADA" -> Color(0xFFC4CFD2)
+                "PISTA" -> MapTheme.TRACK
+                "PISTA_INT" -> MapTheme.TRACK_INNER
+                "CANCHA_ESTADIO", "CANCHA_VERDE" -> MapTheme.PITCH
+                "GRADA" -> MapTheme.STANDS
                 "PLAZA" -> MapTheme.PLAZA
-                "CANCHA" -> Color(0xFF6FB6E0)
-                "COMIDA" -> Color(0xFFF1D29A)
+                "CANCHA" -> MapTheme.COURT
+                "COMIDA" -> MapTheme.FOOD
                 else -> facultyColor(if (tipo == "OTRO") "OTRO" else s.grupo)
             }
             val flat = tipo in flatTypes
@@ -325,10 +344,11 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
                 drawPath(path, Color(0x55000000), style = Fill); drawContext.canvas.restore()
             }
             drawPath(path, fill, style = Fill)
+            val base = if (MapTheme.dark && flat) Color.White.copy(alpha = 0.35f) else MapTheme.OUTLINE
             val outline = when (tipo) {
-                "PISTA" -> OUTLINE.copy(alpha = 0.9f)
-                "PISTA_INT" -> OUTLINE.copy(alpha = 0.75f)
-                else -> OUTLINE.copy(alpha = if (flat) 0.55f else 0.9f)
+                "PISTA" -> base.copy(alpha = base.alpha * 0.9f)
+                "PISTA_INT" -> base.copy(alpha = base.alpha * 0.75f)
+                else -> base.copy(alpha = base.alpha * if (flat) 0.55f else 0.9f)
             }
             drawPath(path, outline, style = Stroke(width = if (tipo == "PISTA") 2.5f else if (flat) 1.5f else 2f))
             if (tipo == "CANCHA_ESTADIO") drawPitchMarks(p, s)
@@ -358,7 +378,12 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
                     labelPaint.color = android.graphics.Color.argb(150, 0, 0, 0)
                     nc.drawText(t, o.x + 1.5f, y + 1.5f, labelPaint)
                 }
-                labelPaint.color = when (l.tipo) {
+                labelPaint.color = if (MapTheme.dark) when (l.tipo) {
+                    "ESTADIO" -> android.graphics.Color.rgb(200, 235, 205)
+                    "PLAZA" -> android.graphics.Color.rgb(215, 220, 255)
+                    "COMIDA" -> android.graphics.Color.rgb(255, 228, 180)
+                    else -> android.graphics.Color.WHITE
+                } else when (l.tipo) {
                     "ESTADIO" -> android.graphics.Color.rgb(20, 70, 30)
                     "PLAZA" -> android.graphics.Color.rgb(55, 60, 110)
                     "COMIDA" -> android.graphics.Color.rgb(110, 70, 20)
