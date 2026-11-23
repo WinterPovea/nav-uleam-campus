@@ -20,6 +20,7 @@ import ec.edu.uleam.navigator.routing.astar.RouteOptions
 import ec.edu.uleam.navigator.routing.astar.RouteResult
 import ec.edu.uleam.navigator.ui.map.CampusShape
 import ec.edu.uleam.navigator.ui.map.GeoPoint
+import ec.edu.uleam.navigator.ui.map.OriginPicker
 import ec.edu.uleam.navigator.ui.map.RouteProgressCalc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,7 +54,9 @@ data class UiState(
     val msg: String? = null,
     val infoMsg: String? = null,
     /** true mientras el usuario recorre la ruta (botón "Empezar ruta"). */
-    val navigating: Boolean = false
+    val navigating: Boolean = false,
+    /** true si el GPS indica que el usuario ya está en el destino elegido (no hace falta ruta). */
+    val enDestino: Boolean = false
 )
 
 class CampusViewModel(app: Application) : AndroidViewModel(app) {
@@ -139,7 +142,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     fun elegirDestino(l: LugarEntity) {
         resetOffRouteTracking()
         detenerNavegacion()
-        ui = ui.copy(destino = l, query = "", results = emptyList(), msg = null, infoMsg = null)
+        ui = ui.copy(destino = l, query = "", results = emptyList(), msg = null, infoMsg = null, enDestino = false)
         recalcular()
     }
 
@@ -162,7 +165,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
             msg = null,
             infoMsg = "Origen fijado en Puerta $n"
         )
-        recalcular()
+        recalcular(usarGps = false)
     }
 
     fun elegirOrigenManual(nodoId: Int, label: String) {
@@ -174,7 +177,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
             msg = null,
             infoMsg = "Origen manual: $label"
         )
-        recalcular()
+        recalcular(usarGps = false)
     }
 
     /**
@@ -219,39 +222,36 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         val activeRoute = ui.route
         val currentDestino = ui.destino
 
-        // Sin ruta activa: acoplar origen al nodo de calle más cercano o alertar si está fuera del campus
+        // Ya está en el destino (a pocos metros o dentro de su edificio): se avisa en vez de trazar ruta
+        if (currentDestino != null && yaEnDestino(lat, lon)) {
+            resetOffRouteTracking()
+            if (ui.navigating) {
+                llegarAlDestino(currentDestino)
+            } else if (!ui.enDestino || ui.route != null) {
+                ui = ui.copy(enDestino = true, route = null, instructions = emptyList(), msg = null, infoMsg = null)
+            }
+            return
+        }
+
+        // Sin ruta activa: origen = entrada del edificio donde está el usuario o el mejor nodo de calle cercano
         if (activeRoute == null || currentDestino == null) {
             resetOffRouteTracking()
-            val snap = astar.snapToNode(lat, lon)
-            if (snap == null) {
+            val origen = origenGps(lat, lon)
+            if (origen == null) {
                 ui = ui.copy(
                     origenId = null,
                     origenLabel = "GPS fuera del campus",
                     route = null,
                     instructions = emptyList(),
                     msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS),
-                    infoMsg = null
+                    infoMsg = null,
+                    enDestino = false
                 )
-            } else if (ui.origenId != snap.nodeId) {
-                ui = ui.copy(
-                    origenId = snap.nodeId,
-                    origenLabel = "Mi ubicación GPS (nodo ${snap.nodeId})",
-                    msg = null
-                )
-                if (currentDestino != null) {
-                    recalcular()
-                }
+            } else if (ui.origenId != origen.first || ui.enDestino) {
+                ui = ui.copy(origenId = origen.first, origenLabel = origen.second, msg = null, enDestino = false)
+                if (currentDestino != null) recalcular(usarGps = false)
             }
             return
-        }
-
-        // Navegando: si ya está junto al destino, la ruta termina
-        if (ui.navigating) {
-            val dest = nodoById[currentDestino.idNodo]
-            if (dest != null && RouteProgressCalc.distanceM(GeoPoint(lat, lon), GeoPoint(dest.latitud, dest.longitud)) <= ARRIVAL_RADIUS_M) {
-                llegarAlDestino(currentDestino)
-                return
-            }
         }
 
         // Con ruta activa: verificar si el usuario se desvió más de 15 metros de los segmentos
@@ -304,16 +304,13 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         val graph = repo.graph ?: return
         val avoid = ui.avoidStairs
 
+        val origen = origenGps(lat, lon)
         val outcome = withContext(Dispatchers.Default) {
-            when (val result = astar.findRouteFromLocation(
-                latitude = lat,
-                longitude = lon,
-                destinationId = destinoActual.idNodo,
-                options = RouteOptions(avoidStairs = avoid)
-            )) {
+            if (origen == null) return@withContext RerouteOutcome.Failed(RouteResult.Reason.OUTSIDE_CAMPUS)
+            when (val result = astar.findRoute(origen.first, destinoActual.idNodo, RouteOptions(avoidStairs = avoid))) {
                 is RouteResult.Success -> {
-                    val newOriginId = result.nodeIds.first()
-                    val newOriginLabel = "Mi ubicación GPS (nodo $newOriginId)"
+                    val newOriginId = origen.first
+                    val newOriginLabel = origen.second
                     val instructions = NavigationGuidance.generateInstructions(
                         nodeIds = result.nodeIds,
                         nodeById = graph.nodes.associateBy { it.id },
@@ -385,9 +382,9 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
             val currentPos = userPosition
             if (currentPos != null) {
                 // Al cambiar a GPS real, validar de inmediato la posición real frente al campus
-                val astar = repo.astar
-                val snap = astar?.snapToNode(currentPos.lat, currentPos.lon)
-                if (snap == null) {
+                lastGpsLatLon = currentPos.lat to currentPos.lon
+                val origen = origenGps(currentPos.lat, currentPos.lon)
+                if (origen == null) {
                     ui = ui.copy(
                         origenId = null,
                         origenLabel = "GPS fuera del campus",
@@ -397,11 +394,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
                         infoMsg = null
                     )
                 } else {
-                    ui = ui.copy(
-                        origenId = snap.nodeId,
-                        origenLabel = "Mi ubicación GPS (nodo ${snap.nodeId})",
-                        msg = null
-                    )
+                    ui = ui.copy(origenId = origen.first, origenLabel = origen.second, msg = null)
                     recalcular()
                 }
             } else {
@@ -511,7 +504,8 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
             route = null,
             instructions = emptyList(),
             msg = null,
-            infoMsg = "🏁 Llegaste a ${destino.nombre}"
+            infoMsg = "🏁 Llegaste a ${destino.nombre}",
+            enDestino = false
         )
     }
 
@@ -543,11 +537,25 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     fun limpiar() {
         resetOffRouteTracking()
         detenerNavegacion()
-        ui = ui.copy(destino = null, route = null, instructions = emptyList(), msg = null, infoMsg = null)
+        ui = ui.copy(destino = null, route = null, instructions = emptyList(), msg = null, infoMsg = null, enDestino = false)
     }
 
-    private fun recalcular() {
+    /**
+     * @param usarGps con GPS real (fuera del Modo Simulación) vuelve a elegir el origen según la posición
+     *   actual y el destino; false cuando el usuario fijó el origen a mano (puerta o toque).
+     */
+    private fun recalcular(usarGps: Boolean = true) {
         val d = ui.destino ?: return
+        val gps = lastGpsLatLon
+        if (usarGps && !ui.isSimulationMode && !ui.navigating && gps != null) {
+            if (yaEnDestino(gps.first, gps.second)) {
+                ui = ui.copy(enDestino = true, route = null, instructions = emptyList(), msg = null)
+                return
+            }
+            origenGps(gps.first, gps.second)?.let { (id, label) ->
+                ui = ui.copy(origenId = id, origenLabel = label, enDestino = false)
+            }
+        }
         val o = ui.origenId ?: run {
             ui = ui.copy(
                 route = null,
@@ -576,6 +584,32 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Origen para una posición GPS real: si el usuario está dentro de un edificio, la entrada de ese edificio
+     * que deja la ruta más corta; si está fuera, el nodo de calle cercano que minimiza caminar + ruta.
+     */
+    private fun origenGps(lat: Double, lon: Double): Pair<Int, String>? {
+        val graph = repo.graph ?: return null
+        val astar = repo.astar ?: return null
+        val opts = RouteOptions(avoidStairs = ui.avoidStairs)
+        val cost: ((Int) -> Double?)? = ui.destino?.let { d ->
+            { id: Int -> (astar.findRoute(id, d.idNodo, opts) as? RouteResult.Success)?.distanceM }
+        }
+        val pick = OriginPicker.pick(lat, lon, graph, repo.shapes, cost) ?: return null
+        val label = if (pick.building != null) {
+            val l = repo.lugares.firstOrNull { it.idNodo == pick.nodeId }
+            val nombre = l?.codigo?.substringAfter('·')?.takeIf { it.isNotBlank() } ?: l?.nombre ?: "edificio"
+            "Mi ubicación GPS (entrada de $nombre)"
+        } else "Mi ubicación GPS (nodo ${pick.nodeId})"
+        return pick.nodeId to label
+    }
+
+    private fun yaEnDestino(lat: Double, lon: Double): Boolean {
+        val d = ui.destino ?: return false
+        val n = nodoById[d.idNodo] ?: return false
+        return OriginPicker.isAtDestination(lat, lon, n.latitud, n.longitud, repo.shapes, ARRIVAL_RADIUS_M)
+    }
+
     private fun edgeHasStairs(fromId: Int, toId: Int): Boolean {
         return aristas.any {
             ((it.idOrigen == fromId && it.idDestino == toId) ||
@@ -594,8 +628,8 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         const val OFF_ROUTE_CONFIRMATION_MS = 3_000L
 
-        /** Distancia al destino (m) a la que se considera que el usuario llegó. */
-        const val ARRIVAL_RADIUS_M = 15.0
+        /** Distancia al destino (m) a la que se considera que el usuario llegó (también cuenta estar dentro de su edificio). */
+        const val ARRIVAL_RADIUS_M = 20.0
 
         /** Velocidad del caminante virtual en Modo Simulación (m/s): paso humano normal (≈ 5 km/h). */
         const val DEMO_WALK_SPEED_MPS = 1.4

@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -59,6 +60,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -97,7 +99,9 @@ fun CampusMap(
     modifier: Modifier = Modifier,
     azimuthDeg: Float? = null,
     navigating: Boolean = false,
-    controlsBottomPadding: Dp = 16.dp
+    controlsBottomPadding: Dp = 16.dp,
+    /** Estilo del mapa actual (el botón para alternarlo está en la pantalla principal, bajo las puertas). */
+    mapStyle: MapStyle = MapStyle.CLARO
 ) {
     var size by remember { mutableStateOf(IntSize(1, 1)) }
     var zoom by remember { mutableFloatStateOf(1.2f) }
@@ -195,12 +199,49 @@ fun CampusMap(
         return -(base.toScreen(lat, lon) - base.center) * z
     }
 
+    // Extensión visible del campus: nodos + edificios/canchas (los edificios del borde, como B-11 y B-12,
+    // quedan fuera del rectángulo de los nodos)
+    val cameraBounds = remember(bounds, shapes) {
+        val pts = shapes.filter { it.puntos.size >= 3 }.flatMap { it.puntos }
+        if (pts.isEmpty()) bounds else doubleArrayOf(
+            minOf(bounds[0], pts.minOf { it.lat }), maxOf(bounds[1], pts.maxOf { it.lat }),
+            minOf(bounds[2], pts.minOf { it.lon }), maxOf(bounds[3], pts.maxOf { it.lon })
+        )
+    }
+    val density = LocalDensity.current
+    // Zonas tapadas por la interfaz: arriba la búsqueda + puertas + botón de estilo, abajo la tarjeta
+    val topInsetPx = with(density) { 200.dp.toPx() }
+    val bottomInsetPx = with(density) { controlsBottomPadding.toPx() }
+
+    /**
+     * Mantiene la cámara sobre el campus: se puede desplazar hasta que el borde del campus (con un margen
+     * pequeño) quede justo bajo la búsqueda o justo sobre la tarjeta inferior, pero no más allá.
+     * Así se ven completos los edificios de los bordes y el mapa no se aleja hacia zonas vacías.
+     */
+    fun clampPan(z: Float, pn: Offset): Offset {
+        if (size.width <= 1) return pn
+        val pr = proj(z, pn)
+        val (lat, lon) = pr.toGeo(pr.center)
+        val k = pr.base * z                      // píxeles por grado
+        val m = CAMERA_MARGIN_DEG
+        val h = size.height.toDouble(); val w = size.width.toDouble()
+        fun limit(v: Double, lo: Double, hi: Double): Double = if (lo > hi) (lo + hi) / 2 else v.coerceIn(lo, hi)
+        // Norte arriba: el borde norte puede bajar hasta topInset; el borde sur subir hasta h - bottomInset
+        val cl = limit(
+            lat,
+            cameraBounds[0] - m + (h / 2 - bottomInsetPx) / k,
+            cameraBounds[1] + m - (h / 2 - topInsetPx) / k
+        )
+        val co = limit(lon, cameraBounds[2] - m + (w / 2) / k, cameraBounds[3] + m - (w / 2) / k)
+        return if (cl == lat && co == lon) pn else panToCenter(cl, co, z)
+    }
+
     /** Anima la cámara (zoom + desplazamiento) hasta centrar la posición indicada. */
     fun animateCameraTo(lat: Double, lon: Double, targetZoom: Float) {
         val z0 = zoom
         val p0 = pan
         val z1 = targetZoom
-        val p1 = panToCenter(lat, lon, z1)
+        val p1 = clampPan(z1, panToCenter(lat, lon, z1))
         scope.launch {
             Animatable(0f).animateTo(1f, tween(450, easing = FastOutSlowInEasing)) {
                 zoom = z0 + (z1 - z0) * value
@@ -241,8 +282,19 @@ fun CampusMap(
         }
     }
 
+    // Con GPS real, ¿el usuario está fuera del campus? (más de ~110 m fuera del rectángulo de los nodos)
+    val userOutsideCampus = !isSimulationMode && userPosition?.let { u ->
+        val m = 0.001
+        u.lat < bounds[0] - m || u.lat > bounds[1] + m || u.lon < bounds[2] - m || u.lon > bounds[3] + m
+    } == true
+
     /** Centra el mapa en el usuario: reanuda el seguimiento si se navega, o anima una sola vez. */
     fun centrarEnUsuario() {
+        if (userOutsideCampus) {
+            // Fuera del campus no se lleva la cámara a la calle: se muestra todo el campus
+            animateCameraTo((bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2, 1.2f)
+            return
+        }
         val target = userPosition ?: originNodeId?.let { id ->
             nodoById[id]?.let { UserPosition(it.latitud, it.longitud) }
         } ?: return
@@ -260,18 +312,18 @@ fun CampusMap(
         val m = 24f
         o.x < m || o.y < m || o.x > size.width - m || o.y > size.height - m
     } ?: false
-    val showMyLocationButton = userPosition != null && (userOffScreen || (navigating && !followUser))
+    val showMyLocationButton = userPosition != null && !userOutsideCampus && (userOffScreen || (navigating && !followUser))
 
     Box(modifier = modifier) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (shapes.isNotEmpty()) MapTheme.OUTSIDE else Color(0xFFF6F5F0)) // Oscuro con diseño de mapa físico; crema si no hay figuras
+                .background(if (shapes.isNotEmpty()) MapTheme.OUTSIDE else Color(0xFFF6F5F0)) // tono del entorno según el estilo del mapa
                 .onSizeChanged { size = it }
                 .pointerInput(Unit) {
                     detectTransformGestures { centroid, panChange, zoomChange, rotationChange ->
                         val oldZoom = zoom
-                        val newZoom = (zoom * zoomChange).coerceIn(0.9f, 15f)
+                        val newZoom = (zoom * zoomChange).coerceIn(1.0f, 15f)
                         // Un arrastre con un dedo (sin zoom ni giro) suelta el seguimiento de la cámara
                         if (followUser && zoomChange == 1f && rotationChange == 0f && panChange != Offset.Zero) {
                             followUser = false
@@ -284,7 +336,7 @@ fun CampusMap(
                             // Zoom anclado al punto de pellizco: el mapa crece desde donde están los dedos
                             if (newZoom != oldZoom) pan = proj().panForZoomAt(centroid, newZoom)
                             zoom = newZoom
-                            pan += proj().rotatePanDelta(panChange)
+                            pan = clampPan(zoom, pan + proj().rotatePanDelta(panChange))
                         }
                         if (abs(rotationChange) > 0.05f) {
                             mapRotationDeg = (mapRotationDeg + rotationChange) % 360f
@@ -455,25 +507,8 @@ fun CampusMap(
                         }
 
                         "ZONA_SEGURA" -> {
-                            // Zonas seguras de evacuación rápida
-                            drawCircle(
-                                color = Color(0xFFFFEBEE),
-                                radius = 22f,
-                                center = center,
-                                style = Fill
-                            )
-                            drawCircle(
-                                color = Color(0xFFD32F2F),
-                                radius = 22f,
-                                center = center,
-                                style = Stroke(4f)
-                            )
-                            drawCircle(
-                                color = Color(0xFFD32F2F),
-                                radius = 10f,
-                                center = center,
-                                style = Fill
-                            )
+                            // Punto de encuentro / zona segura: señal verde de evacuación (flechas hacia las personas)
+                            drawSafeZoneIcon(center)
                         }
                     }
                 }
@@ -504,7 +539,8 @@ fun CampusMap(
                     val textYOffset = if (node.tipo == "DESTINO") 5f else 32f
 
                     // Fondo de pastilla para contraste del texto
-                    labelPaint.color = android.graphics.Color.rgb(30, 41, 59)
+                    labelPaint.color = if (MapTheme.dark) android.graphics.Color.rgb(226, 232, 240) else android.graphics.Color.rgb(30, 41, 59)
+                    labelBgPaint.color = if (MapTheme.dark) android.graphics.Color.argb(210, 30, 38, 42) else android.graphics.Color.argb(220, 255, 255, 255)
                     labelPaint.textSize = if (zoom > 3f) 30f else 24f
 
                     val textWidth = labelPaint.measureText(label)
@@ -543,6 +579,21 @@ fun CampusMap(
                 }
                 val points = progress?.remaining?.map { p.toScreen(it.lat, it.lon) }
                     ?: ids.mapNotNull { id -> nodoById[id]?.let { p.toScreen(it.latitud, it.longitud) } }
+                // Con GPS real, línea punteada desde la posición del usuario hasta el inicio de la ruta
+                val u = animatedUser
+                if (progress == null && !isSimulationMode && u != null && points.isNotEmpty()) {
+                    val us = p.toScreen(u.lat, u.lon)
+                    if ((us - points.first()).getDistance() > 12f) {
+                        drawLine(
+                            color = if (hasShapes) Color(0xFF0288D1) else Color(0xFF1976D2),
+                            start = us,
+                            end = points.first(),
+                            strokeWidth = 5f,
+                            cap = StrokeCap.Round,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 12f))
+                        )
+                    }
+                }
                 if (points.size >= 2) {
                     // Halo de contraste exterior
                     for (i in 0 until points.size - 1) {
@@ -690,6 +741,20 @@ fun CampusMap(
             }
         }
 
+        // Aviso cuando el GPS ubica al usuario fuera de la universidad (el mapa se queda en el campus)
+        if (userOutsideCampus) {
+            Text(
+                text = "📍 No te encuentras en el campus ULEAM",
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 196.dp)
+                    .background(Color(0xE6A01B2C), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            )
+        }
+
         // 7. BOTONES FLOTANTES DE BRÚJULA / NORTE Y RECENTRADO
         Column(
             modifier = Modifier
@@ -750,3 +815,31 @@ fun CampusMap(
     }
 }
 
+/** Margen (grados, ≈ 45 m) que se deja ver alrededor del campus al limitar la cámara. */
+private const val CAMERA_MARGIN_DEG = 0.0004
+
+/**
+ * Señal de "Zona segura / Punto de encuentro" como la de evacuación: cuadro verde con borde blanco,
+ * cuatro flechas blancas que apuntan al centro y una persona en medio.
+ */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSafeZoneIcon(c: Offset) {
+    val half = 22f
+    drawRoundRect(Color(0x55000000), c - Offset(half - 2f, half - 3f), Size(half * 2, half * 2), CornerRadius(7f, 7f))
+    drawRoundRect(Color.White, c - Offset(half + 2f, half + 2f), Size(half * 2 + 4f, half * 2 + 4f), CornerRadius(8f, 8f))
+    drawRoundRect(Color(0xFF1B8A3A), c - Offset(half, half), Size(half * 2, half * 2), CornerRadius(6f, 6f))
+    // flechas hacia el centro (arriba, abajo, izquierda, derecha)
+    val tip = 9f; val base = 17f; val w = 5f
+    for ((dx, dy) in listOf(0f to -1f, 0f to 1f, -1f to 0f, 1f to 0f)) {
+        val px = -dy; val py = dx
+        val arrow = androidx.compose.ui.graphics.Path().apply {
+            moveTo(c.x + dx * tip, c.y + dy * tip)
+            lineTo(c.x + dx * base + px * w, c.y + dy * base + py * w)
+            lineTo(c.x + dx * base - px * w, c.y + dy * base - py * w)
+            close()
+        }
+        drawPath(arrow, Color.White)
+    }
+    // personas en el centro
+    drawCircle(Color.White, 2.8f, c + Offset(0f, -4.6f))
+    drawRoundRect(Color.White, c + Offset(-4f, -0.8f), Size(8f, 6.8f), CornerRadius(4f, 3f))
+}

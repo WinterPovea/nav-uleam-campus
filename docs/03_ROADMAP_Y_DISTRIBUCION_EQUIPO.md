@@ -58,6 +58,7 @@ Como especialista en sistemas de información geográfica móvil y aplicaciones 
 - **Solución Técnica:** Ampliar el esquema de nodos con la propiedad `piso: Int` (0 = PB, 1 = Piso 1, 2 = Piso 2). Modelar las aristas verticales de escaleras conectando nodos del mismo bloque con diferente piso. En la UI, mostrar un selector de nivel (PB, 1, 2) cuando la ruta involucre interiores.
 
 ### 2.6. Búsqueda Enriquecida, Categorías y Ficha de Lugar (Bottom Sheet)
+- **Avance (✅ modo oscuro y origen GPS):** estilo del mapa Claro / Oscuro / Sistema elegido al primer inicio; el origen GPS sale por la entrada del edificio donde está el usuario; aviso de llegada y de ubicación fuera del campus. Pendiente: modo oscuro para el resto de la interfaz (búsqueda y tarjeta).
 - **Avance (✅ mapa base):** edificios, estadio, canchas y caminos con estilo OSM y colores por facultad; para actualizarlo, volver a exportar `building/highway/leisure` con QuickOSM a `data/osm/osm_poligonos.geojson` y ejecutar `python3 build_shapes_osm.py`.
 - **Avance (✅ búsqueda por Facultad/Carrera/Sigla):** los bloques se encuentran por nombre de facultad, sigla, carrera o código `B-xx`. Pendiente: chips de categorías y `ModalBottomSheet`.
 - **Solución Técnica:** Implementar chips horizontales de categorías (`Aulas`, `Administración`, `Cafeterías`, `Canchas`, `Baños`, `Zonas Seguras`). Al seleccionar un lugar, desplegar un `ModalBottomSheet` con información ampliada (descripción, carreras o departamentos que funcionan ahí, horario de atención y botón directo de "Cómo llegar").
