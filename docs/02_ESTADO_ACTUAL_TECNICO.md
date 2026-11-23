@@ -68,6 +68,8 @@ ec.edu.uleam.navigator/
         │                           # paleta MapTheme, etiquetas y PathVisibility (qué aristas se pintan)
         ├── MapProjection.kt        # Proyección WGS84 <-> Pantalla con zoom, paneo y rotación
         ├── RouteProgress.kt        # Progreso sobre la ruta, rumbo y hit-test de lugares
+        ├── OriginPicker.kt         # Origen GPS: entrada del edificio donde está el usuario o mejor nodo cercano; llegada
+        ├── MapStyle.kt             # Estilo del mapa (Claro / Oscuro / Sistema) y su preferencia guardada
         └── AnimatedUserPosition.kt # Desplazamiento suave del marcador del usuario
 ```
 
@@ -125,6 +127,9 @@ ec.edu.uleam.navigator/
 - **Canvas Paramétrico y Rotación Afín (`MapProjection.kt`):** Proyecta las coordenadas geográficas reales del campus (latitud aproximada $-0.953$, longitud $-80.747$) a coordenadas de pantalla $(X, Y)$ con soporte interactivo para zoom, paneo compensado y rotación con dos dedos o alineada con la brújula.
 - **Capa base estilo OpenStreetMap (`CampusShapes.kt`):** terreno crema sobre fondo oscuro con vegetación decorativa; edificios con la huella real de OSM, sombra, borde blanco y color por facultad (FCS celeste, FIIA azul oscuro, FACIVITEC verde, FETAH naranja, FCACC azul, FCSDB vino; administrativos gris azulado); estadio con pista, gradas y cancha con líneas; canchas, Plaza Cultural Centenario, cafeterías en amarillo, íconos de parqueo (P), hidratación y cafetería (El bosque, Tasty Food 2). Solo se rotulan los bloques del catálogo (B-xx), el estadio, la plaza y las Tasty.
 - **Caminos:** se dibujan sobre las aristas del grafo (trazadas en QGIS sobre OSM) como veredas blancas con borde gris; las escaleras, en terracota con peldaños y recortadas para no tapar el camino. `PathVisibility` decide qué se pinta (solo visual, A* usa todas las aristas): oculta los accesos finales a lugares (`DESTINO`/`ZONA_SEGURA`) y tramos marcados por el equipo, pinta como escalera tramos que prolongan escaleras reales y agrega escaleras decorativas (`ESCALERA`).
+- **Estilo claro / oscuro (`MapStyle.kt` + `MapTheme`):** `MapTheme` es la paleta del mapa y `MapTheme.dark` es estado de Compose, así que el Canvas se redibuja al cambiarlo. En la primera ejecución un diálogo pregunta el estilo (modo claro, modo oscuro o usar la configuración del sistema) y se guarda en `SharedPreferences` (`map_prefs`). Un botón bajo la barra de Puertas alterna Claro → Oscuro → Sistema. Los edificios conservan su color por facultad en ambos modos.
+- **Cámara limitada al campus:** zoom mínimo 1.0 y `clampPan` impide arrastrar el mapa fuera del área de edificios y nodos; descuenta lo que tapan la búsqueda (arriba) y la tarjeta (abajo) para que los edificios del borde (B-11, B-12, etc.) se vean completos. El fondo alrededor del campus usa un tono cercano al terreno.
+- **Zonas seguras:** se dibujan como la señal verde de "Punto de encuentro" (cuadro verde con flechas hacia una persona).
 - **Crédito OSM:** botón ⓘ en la esquina inferior izquierda que abre el diálogo "Créditos del mapa" (licencia ODbL).
 - **Infraestructura Diferenciada por Colores Institucionales (modo sin capa base):**
   - `BLOQUE`: Azul pizarra (`0xFF2C3E50`)
@@ -169,4 +174,16 @@ ec.edu.uleam.navigator/
 14. **Mapa del campus con datos de OpenStreetMap:** capa base vectorial (`campus_shapes.csv` + `CampusShapes.kt`) generada desde QGIS/QuickOSM con `build_shapes_osm.py`: edificios con dimensiones reales y color por facultad, estadio, canchas, Plaza Cultural, CIEC, Vicerrectorado y Agromarket como edificios, íconos de parqueo, agua y cafetería. Caminos dibujados sobre las aristas con estilo de vereda y escaleras con peldaños; tramos sobrantes ocultos y escaleras ajustadas según capturas del equipo. Crédito OSM en un botón ⓘ.
 15. **Catálogo B-20 / B-21:** el B-20 (nodo 220) agrupa Psicología, Fisioterapia, Fonoaudiología, Terapia Ocupacional y Nutrición; el B-21 (nodo 221) figura como "No disponible por el momento" (`CARRERAS_DE` / `SIN_CARRERAS` en `build_lugares.py`).
 16. **Interfaz:** barra de búsqueda más compacta (placeholder en una línea) y la barra de Puertas (P1–P4) también se oculta mientras se navega.
-17. **Pruebas y Verificación:** 51 pruebas previas en verde; las nuevas pruebas (`RealCampusDataTest`, `MapMathTest`, `CampusShapesTest`: huellas junto a su entrada, envolvente, etiquetas y visibilidad de caminos) deben ejecutarse con `./gradlew :app:testDebugUnitTest` en un entorno con Android SDK.
+17. **Origen GPS realista (`OriginPicker.kt`):** si el GPS ubica al usuario dentro de la huella de un edificio, la ruta parte de una entrada de ese edificio (nodos DESTINO a ≤ 12 m del contorno), la que deja la ruta más corta; fuera de edificios se comparan los nodos de calle cercanos (hasta 30 m más lejos que el más cercano) y se elige el que minimiza caminar + ruta. Con GPS real se dibuja una línea punteada desde la posición del usuario hasta el inicio de la ruta. Elegir una puerta o un origen manual no se reemplaza por el GPS.
+18. **Aviso de llegada:** al elegir un destino estando a ≤ 20 m de él (o dentro de su edificio) la tarjeta muestra "📍 Ya estás en tu destino" en lugar de la ruta; durante la navegación la llegada se detecta con el mismo criterio (`ARRIVAL_RADIUS_M = 20`).
+19. **Fuera del campus:** con GPS real y el usuario a más de ~110 m del campus aparece "📍 No te encuentras en el campus ULEAM"; la cámara se queda en la universidad y "Mi ubicación" muestra el campus completo.
+20. **Modo oscuro del mapa y cámara limitada:** ver la sección 4.4 (estilo Claro / Oscuro / Sistema, límite de desplazamiento y nuevo ícono de zonas seguras).
+21. **Pruebas y Verificación:** 51 pruebas previas en verde; las nuevas pruebas (`RealCampusDataTest`, `MapMathTest`, `CampusShapesTest`, `OriginPickerTest`: salida por la entrada del edificio, llegada y fuera del campus; `MapStyleTest`: ciclo de estilos y modo sistema) deben ejecutarse con `./gradlew :app:testDebugUnitTest` en un entorno con Android SDK.
+
+### Vista del mapa
+
+| Modo claro | Modo oscuro |
+|---|---|
+| ![Mapa en modo claro](mapa_preview.png) | ![Mapa en modo oscuro](mapa_preview_oscuro.png) |
+
+*Vistas generadas a partir de `campus_shapes.csv`, `nodos.csv` y `aristas.csv` con la misma paleta de la app (sin la interfaz).*
