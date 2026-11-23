@@ -543,6 +543,21 @@ fun CampusMap(
                 }
                 val points = progress?.remaining?.map { p.toScreen(it.lat, it.lon) }
                     ?: ids.mapNotNull { id -> nodoById[id]?.let { p.toScreen(it.latitud, it.longitud) } }
+                // Con GPS real, línea punteada desde la posición del usuario hasta el inicio de la ruta
+                val u = animatedUser
+                if (progress == null && !isSimulationMode && u != null && points.isNotEmpty()) {
+                    val us = p.toScreen(u.lat, u.lon)
+                    if ((us - points.first()).getDistance() > 12f) {
+                        drawLine(
+                            color = if (hasShapes) Color(0xFF0288D1) else Color(0xFF1976D2),
+                            start = us,
+                            end = points.first(),
+                            strokeWidth = 5f,
+                            cap = StrokeCap.Round,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 12f))
+                        )
+                    }
+                }
                 if (points.size >= 2) {
                     // Halo de contraste exterior
                     for (i in 0 until points.size - 1) {

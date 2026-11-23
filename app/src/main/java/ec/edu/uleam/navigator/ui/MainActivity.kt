@@ -513,6 +513,21 @@ fun CollapsibleNavigationCard(
                 }
             }
 
+            // YA ESTÁ EN EL DESTINO (GPS a pocos metros o dentro del edificio): no hace falta ruta
+            if (s.enDestino && s.destino != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "📍 Ya estás en tu destino",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFE8F5E9), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Color(0xFF2E7D32)
+                )
+            }
+
             // RESUMEN MÉTRICO PRINCIPAL DE RUTA
             if (s.route != null) {
                 Spacer(Modifier.height(6.dp))
