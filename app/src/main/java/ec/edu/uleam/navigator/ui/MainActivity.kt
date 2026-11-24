@@ -136,7 +136,7 @@ class MainActivity : ComponentActivity() {
 /** Esquemas de color de la interfaz (búsqueda, tarjetas, diálogos) para modo claro y oscuro. */
 private val UleamLightColors = lightColorScheme()
 private val UleamDarkColors = darkColorScheme(
-    primary = Color(0xFFEF8A96),
+    primary = Color(0xFF64B5F6),
     background = Color(0xFF12171A),
     surface = Color(0xFF1E2427),
     surfaceVariant = Color(0xFF2A3236),
@@ -220,7 +220,7 @@ fun CampusApp(vm: CampusViewModel) {
     if (s.loading) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(color = Color(0xFFA01B2C))
+                CircularProgressIndicator(color = tc(0xFFA01B2C, 0xFF64B5F6))
                 Spacer(Modifier.height(12.dp))
                 Text("Cargando cartografía ULEAM…", fontWeight = FontWeight.Medium)
             }
@@ -307,7 +307,7 @@ fun CampusApp(vm: CampusViewModel) {
                             )
                         },
                         textStyle = MaterialTheme.typography.bodyMedium,
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color(0xFFA01B2C)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = tc(0xFFA01B2C, 0xFF64B5F6)) },
                         trailingIcon = {
                             if (s.query.isNotEmpty()) {
                                 IconButton(onClick = { vm.onQuery("") }) {
@@ -416,7 +416,7 @@ fun CampusApp(vm: CampusViewModel) {
                     Toast.makeText(context, "Mapa: ${nuevo.etiqueta}", Toast.LENGTH_SHORT).show()
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = Color(0xFFA01B2C),
+                contentColor = tc(0xFFA01B2C, 0xFF64B5F6),
                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
             ) {
                 Icon(
@@ -553,7 +553,7 @@ fun CollapsibleNavigationCard(
                         text = s.destino?.nombre ?: "Selecciona un destino",
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
-                        color = if (s.destino != null) tc(0xFFA01B2C, 0xFFEF8A96) else MaterialTheme.colorScheme.onSurface
+                        color = if (s.destino != null) tc(0xFFA01B2C, 0xFF90CAF9) else MaterialTheme.colorScheme.onSurface
                     )
                     s.destino?.descripcion?.takeIf { it.isNotBlank() }?.let { d ->
                         Text(
@@ -576,7 +576,7 @@ fun CollapsibleNavigationCard(
                     Icon(
                         imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
                         contentDescription = if (expanded) "Colapsar" else "Expandir",
-                        tint = Color(0xFFA01B2C)
+                        tint = tc(0xFFA01B2C, 0xFF64B5F6)
                     )
                 }
             }
@@ -739,7 +739,7 @@ fun CollapsibleNavigationCard(
                         Switch(
                             checked = s.avoidStairs,
                             onCheckedChange = vm::toggleEscaleras,
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFA01B2C))
+                            colors = SwitchDefaults.colors(checkedThumbColor = tc(0xFFA01B2C, 0xFF64B5F6))
                         )
                     }
 
@@ -779,7 +779,7 @@ fun CollapsibleNavigationCard(
                 // Botón Zona Segura destacado en Rojo Evacuación ULEAM
                 Button(
                     onClick = vm::zonaSegura,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                    colors = ButtonDefaults.buttonColors(containerColor = tc(0xFFD32F2F, 0xFF1E88E5)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {

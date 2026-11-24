@@ -790,7 +790,7 @@ fun CampusMap(
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = Color(0xFFA01B2C),
+                    contentColor = if (MapTheme.dark) Color(0xFF64B5F6) else Color(0xFFA01B2C),
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                 ) {
                     Icon(
