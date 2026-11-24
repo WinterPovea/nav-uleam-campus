@@ -189,3 +189,4 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 495,502,29.07,1,0,Conexion hacia Zona Segura
 495,477,55.71,1,0,Conexion de camino
 495,311,49.15,1,0,Conexion hacia Estudios y construcciones Uleam -EP
+433,434,10.35,1,0,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)

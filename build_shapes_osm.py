@@ -157,16 +157,32 @@ def main():
     lin = next((f for f in (OSM / "calles_osm.geojson", OSM / "osm_lineas.geojson") if f.exists()), OSM / "calles_osm.geojson")
     lineas = json.load(open(lin, encoding="utf-8"))["features"] if lin.exists() else []
     lineas = [f for f in lineas if f["geometry"]["type"] in ("LineString", "MultiLineString")]
+    # Terreno del campus = envolvente de las áreas (no de las líneas), igual que el fondo crema de la app
+    terreno = hull([m_xy(*q) for o in out if o[0] not in ("VIA", "VEREDA", "PELDANOS") for q in o[3]])
+
+    def recortar(line, poly, margen):
+        """Parte la línea en los tramos consecutivos de vértices a <= margen m del polígono (fuera = se corta)."""
+        tramos, actual = [], []
+        for q in line:
+            if dist_to_hull(poly, m_xy(*q)) <= margen: actual.append(q)
+            else:
+                if len(actual) >= 2: tramos.append(actual)
+                actual = []
+        if len(actual) >= 2: tramos.append(actual)
+        return tramos
+
     if lineas:
         for f in lineas:
             hwy = f["properties"].get("highway")
             for line in lines_of(f["geometry"]):
                 if len(line) < 2: continue
-                # calles del campus y de su entorno inmediato (las avenidas que lo rodean)
-                if not any(dist_to_hull(campus, m_xy(*q)) <= 90.0 for q in line): continue
-                if hwy in VEREDA: vias.append(["VEREDA", "2.0", hwy, line])
-                elif hwy in PELDANOS: vias.append(["PELDANOS", "2.5", hwy, line])
-                elif hwy in ANCHO_VIA: vias.append(["VIA", "%.1f" % ANCHO_VIA[hwy], hwy, line])
+                # Solo lo que está DENTRO de la universidad: la línea se recorta a los tramos cuyos vértices caen
+                # en el terreno del campus (envolvente de edificios, canchas y estadio). Las veredas punteadas
+                # (footway) no se dibujan: el diseño solo muestra calles y escaleras.
+                if hwy in VEREDA: continue
+                for tramo in recortar(line, terreno, 6.0):
+                    if hwy in PELDANOS: vias.append(["PELDANOS", "2.5", hwy, tramo])
+                    elif hwy in ANCHO_VIA: vias.append(["VIA", "%.1f" % ANCHO_VIA[hwy], hwy, tramo])
     else:
         vias = []   # sin líneas OSM la app dibuja los caminos a partir de las aristas del grafo
     puntos = [r for r in viejo if r[0] in ("PARQUEO", "AGUA", "CAFE")]
