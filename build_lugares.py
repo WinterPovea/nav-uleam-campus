@@ -33,10 +33,10 @@ NUEVOS = {
 }
 # Segundas entradas de un bloque: se nombran "(Bloque B-xx, acceso 2)"
 ACCESO_2 = {314, 226}
-# Bloque B-21 (nodo 221): sin carreras por el momento. Las carreras de Ciencias de la Salud que figuraban en él
-# (Psicología, Fisioterapia, Fonoaudiología, Terapia Ocupacional, Nutrición) se atienden en el B-20 (nodo 220).
-CARRERAS_DE = {220: 221}        # nodo -> nodo del que toma las carreras
-SIN_CARRERAS = {221}            # nodos sin carreras por el momento
+# B-21 (nodo 221) sin carreras por el momento; Psicología, Fisioterapia, etc. están en el B-20 (nodo 220).
+# data/nodos_u.csv ya trae ese reparto; estas tablas quedan vacías para casos futuros.
+CARRERAS_DE = {}                # nodo -> nodo del que toma las carreras
+SIN_CARRERAS = {221}            # nodos cuya descripción es "No disponible por el momento"
 BLOQUE_REAL = {}                # id_nodo -> bloque a mostrar si difiere del que trae el CSV (hoy ninguno)
 
 # Sinónimos que ayudan a encontrar la facultad por palabras sueltas.
