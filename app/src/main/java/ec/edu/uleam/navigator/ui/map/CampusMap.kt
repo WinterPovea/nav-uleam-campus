@@ -212,7 +212,7 @@ fun CampusMap(
     // Extensión visible del campus: nodos + edificios/canchas (los edificios del borde, como B-11 y B-12,
     // quedan fuera del rectángulo de los nodos)
     val cameraBounds = remember(bounds, shapes) {
-        val pts = shapes.filter { it.puntos.size >= 3 }.flatMap { it.puntos }
+        val pts = shapes.filter { it.puntos.size >= 3 && it.tipo !in CampusShapesGeometry.LINE_TYPES }.flatMap { it.puntos }
         if (pts.isEmpty()) bounds else doubleArrayOf(
             minOf(bounds[0], pts.minOf { it.lat }), maxOf(bounds[1], pts.maxOf { it.lat }),
             minOf(bounds[2], pts.minOf { it.lon }), maxOf(bounds[3], pts.maxOf { it.lon })

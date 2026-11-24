@@ -73,6 +73,17 @@ object MapTheme {
     val FOOD get() = c(0xFFF1D29A, 0xFF8C6E3C)
     val OTHER_BUILDING get() = c(0xFF5E8A8F, 0xFF4C6A6E)
     val OUTLINE get() = c(0xFFFFFFFF, 0xFF0E1315)
+    /** Relleno de calle según su clase OSM (primaria naranja, terciaria amarilla clara, resto blanco). */
+    fun roadFill(clase: String): Color = when (clase) {
+        "primary", "primary_link" -> c(0xFFFCD6A4, 0xFF7A5A33)
+        "secondary" -> c(0xFFF7FABF, 0xFF66673A)
+        "tertiary", "tertiary_link" -> c(0xFFFFFFFF, 0xFF55646B)
+        else -> ROAD
+    }
+    fun roadCasing(clase: String): Color = when (clase) {
+        "primary", "primary_link" -> c(0xFFC48A3B, 0xFF0F1416)
+        else -> ROAD_CASING
+    }
     val TREES get() = if (dark) listOf(Color(0x66336B48), Color(0x6629583C), Color(0x55417F56))
         else listOf(Color(0x8878B98A), Color(0x8868A87A), Color(0x7788C497))
 }
@@ -174,8 +185,11 @@ object CampusShapesGeometry {
         return out
     }
 
+    /** Tipos que son líneas (calles, veredas, formas de aristas): no definen el contorno del campus. */
+    val LINE_TYPES = setOf("VIA", "VEREDA", "PELDANOS", "ARISTA", "VIA_DOBLE", "ESCALERA")
+
     fun ground(shapes: List<CampusShape>): CampusGround {
-        val hull = convexHull(shapes.flatMap { it.puntos })
+        val hull = convexHull(shapes.filter { it.tipo !in LINE_TYPES }.flatMap { it.puntos })
         return CampusGround(hull, trees(hull))
     }
 
@@ -290,29 +304,39 @@ private fun DrawScope.drawPlazaIcon(c: Offset, k: Float) {
 
 /** Vías decorativas (tipo VIA: `codigo` = ancho en metros). Son diseño: la ruta real sigue las aristas del grafo. */
 private fun DrawScope.drawCampusRoads(p: MapProjection, shapes: List<CampusShape>, k: Float) {
-    val vias = shapes.filter { it.tipo == "VIA" && it.puntos.size >= 2 }
-    val paths = vias.map { s ->
-        val path = Path()
+    val round = androidx.compose.ui.graphics.StrokeJoin.Round
+    fun pathOfLine(s: CampusShape) = Path().apply {
         s.puntos.forEachIndexed { i, g ->
             val o = p.toScreen(g.lat, g.lon)
-            if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
+            if (i == 0) moveTo(o.x, o.y) else lineTo(o.x, o.y)
         }
-        (s.codigo.toFloatOrNull() ?: 6f) * k to path
     }
-    val round = androidx.compose.ui.graphics.StrokeJoin.Round
+    // Calles (tipo VIA, `grupo` = clase OSM): de menor a mayor jerarquía para que las principales queden encima
+    val rango = mapOf("service" to 0, "track" to 0, "pedestrian" to 0, "living_street" to 1, "residential" to 1,
+        "unclassified" to 1, "tertiary_link" to 2, "tertiary" to 2, "secondary" to 3, "primary_link" to 3, "primary" to 4)
+    val vias = shapes.filter { it.tipo == "VIA" && it.puntos.size >= 2 }.sortedBy { rango[it.grupo] ?: 0 }
+        .map { Triple(it.grupo, ((it.codigo.toFloatOrNull() ?: 6f) * k).coerceAtLeast(if (it.grupo == "service") 3f else 5f), pathOfLine(it)) }
     // primero todos los bordes y luego los rellenos, para que los cruces se fundan sin costuras
-    for ((w, path) in paths) drawPath(path, MapTheme.ROAD_CASING, style = Stroke(width = w.coerceAtLeast(6f) + 6f, cap = StrokeCap.Round, join = round))
-    for ((w, path) in paths) drawPath(path, MapTheme.ROAD, style = Stroke(width = w.coerceAtLeast(6f), cap = StrokeCap.Round, join = round))
-    // Veredas (highway=footway): línea punteada rojiza como en OpenStreetMap
-    val dash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(9f, 6f))
+    for ((clase, w, path) in vias) drawPath(path, MapTheme.roadCasing(clase), style = Stroke(width = w + 3f, cap = StrokeCap.Round, join = round))
+    for ((clase, w, path) in vias) drawPath(path, MapTheme.roadFill(clase), style = Stroke(width = w, cap = StrokeCap.Round, join = round))
+    // Veredas y ciclovías: línea punteada (salmón / azul) como en OpenStreetMap
     for (s in shapes) {
         if (s.tipo != "VEREDA" || s.puntos.size < 2) continue
-        val path = Path()
-        s.puntos.forEachIndexed { i, g ->
-            val o = p.toScreen(g.lat, g.lon)
-            if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
-        }
-        drawPath(path, MapTheme.SIDEWALK, style = Stroke(width = 2.2f, cap = StrokeCap.Butt, join = round, pathEffect = dash))
+        val ciclo = s.grupo == "cycleway"
+        drawPath(pathOfLine(s), if (ciclo) Color(0xFF3F6FD8) else MapTheme.SIDEWALK, style = Stroke(
+            width = (1.6f * k).coerceIn(2f, 5f), cap = StrokeCap.Butt, join = round,
+            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 5f))
+        ))
+    }
+    // Escaleras (highway=steps): base clara + peldaños
+    for (s in shapes) {
+        if (s.tipo != "PELDANOS" || s.puntos.size < 2) continue
+        val path = pathOfLine(s)
+        val w = (3f * k).coerceIn(5f, 30f)
+        val step = (1.0f * k).coerceIn(2.5f, 9f)
+        drawPath(path, MapTheme.STAIRS_BASE, style = Stroke(width = w, cap = StrokeCap.Butt, join = round))
+        drawPath(path, MapTheme.STAIRS, style = Stroke(width = w * 0.9f, cap = StrokeCap.Butt, join = round,
+            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(step * 0.45f, step * 0.55f))))
     }
 }
 

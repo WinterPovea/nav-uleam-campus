@@ -3,7 +3,8 @@
 
 Entradas (exportadas de QGIS con QuickOSM, EPSG:4326):
   data/osm/osm_poligonos.geojson  -> edificios (building), estadio/canchas (leisure), plaza (highway=pedestrian)
-  data/osm/osm_lineas.geojson     -> calles y veredas (highway)   [opcional: si falta, se conservan las vías actuales]
+  data/osm/calles_osm.geojson     -> calles, veredas y escaleras (highway) [opcional: sin él, la app dibuja
+                                     los caminos a partir de las aristas]
 Se conservan del CSV actual los íconos puntuales (parqueos, agua, cafetería) y, si no hay líneas OSM, las vías.
 
 Datos © OpenStreetMap contributors, licencia ODbL (https://www.openstreetmap.org/copyright).
@@ -23,9 +24,12 @@ CODIGO = re.compile(r"^[A-ZÑ]-\d{2}$")
 FUERA = {"Reef Hostel", "Chocolate Cyber", "Manadialisis", "Rico Ice", "Las Delicias del Niño Rodri",
          "Edifcio Crema", "Edificio Crema", "Comedor “Santy”", "Parque Los Eléctricos"}
 # Tipos de vía OSM que se dibujan y su ancho en metros. Las veredas (footway) se pintan aparte, punteadas.
-ANCHO_VIA = {"service": 5.0, "residential": 6.0, "unclassified": 6.0, "tertiary": 7.0, "living_street": 5.0,
-             "pedestrian": 4.0, "path": 2.5, "track": 3.0, "cycleway": 2.5, "steps": 2.0}
-VEREDA = {"footway"}
+# El tipo OSM va en la columna `grupo` para que la app use el color de OpenStreetMap (primaria naranja, etc.).
+ANCHO_VIA = {"service": 5.0, "residential": 7.0, "unclassified": 7.0, "tertiary": 8.0, "tertiary_link": 6.0,
+             "secondary": 9.0, "primary": 11.0, "primary_link": 7.0, "living_street": 5.0, "pedestrian": 4.0,
+             "track": 3.0}
+VEREDA = {"footway", "path", "cycleway"}   # líneas punteadas
+PELDANOS = {"steps"}                        # escaleras
 # Polígonos OSM que se incluyen siempre aunque su centro quede fuera de la envolvente de nodos
 INCLUIR = {"1515520316": ("OTRO", "CIEC")}   # Centro de Innovación, Emprendimiento y Convenciones (en construcción en OSM)
 
@@ -150,7 +154,7 @@ def main():
 
     # Vías: líneas OSM si existen; si no, se conservan las actuales
     vias = []
-    lin = OSM / "osm_lineas.geojson"
+    lin = next((f for f in (OSM / "calles_osm.geojson", OSM / "osm_lineas.geojson") if f.exists()), OSM / "calles_osm.geojson")
     lineas = json.load(open(lin, encoding="utf-8"))["features"] if lin.exists() else []
     lineas = [f for f in lineas if f["geometry"]["type"] in ("LineString", "MultiLineString")]
     if lineas:
@@ -158,10 +162,11 @@ def main():
             hwy = f["properties"].get("highway")
             for line in lines_of(f["geometry"]):
                 if len(line) < 2: continue
-                n_in = sum(dist_to_hull(campus, m_xy(*q)) <= 15.0 for q in line)
-                if n_in < max(1, len(line) // 2): continue
-                if hwy in VEREDA: vias.append(["VEREDA", "2.0", "OTRO", line])
-                elif hwy in ANCHO_VIA: vias.append(["VIA", "%.1f" % ANCHO_VIA[hwy], "OTRO", line])
+                # calles del campus y de su entorno inmediato (las avenidas que lo rodean)
+                if not any(dist_to_hull(campus, m_xy(*q)) <= 90.0 for q in line): continue
+                if hwy in VEREDA: vias.append(["VEREDA", "2.0", hwy, line])
+                elif hwy in PELDANOS: vias.append(["PELDANOS", "2.5", hwy, line])
+                elif hwy in ANCHO_VIA: vias.append(["VIA", "%.1f" % ANCHO_VIA[hwy], hwy, line])
     else:
         vias = []   # sin líneas OSM la app dibuja los caminos a partir de las aristas del grafo
     puntos = [r for r in viejo if r[0] in ("PARQUEO", "AGUA", "CAFE")]
