@@ -165,6 +165,13 @@ fun CampusMap(
     }
 
     val ground = remember(shapes) { CampusShapesGeometry.ground(shapes) }
+    // Pares de nodos marcados como vía doble (filas VIA_DOBLE de campus_shapes.csv, código "a-b")
+    val viasDobles = remember(shapes) {
+        shapes.filter { it.tipo == "VIA_DOBLE" }.mapNotNull { s ->
+            val p = s.codigo.split('-').mapNotNull { it.toIntOrNull() }
+            if (p.size == 2) minOf(p[0], p[1]) to maxOf(p[0], p[1]) else null
+        }.toSet()
+    }
     val shapeLabels = remember(shapes) { CampusShapesGeometry.labels(shapes) }
     val hasShapes = shapes.isNotEmpty()
 
@@ -394,9 +401,11 @@ fun CampusMap(
                 } + shapes.filter { it.tipo == "ESCALERA" && it.puntos.size == 2 }.map { s ->
                     Seg(p.toScreen(s.puntos[0].lat, s.puntos[0].lon), p.toScreen(s.puntos[1].lat, s.puntos[1].lon), true, -1, -2)
                 }
+                // Vías dobles (Doble_Via en QGIS) se dibujan más anchas que las veredas
+                fun ancho(s: Seg) = if ((minOf(s.ia, s.ib) to maxOf(s.ia, s.ib)) in viasDobles) w * 1.7f else w
                 // bordes de todos los caminos primero y rellenos después: los cruces quedan limpios
-                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD_CASING, s.a, s.b, strokeWidth = w + 4f, cap = StrokeCap.Round)
-                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD, s.a, s.b, strokeWidth = w, cap = StrokeCap.Round)
+                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD_CASING, s.a, s.b, strokeWidth = ancho(s) + 4f, cap = StrokeCap.Round)
+                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD, s.a, s.b, strokeWidth = ancho(s), cap = StrokeCap.Round)
                 // Una escalera que llega a un camino se recorta medio ancho para no tapar la vereda
                 val nodosConCamino = segs.filter { !it.esc }.flatMap { listOf(it.ia, it.ib) }.toSet()
                 fun recorte(desde: Offset, hacia: Offset): Offset {

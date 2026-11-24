@@ -2,7 +2,7 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 100,400,9.07,1,0,Acceso desde puerta 1
 101,461,15.45,1,0,Acceso desde puerta 2
 102,434,6.67,1,0,Acceso desde puerta 3
-103,494,86.31,1,0,Acceso desde puerta 4 (vehiculos)
+103,494,88.65,1,0,Acceso desde puerta 4 (vehiculos)
 103,493,40.97,1,0,Acceso desde puerta 4 (vehiculos)
 400,401,21.92,1,1,Conexion de camino (escaleras)
 401,300,13.46,1,0,Conexion hacia Paraninfo
@@ -58,9 +58,9 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 430,214,27.78,1,0,Conexion hacia entrada de Bloque B-14
 429,432,34.87,1,0,Conexion de camino
 432,433,20.15,1,0,Conexion de via
-433,314,13.65,1,0,Conexion hacia entrada de Bloque B-13
+433,314,13.76,1,0,Conexion hacia entrada de Bloque B-13
 433,444,102.57,1,0,Conexion de camino
-314,213,37.04,1,0,Conexion entrada y salida de Bloque B-13
+314,213,37.01,1,0,Conexion entrada y salida de Bloque B-13
 434,436,23.17,1,0,Conexion de camino
 436,210,16.67,1,0,Conexion hacia entrada de Bloque B-10
 436,437,41.19,1,0,Conexion de camino
@@ -72,7 +72,7 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 437,442,38.36,1,0,Conexion de camino
 442,327,45.54,1,0,Conexion hacia Tasty Food
 442,323,49.17,1,0,Conexion hacia EPPDE
-442,314,50.67,1,0,Conexion hacia entrada de Bloque B-13
+442,314,50.57,1,0,Conexion hacia entrada de Bloque B-13
 442,443,67.7,1,0,Conexion de camino
 443,214,26.18,1,0,Conexion hacia entrada de Bloque B-14
 443,444,42.37,1,0,Conexion de camino
@@ -165,11 +165,9 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 492,223,19.36,1,0,Conexion hacia entrada de Bloque B-23
 492,493,56.12,1,0,Conexion de camino
 493,310,16.11,1,0,Aula Magna de la Universidad Eloy Alfaro
-486,494,95.73,1,0,Conexion de camino
-477,494,106.49,1,0,Conexion de camino
-494,311,101.74,1,0,Conexion hacia Estudios y Construcciones
+486,494,113.4,1,0,Conexion de camino
 485,489,23.78,1,1,Conexion de camino (Escaleras)
-400,301,82.01,1,0,Conexion hacia Centro de Convenciones del Pacifico
+400,301,85.07,1,0,Conexion hacia Centro de Convenciones del Pacifico
 405,230,22.97,1,0,Conexion hacia Laboratorio Gastronomico
 450,315,17.01,1,0,Conexion hacia Agromarket
 418,313,36.45,1,0,Conexion hacia gradas de estadio
@@ -182,5 +180,12 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 489,501,23.21,1,0,Conexion hacia zona segura 2
 488,501,34.63,1,0,Conexion hacia zona segura 2
 490,501,17.42,1,0,Conexion hacia zona segura 2
-494,502,64.93,1,0,Conexion hacia zona segura 3
-477,502,48.98,1,0,Conexión hacia zona segura 3
+477,502,42.83,1,0,Conexion hacia zona segura 3
+470,329,46.25,1,0,Conexion hacia Direccion de Informatica e Innovacion Tecnologica (DIIT)
+453,474,37.43,1,0,Conexion de camino
+452,226,10.24,1,0,Conexion hacia entrada Bloque B-16
+451,226,26.03,1,0,Entrada hacia Bloque B-16
+494,495,41.92,1,0,Conexion de camino
+495,502,27.24,1,0,Conexion hacia Zona Segura
+495,477,55.57,1,0,Conexion de camino
+495,311,48.12,1,0,Conexion hacia Estudios y construcciones Uleam -EP

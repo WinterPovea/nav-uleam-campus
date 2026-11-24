@@ -34,12 +34,22 @@ class OriginPickerTest {
     @Test
     fun dentroDeUnBloqueSaleSiemprePorSuEntrada() {
         val p = dentroDe("B-16")
-        for (dest in listOf(328, 315, 222)) {   // Auditorio de comunicación, Agromarket, B-22
+        // B-16 tiene dos entradas (216 y 226): se usa la que deja la ruta más corta
+        val esperado = mapOf(328 to 226, 315 to 216, 222 to 226)   // Auditorio, Agromarket, B-22
+        for ((dest, entrada) in esperado) {
             val pick = OriginPicker.pick(p.lat, p.lon, graph, shapes, cost(dest))
             assertNotNull(pick)
-            assertEquals(216, pick!!.nodeId, "destino $dest")
+            assertEquals(entrada, pick!!.nodeId, "destino $dest")
             assertEquals("B-16", pick.building?.codigo)
         }
+    }
+
+    @Test
+    fun unaEntradaPerteneceSoloAlEdificioMasCercano() {
+        val b21 = shapes.filter { it.tipo == "EDIFICIO" && it.codigo == "B-21" }.maxBy { it.puntos.size }
+        val diit = shapes.first { it.codigo == "DIIT" }
+        assertTrue(329 !in OriginPicker.entrancesOf(b21, graph, shapes))
+        assertTrue(329 in OriginPicker.entrancesOf(diit, graph, shapes))
     }
 
     @Test

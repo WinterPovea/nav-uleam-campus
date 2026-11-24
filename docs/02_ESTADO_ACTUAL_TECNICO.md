@@ -179,6 +179,7 @@ ec.edu.uleam.navigator/
 19. **Fuera del campus:** con GPS real y el usuario a más de ~110 m del campus aparece "📍 No te encuentras en el campus ULEAM"; la cámara se queda en la universidad y "Mi ubicación" muestra el campus completo.
 20. **Modo oscuro del mapa y cámara limitada:** ver la sección 4.4 (estilo Claro / Oscuro / Sistema, límite de desplazamiento y nuevo ícono de zonas seguras).
 21. **Pruebas y Verificación:** 51 pruebas previas en verde; las nuevas pruebas (`RealCampusDataTest`, `MapMathTest`, `CampusShapesTest`, `OriginPickerTest`: salida por la entrada del edificio, llegada y fuera del campus; `MapStyleTest`: ciclo de estilos y modo sistema) deben ejecutarse con `./gradlew :app:testDebugUnitTest` en un entorno con Android SDK.
+22. **Actualización del grafo desde QGIS (nov-2026):** nuevo generador `build_grafo.py` (`data/nodos_u.csv` + `data/aristas.csv` → `nodos.csv`/`aristas.csv`, con informe de validación). Se agregaron la segunda entrada de B-16 (nodo 226), la Dirección de Informática e Innovación Tecnológica (DIIT, nodo 329, edificio trazado sobre la captura de QGIS) y el nodo 495; las aristas con `Doble_Via = Si` se dibujan como vías más anchas (`VIA_DOBLE` en `campus_shapes.csv`). `CsvSeeder` ahora recarga nodos y aristas cuando cambian los CSV (huella SHA-256 en SharedPreferences), así las instalaciones existentes reciben el grafo nuevo sin desinstalar. Orden para regenerar: `build_grafo.py` → `build_lugares.py` → `build_shapes_osm.py`.
 
 ### Vista del mapa
 

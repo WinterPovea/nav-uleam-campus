@@ -1,0 +1,193 @@
+ID_Origen,ID_Destino,Doble_Via,Notas
+100,400,Si,Acceso desde puerta 1
+101,461,No,Acceso desde puerta 2
+102,434,No,Acceso desde puerta 3
+103,494,Si,Acceso desde puerta 4 (vehiculos)
+103,493,No,Acceso desde puerta 4 (vehiculos)
+400,401,No,Conexion de camino (escaleras)
+401,300,No,Conexion hacia Paraninfo
+400,485,No,Conexion de camino
+485,201,No,Conexion hacia entrada de Bloque B-01
+485,202,No,Conexion hacia entrada de Bloque B-02
+485,483,No,Conexion de camino
+483,203,No,Conexion hacia entrada de Bloque B-03
+400,402,No,Conexion de camino
+402,403,Si,Conexion de via
+403,404,No,Conexion de camino
+404,204,No,Conexion hacia entrada de Bloque B-04
+403,405,No,Conexion de camino
+405,406,Si,Conexion de via
+406,407,No,Conexion de camino
+407,409,No,Conexion de camino
+409,205,No,Conexion hacia entrada de Bloque B-05
+409,304,No,Conexion hacia cancha multiple
+409,305,No,Conexion hacia Tasty Food
+409,317,No,Conexion hacia Vicerrectorado
+406,412,No,Conexion de camino
+412,312,No,Conexion hacia cafeteria El Bosque
+412,413,Si,Conexion de camino
+413,312,No,Conexion hacia cafeteria El Bosque
+413,423,No,Conexion de camino
+423,317,No,Conexion hacia Vicerrectorado
+423,318,No,Conexion hacia Tasty Food
+406,415,No,Conexion de camino
+415,206,No,Conexion hacia entrada de Bloque B-06
+415,416,Si,Conexion de via
+416,313,No,Conexion hacia entrada hacia de gradas del estadio
+413,207,No,Conexion hacia entrada de Bloque B-07
+412,419,No,Conexion de camino
+416,418,No,Conexion de camino
+418,419,No,Conexion de camino
+419,207,No,Conexion de camino
+413,419,No,Conexion de camino
+413,421,No,Conexion de camino
+418,420,No,Conexion de camino (Escaleras)
+421,420,No,Conexion de camino
+420,208,No,Conexion hacia entrada de Bloque B-08
+420,424,No,Conexion de camino
+424,208,No,Conexion de camino
+424,326,No,Conexion hacia Tasty Food
+424,426,Si,Conexion de camino
+426,326,No,Conexion hacia Tasty Food
+426,427,No,Conexion de camino
+427,209,No,Conexion hacia entrada de Bloque B-09
+427,429,No,Conexion de camino
+429,209,No,Conexion hacia entrada de Bloque B-09
+429,213,No,Conexion hacia entrada de Bloque B-13
+429,430,No,Conexion de camino
+430,214,No,Conexion hacia entrada de Bloque B-14
+429,432,No,Conexion de camino
+432,433,Si,Conexion de via
+433,314,No,Conexion hacia entrada de Bloque B-13
+433,444,No,Conexion de camino
+314,213,No,Conexion entrada y salida de Bloque B-13
+434,436,No,Conexion de camino
+436,210,No,Conexion hacia entrada de Bloque B-10
+436,437,No,Conexion de camino
+437,211,No,Conexion hacia entrada de Bloque B-11
+437,212,No,Conexion de camino
+437,327,No,Conexion hacia Tasty Food
+437,323,No,Conexion hacia EPPDE
+436,442,Si,Conexion de camino
+437,442,Si,Conexion de camino
+442,327,No,Conexion hacia Tasty Food
+442,323,No,Conexion hacia EPPDE
+442,314,No,Conexion hacia entrada de Bloque B-13
+442,443,No,Conexion de camino
+443,214,No,Conexion hacia entrada de Bloque B-14
+443,444,No,Conexion de camino
+444,214,No,Conexion de camino
+444,430,No,Conexion de camino
+444,215,No,Conexion hacia entrada de Bloque B-15
+444,446,No,Conexion de camino (Escaleras)
+444,426,Si,Conexion de via
+446,215,No,Conexion hacia entrada de Bloque B-15
+426,215,No,Conexion hacia entrada de Bloque B-15
+305,318,No,Conexion entrada y salida Tasty Food
+446,447,No,Conexion de camino
+451,452,No,Conexion de camino
+448,450,No,Conexion de camino
+450,216,No,Conexion hacia entrada de Bloque B-16
+452,324,No,Conexion hacia DIOP
+447,426,Si,Conexion de via
+447,448,Si,Conexion de via
+448,315,No,Conexion hacia Agro Market
+450,451,No,Conexion de camino
+452,453,No,Conexion de camino (Escaleras)
+451,454,Si,Conexion de camino
+454,455,No,Conexion de camino
+455,303,No,Conexion hacia Instituto de Idiomas
+455,457,No,Conexion de camino
+457,325,No,Conexion hacia Cine
+457,456,No,Conexion de camino
+456,458,No,Conexion de camino (Escaleras)
+454,459,No,Conexion de camino
+459,460,Si,Conexion de via
+460,461,No,Conexion de camino
+461,462,No,Conexion de camino
+462,463,No,Conexion de camino
+463,218,No,Conexion hacia entrada de Bloque B-18
+463,224,No,Conexion hacia entrada de Bloque B-24
+463,464,No,Conexion de camino
+464,319,No,Conexion hacia Decanato Ciencias de la Salud
+464,219,No,Conexion hacia entrada de Bloque B-19
+464,466,No,Conexion de camino
+464,224,No,Conexion hacia entrada de Bloque B-24
+466,219,No,Conexion hacia entrada de Bloque B-19
+466,467,No,Conexion de camino
+467,225,No,Conexion hacia entrada de Bloque B-25
+467,468,No,Conexion de camino
+468,220,No,Conexion hacia entrada de Bloque B-20
+468,470,No,Conexion de camino
+470,321,No,Conexion hacia Tasty Food
+470,322,No,Conexion hacia cancha de psicologia
+470,221,No,Conexion hacia entrada de Bloque B-21
+462,472,No,Conexion de camino
+461,472,No,Conexion de camino
+458,472,No,Conexion de camino
+472,217,No,Conexion hacia entrada de Bloque B-17
+472,473,No,Conexion de camino
+473,217,No,Conexion hacia entrada de Bloque B-17
+473,328,No,Conexion hacia el Auditorio de Comunicacion
+453,473,No,Conexion de camino
+453,328,No,Conexion hacia el Auditorio de Comunicacion
+473,474,No,Conexion de camino
+474,328,No,Conexion hacia el Auditorio de Comunicacion
+474,475,Si,Conexion de via
+475,320,No,Conexion hacia Bodega Control de Bienes
+448,475,Si,Conexion de via
+459,477,No,Conexion de camino
+460,477,No,Conexion de camino
+477,311,No,Conexion hacia Estudios y Construcciones
+454,478,No,Conexion de camino
+459,478,No,Conexion de camino
+454,479,SI,Conexion de via
+454,479,Si,Conexion de via
+478,222,No,Conexion hacia entrada de Bloque B-22
+479,222,No,Conexion hacia entrada de Bloque B-22
+479,302,No,Conexion hacia DBANU
+479,480,No,Conexion de camino
+480,302,No,Conexion hacia DBANU
+480,482,No,Conexion de camino
+416,480,No,Conexion de camino
+482,483,No,Conexion de camino (Escaleras)
+479,486,No,Conexion de camino
+486,487,Si,Conexion de via
+487,488,No,Conexion de camino
+488,308,No,Conexion hacia DBU
+488,490,No,Conexion de camino
+488,489,No,Conexion de camino (Escaleras)
+489,307,No,Conexion hacia Plaza Centenario
+490,307,No,Conexion hacia Plaza Centenario
+490,308,No,Conexion hacia DBU
+490,309,No,Conexion hacia RSG y GYM (Escaleras)
+490,491,Si,Conexion de via
+491,492,No,Conexion de camino
+492,223,No,Conexion hacia entrada de Bloque B-23
+492,493,No,Conexion de camino
+493,310,No,Aula Magna de la Universidad Eloy Alfaro
+486,494,No,Conexion de camino
+485,489,No,Conexion de camino (Escaleras)
+400,301,No,Conexion hacia Centro de Convenciones del Pacifico
+405,230,No,Conexion hacia Laboratorio Gastronomico
+450,315,No,Conexion hacia Agromarket
+418,313,No,Conexion hacia gradas de estadio
+403,481,No,Conexion de camino
+481,482,No,Conexion de camino
+481,306,No,Conexion entrada hacia Coliseo Edmundo Lourido
+415,306,No,Conexion de camino
+481,415,No,Conexion de camino
+410,481,No,Conexion de camino
+400,500,No,Conexion hacia zona segura 1
+489,501,No,Conexion hacia zona segura 2
+488,501,No,Conexion hacia zona segura 2
+490,501,No,Conexion hacia zona segura 2
+477,502,No,Conexion hacia zona segura 3
+470,329,No,Conexion hacia Direccion de Informatica e Innovacion Tecnologica (DIIT)
+453,474,No,Conexion de camino
+452,226,No,Conexion hacia entrada Bloque B-16
+451,226,No,Entrada hacia Bloque B-16
+494,495,No,Conexion de camino
+495,502,No,Conexion hacia Zona Segura
+495,477,No,Conexion de camino
+495,311,No,Conexion hacia Estudios y construcciones Uleam -EP

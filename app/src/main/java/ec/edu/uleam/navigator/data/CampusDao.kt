@@ -10,6 +10,8 @@ interface CampusDao {
 
     /** Vacía solo el catálogo de lugares (no toca nodos ni aristas). */
     @Query("DELETE FROM lugares") suspend fun clearLugares()
+    @Query("DELETE FROM aristas") suspend fun clearAristas()
+    @Query("DELETE FROM nodos") suspend fun clearNodos()
 
     @Query("SELECT COUNT(*) FROM nodos") suspend fun countNodos(): Int
     @Query("SELECT * FROM nodos") suspend fun nodos(): List<NodoEntity>

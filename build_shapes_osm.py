@@ -16,6 +16,7 @@ ROOT = Path(__file__).parent
 ASSETS = ROOT / "app/src/main/assets"
 OSM = ROOT / "data/osm"
 OUT = ASSETS / "campus_shapes.csv"
+DATA_DIR = ROOT / "data"
 
 BLOQUE = re.compile(r"^B-\d{2}$")
 CODIGO = re.compile(r"^[A-ZÑ]-\d{2}$")
@@ -174,6 +175,24 @@ def main():
     for nombre, g in sin_huella:
         if not any(r[0] == "CAFE" and r[1] == nombre for r in puntos):
             puntos.append(["CAFE", nombre, "OTRO", "%.6f %.6f" % g])
+
+    # Edificios que no están en los polígonos de OSM: trazados sobre una captura de QGIS georreferenciada con
+    # los nodos 470 (px 200,456) y 329 (px 554,299) -> ~0,12 m por píxel, norte arriba
+    def px(x, y):
+        return (round(-0.950933 - (y - 456) * 1.0637e-6, 6), round(-80.743391 + (x - 200) * 1.0763e-6, 6))
+    MANUALES = [
+        ("OTRO", "DIIT", [px(632, 207), px(722, 272), px(640, 384), px(556, 320), px(574, 284), px(562, 275), px(570, 262)]),
+    ]
+    for t, c, ring in MANUALES:
+        out.append([t, c, "OTRO", ring])
+
+    # Vías dobles (Doble_Via = Si en QGIS): se dibujan más anchas que las veredas. Sale de build_grafo.py
+    vd = DATA_DIR / "vias_dobles.csv"
+    if vd.exists():
+        for r in csv.DictReader(open(vd, encoding="utf-8")):
+            a, b = r["id_origen"], r["id_destino"]
+            if a in nodos and b in nodos:
+                puntos.append(["VIA_DOBLE", "%s-%s" % (a, b), "OTRO", "%.6f %.6f %.6f %.6f" % (*nodos[a], *nodos[b])])
 
     fmt = lambda ring: " ".join("%.6f %.6f" % q for q in ring)
     with open(OUT, "w", encoding="utf-8", newline="") as fh:

@@ -29,7 +29,7 @@ ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 225,DESTINO,Entrada Bloque B-25,-0.951321,-80.743654,Ciencias de la Salud (FCS),Instituto Postgrado e Investigacion en Ciencias de la Salud (IPICS)
 208,DESTINO,Entrada Bloque B-08,-0.951853,-80.746181,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Civil, Ingeneria Electrica"
 300,DESTINO,Entrada a Paraninfo,-0.954495,-80.7464,No aplica,No aplica
-301,DESTINO,"Centro de Innovacion, Emprendimiento y Convenciones del Pacifico (CIECP)",-0.954642,-80.746819,No aplica,No aplica
+301,DESTINO,"Centro de Innovacion, Emprendimiento y Convenciones del Pacifico (CIECP)",-0.954988,-80.746715,No aplica,No aplica
 230,DESTINO,Entrada Laboratorio Gastronomico B-05,-0.953696,-80.746734,"Educacion, Turismo, Artes y Humanidades (FETAH)",Gastronomia
 304,DESTINO,Cancha Multiple,-0.953417,-80.747207,No aplica,No aplica
 305,DESTINO,Tasty Food 1,-0.953195,-80.747199,No aplica,No aplica
@@ -126,12 +126,15 @@ ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 491,CONEXION,Via multiple,-0.954935,-80.745214,No aplica,No aplica
 492,CONEXION,Conexion hacia Bloque B-25,-0.95499,-80.744935,No aplica,No aplica
 493,CONEXION,Conexion hacia Aula Magna de la Universidad Eloy Alfaro,-0.954724,-80.744506,No aplica,No aplica
-494,CONEXION,Via multiple,-0.954115,-80.744265,No aplica,No aplica
+494,CONEXION,Via multiple,-0.954094,-80.744084,No aplica,No aplica
 317,DESTINO,Entrada hacia Vicerrectorado,-0.953073,-80.747392,No aplica,No aplica
 489,CONEXION,Conexion,-0.954458,-80.745683,No aplica,No aplica
 318,DESTINO,Entrada hacia Tasty Food,-0.953014,-80.747228,No aplica,No aplica
 481,CONEXION,Conexion de camino (Escaleras),-0.953618,-80.745729,No aplica,No aplica
 500,ZONA SEGURA,Zona segura 1,-0.954869,-80.746319,No aplica,No aplica
 501,ZONA SEGURA,Zona segura 2,-0.95444,-80.745475,No aplica,No aplica
-502,ZONA SEGURA,Zona segura 3,-0.953536,-80.744189,No aplica,No aplica
-314,DESTINO,Entrada a Bloque B-13,-0.950626,-80.745876,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
+502,ZONA SEGURA,Zona segura 3,-0.953543,-80.744104,No aplica,No aplica
+314,DESTINO,Entrada a Bloque B-13,-0.950626,-80.745875,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
+329,DESTINO,Entrada a Direccion de Informatica e Innovacion Tecnologica (DIIT),-0.950766,-80.74301,No aplica,No aplica
+226,DESTINO,Entrada Bloque B-16,-0.952537,-80.74476,Ciencias de la Vida y Tecnologias (FACIVITEC),"Tecnologias de la Informacion, Sotfware"
+495,CONEXION,Conexion,-0.953739,-80.743957,No aplica,No aplica
