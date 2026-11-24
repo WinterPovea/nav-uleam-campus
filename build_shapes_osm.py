@@ -95,6 +95,74 @@ def pitch_rect(ring):
     return pts if d01 <= d12 else pts[1:] + pts[:1]
 
 
+def m_ll(x, y, lat0=-0.9525):
+    return (round(y / 111320.0, 6), round(x / (111320.0 * math.cos(math.radians(lat0))), 6))
+
+
+def in_poly(poly, p):
+    ins, j = False, len(poly) - 1
+    for i in range(len(poly)):
+        a, b = poly[i], poly[j]
+        if (a[1] > p[1]) != (b[1] > p[1]) and p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]: ins = not ins
+        j = i
+    return ins
+
+
+def dist_poly(poly, p):
+    """Distancia (m) de p a un polígono cualquiera (0 si está dentro). Todo en metros."""
+    if in_poly(poly, p): return 0.0
+    return min(seg_dist(p, poly[i], poly[(i + 1) % len(poly)]) for i in range(len(poly)))
+
+
+def terreno_concavo(nodos, figuras, lugar_xy, alpha_m=40.0):
+    """Contorno cóncavo (alpha shape) de lo que es de la universidad: nodos, aristas, bloques, estadio, plaza y
+    edificios con una entrada del catálogo. Lo que queda lejos (calles y casas vecinas) cae fuera."""
+    import numpy as np
+    from scipy.spatial import Delaunay
+    pts = [m_xy(*v) for v in nodos.values()]
+    geom = {}
+    ag = ROOT / "data" / "aristas_geom.csv"
+    if ag.exists():
+        for r in csv.DictReader(open(ag, encoding="utf-8")):
+            n = [float(x) for x in r["puntos"].split()]; geom[(r["id_a"], r["id_b"])] = list(zip(n[::2], n[1::2]))
+    for r in csv.DictReader(open(ASSETS / "aristas.csv", encoding="utf-8")):
+        a, b = sorted((r["id_origen"], r["id_destino"]), key=int)
+        line = geom.get((a, b)) or [nodos[a], nodos[b]]
+        for i in range(len(line) - 1):
+            p, q = m_xy(*line[i]), m_xy(*line[i + 1]); k = max(1, int(math.dist(p, q) // 4))
+            pts += [(p[0] + (q[0] - p[0]) * t / k, p[1] + (q[1] - p[1]) * t / k) for t in range(k)]
+    for t, c, g, ring in figuras:
+        rm = [m_xy(*q) for q in ring]
+        if t in ("EDIFICIO", "PISTA", "PISTA_INT", "CANCHA_ESTADIO", "GRADA", "PLAZA") or \
+                any(min(seg_dist(n, rm[i], rm[(i + 1) % len(rm)]) for i in range(len(rm))) <= 12.0 for n in lugar_xy):
+            pts += rm
+    P = np.array(sorted(set((round(x, 2), round(y, 2)) for x, y in pts)))
+    tri = Delaunay(P)
+    cuenta = {}
+    for s_ in tri.simplices:
+        a, b, c = P[s_]
+        la, lb, lc = np.linalg.norm(b - c), np.linalg.norm(a - c), np.linalg.norm(a - b)
+        area = abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])) / 2
+        if area < 1e-6 or la * lb * lc / (4 * area) > alpha_m: continue
+        for e in ((s_[0], s_[1]), (s_[1], s_[2]), (s_[2], s_[0])):
+            k = tuple(sorted(e)); cuenta[k] = cuenta.get(k, 0) + 1
+    borde = [k for k, v in cuenta.items() if v == 1]
+    vec = {}
+    for a, b in borde: vec.setdefault(a, []).append(b); vec.setdefault(b, []).append(a)
+    anillos, usados = [], set()
+    for a, b in borde:
+        if (a, b) in usados or (b, a) in usados: continue
+        ring, prev, cur = [a], a, b; usados.add((a, b))
+        while cur != a and len(ring) < len(borde) + 2:
+            ring.append(cur)
+            nxt = next((n for n in vec[cur] if n != prev and (cur, n) not in usados and (n, cur) not in usados), None)
+            if nxt is None: break
+            usados.add((cur, nxt)); prev, cur = cur, nxt
+        anillos.append([tuple(P[i]) for i in ring])
+    def area(r): return abs(sum(r[i][0] * r[(i + 1) % len(r)][1] - r[(i + 1) % len(r)][0] * r[i][1] for i in range(len(r)))) / 2
+    return max(anillos, key=area)
+
+
 def main():
     nodos = {r["id"]: (float(r["latitud"]), float(r["longitud"])) for r in csv.DictReader(open(ASSETS / "nodos.csv", encoding="utf-8"))}
     lugares = list(csv.DictReader(open(ASSETS / "lugares.csv", encoding="utf-8")))
@@ -157,14 +225,17 @@ def main():
     lin = next((f for f in (OSM / "calles_osm.geojson", OSM / "osm_lineas.geojson") if f.exists()), OSM / "calles_osm.geojson")
     lineas = json.load(open(lin, encoding="utf-8"))["features"] if lin.exists() else []
     lineas = [f for f in lineas if f["geometry"]["type"] in ("LineString", "MultiLineString")]
-    # Terreno del campus = envolvente de las áreas (no de las líneas), igual que el fondo crema de la app
-    terreno = hull([m_xy(*q) for o in out if o[0] not in ("VIA", "VEREDA", "PELDANOS") for q in o[3]])
+    # Terreno del campus: contorno cóncavo (no convexo) alrededor de lo que es de la universidad
+    terreno = terreno_concavo(nodos, out, lugar_xy)
+    antes = len(out)
+    out = [o for o in out if o[0] == "EDIFICIO" or dist_poly(terreno, m_xy(*centroid(o[3]))) <= 10.0]
+    print("terreno cóncavo: %d vértices; figuras fuera del campus quitadas: %d" % (len(terreno), antes - len(out)))
 
     def recortar(line, poly, margen):
         """Parte la línea en los tramos consecutivos de vértices a <= margen m del polígono (fuera = se corta)."""
         tramos, actual = [], []
         for q in line:
-            if dist_to_hull(poly, m_xy(*q)) <= margen: actual.append(q)
+            if dist_poly(poly, m_xy(*q)) <= margen: actual.append(q)
             else:
                 if len(actual) >= 2: tramos.append(actual)
                 actual = []
@@ -177,11 +248,11 @@ def main():
             for line in lines_of(f["geometry"]):
                 if len(line) < 2: continue
                 # Solo lo que está DENTRO de la universidad: la línea se recorta a los tramos cuyos vértices caen
-                # en el terreno del campus (envolvente de edificios, canchas y estadio). Las veredas punteadas
-                # (footway) no se dibujan: el diseño solo muestra calles y escaleras.
-                if hwy in VEREDA: continue
+                # en el terreno del campus. Las veredas (footway/path) se dibujan como caminos blancos delgados.
+                if hwy == "cycleway": continue
                 for tramo in recortar(line, terreno, 6.0):
-                    if hwy in PELDANOS: vias.append(["PELDANOS", "2.5", hwy, tramo])
+                    if hwy in VEREDA: vias.append(["VEREDA", "2.5", hwy, tramo])
+                    elif hwy in PELDANOS: vias.append(["PELDANOS", "2.5", hwy, tramo])
                     elif hwy in ANCHO_VIA: vias.append(["VIA", "%.1f" % ANCHO_VIA[hwy], hwy, tramo])
     else:
         vias = []   # sin líneas OSM la app dibuja los caminos a partir de las aristas del grafo
@@ -222,6 +293,7 @@ def main():
             puntos.append(["ARISTA", "%s-%s" % (r["id_a"], r["id_b"]), "OTRO", r["puntos"]])
 
     fmt = lambda ring: " ".join("%.6f %.6f" % q for q in ring)
+    puntos.insert(0, ["TERRENO", "campus", "OTRO", fmt([m_ll(*q) for q in terreno])])
     with open(OUT, "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh, lineterminator="\n")
         w.writerow(["tipo", "codigo", "grupo", "puntos"])

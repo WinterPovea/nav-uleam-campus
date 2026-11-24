@@ -353,8 +353,9 @@ fun CampusApp(vm: CampusViewModel) {
               }
             }
 
-            // Barra rápida de selección de puertas origen: también se oculta mientras se navega
-            AnimatedVisibility(visible = !s.navigating) {
+            // Barra rápida de selección de puertas origen: solo en Modo Simulación (con GPS real el origen es la
+            // ubicación del usuario) y oculta mientras se navega
+            AnimatedVisibility(visible = !s.navigating && s.isSimulationMode) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

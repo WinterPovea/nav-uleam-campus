@@ -544,12 +544,8 @@ fun CampusMap(
                     val center = p.toScreen(node.latitud, node.longitud)
 
                     val label = when {
-                        // Zoom alto: sigla·bloque + primera carrera (el nombre oficial es demasiado largo)
-                        !place.codigo.isNullOrBlank() && zoom >= 2.8f && node.tipo == "DESTINO" &&
-                            !place.descripcion.isNullOrBlank() ->
-                            "${place.codigo} · ${place.descripcion!!.substringBefore(',').trim().take(22)}"
-                        // Zoom bajo/medio: etiqueta compacta (sigla·bloque, p. ej. FCS·B-04)
-                        !place.codigo.isNullOrBlank() -> place.codigo!!
+                        // Bloques de facultad: "Bloque B-16 (FACIVITEC)"
+                        blockLabel(place.codigo, place.nombre) != null -> blockLabel(place.codigo, place.nombre)!!
                         node.tipo == "ENTRADA" -> place.nombre.replace("Puerta", "P").trim()
                         node.tipo == "ZONA_SEGURA" -> "Zona Segura"
                         place.nombre.length > 14 -> place.nombre.take(13) + "…"
@@ -862,4 +858,12 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSafeZoneIcon(c:
     // personas en el centro
     drawCircle(Color.White, 2.8f, c + Offset(0f, -4.6f))
     drawRoundRect(Color.White, c + Offset(-4f, -0.8f), Size(8f, 6.8f), CornerRadius(4f, 3f))
+}
+
+/** Etiqueta de un bloque de facultad en el mapa: código "FACIVITEC·B-16" → "Bloque B-16 (FACIVITEC)". */
+internal fun blockLabel(codigo: String?, nombre: String): String? {
+    if (codigo.isNullOrBlank() || !nombre.startsWith("Facultad")) return null
+    val bloque = Regex("B-\\d+").find(codigo)?.value ?: return null
+    val sigla = codigo.substringBefore('·', "").trim()
+    return if (sigla.isEmpty()) "Bloque $bloque" else "Bloque $bloque ($sigla)"
 }
