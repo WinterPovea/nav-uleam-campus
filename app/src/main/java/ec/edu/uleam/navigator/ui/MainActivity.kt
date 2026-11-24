@@ -63,6 +63,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -118,7 +120,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            // La interfaz sigue el estilo del mapa (claro / oscuro / sistema): MapTheme.dark es estado de Compose
+            MaterialTheme(colorScheme = if (MapTheme.dark) UleamDarkColors else UleamLightColors) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -129,6 +132,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/** Esquemas de color de la interfaz (búsqueda, tarjetas, diálogos) para modo claro y oscuro. */
+private val UleamLightColors = lightColorScheme()
+private val UleamDarkColors = darkColorScheme(
+    primary = Color(0xFFEF8A96),
+    background = Color(0xFF12171A),
+    surface = Color(0xFF1E2427),
+    surfaceVariant = Color(0xFF2A3236),
+    onSurface = Color(0xFFE3E7EA),
+    onSurfaceVariant = Color(0xFFB8C2C7),
+    outlineVariant = Color(0xFF3A4448)
+)
+
+/** Color de la interfaz según el modo: [light] en claro y [dark] en oscuro. */
+private fun tc(light: Long, dark: Long): Color = Color(if (MapTheme.dark) dark else light)
 
 private fun hasLocationPermission(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
@@ -338,11 +356,11 @@ fun CampusApp(vm: CampusViewModel) {
                                     Icon(
                                         Icons.Default.AltRoute,
                                         contentDescription = "Ir",
-                                        tint = Color(0xFF1565C0),
+                                        tint = tc(0xFF1565C0, 0xFF90CAF9),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
-                                HorizontalDivider(color = Color(0xFFEEEEEE))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             }
                         }
                     }
@@ -359,7 +377,7 @@ fun CampusApp(vm: CampusViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xCCFFFFFF), RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(16.dp))
                     .padding(horizontal = 10.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -368,7 +386,7 @@ fun CampusApp(vm: CampusViewModel) {
                     "Puertas:",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF333333)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 (1..4).forEach { n ->
                     val isSelected = s.origenId == (99 + n)
@@ -438,7 +456,7 @@ fun CampusApp(vm: CampusViewModel) {
                             else
                                 "Permite el acceso a tu ubicación para trazar rutas desde donde estés en el campus.",
                             fontSize = 12.sp,
-                            color = Color(0xFF424242)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -535,13 +553,13 @@ fun CollapsibleNavigationCard(
                         text = s.destino?.nombre ?: "Selecciona un destino",
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
-                        color = if (s.destino != null) Color(0xFFA01B2C) else MaterialTheme.colorScheme.onSurface
+                        color = if (s.destino != null) tc(0xFFA01B2C, 0xFFEF8A96) else MaterialTheme.colorScheme.onSurface
                     )
                     s.destino?.descripcion?.takeIf { it.isNotBlank() }?.let { d ->
                         Text(
                             text = d,
                             fontSize = 12.sp,
-                            color = Color(0xFF424242),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -570,11 +588,11 @@ fun CollapsibleNavigationCard(
                     text = "📍 Ya estás en tu destino",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFE8F5E9), RoundedCornerShape(10.dp))
+                        .background(tc(0xFFE8F5E9, 0xFF1B3A24), RoundedCornerShape(10.dp))
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = Color(0xFF2E7D32)
+                    color = tc(0xFF2E7D32, 0xFF81C784)
                 )
             }
 
@@ -584,7 +602,7 @@ fun CollapsibleNavigationCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFE8F0FE), RoundedCornerShape(10.dp))
+                        .background(tc(0xFFE8F0FE, 0xFF1C2B44), RoundedCornerShape(10.dp))
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -599,7 +617,7 @@ fun CollapsibleNavigationCard(
                         text = "%.0f m  ·  ≈ %.1f min a pie".format(s.route.distanceM, s.route.estimatedMinutes),
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        color = Color(0xFF0D47A1)
+                        color = tc(0xFF0D47A1, 0xFF90CAF9)
                     )
                     if (s.route.usesStairs) {
                         Spacer(Modifier.width(8.dp))
@@ -664,7 +682,7 @@ fun CollapsibleNavigationCard(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = infoText,
-                    color = Color(0xFF2E7D32),
+                    color = tc(0xFF2E7D32, 0xFF81C784),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal
                 )
@@ -732,14 +750,14 @@ fun CollapsibleNavigationCard(
                             text = "Instrucciones de recorrido:",
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
-                            color = Color(0xFF333333)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         LazyColumn(
                             modifier = Modifier
                                 .heightIn(max = 160.dp)
                                 .fillMaxWidth()
-                                .background(Color(0xFFFAFAFA), RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                                 .padding(8.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -826,7 +844,7 @@ fun InstructionRow(instruction: NavigationInstruction) {
         Text(
             text = instruction.text,
             fontSize = 12.sp,
-            color = Color(0xFF263238),
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
     }
