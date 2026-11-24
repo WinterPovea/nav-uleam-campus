@@ -122,9 +122,12 @@ fun CampusMap(
     // Mapa "rumbo arriba": durante la navegación gira para que el frente del usuario apunte hacia arriba
     var followHeading by remember { mutableStateOf(true) }
 
-    // Avance del usuario sobre la ruta (solo mientras se navega)
-    val routePoints = remember(routeNodeIds, nodoById) {
-        routeNodeIds?.mapNotNull { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+    // Forma real de las aristas (curvas dibujadas en QGIS, filas ARISTA de campus_shapes.csv)
+    val edgeShapes = remember(shapes) { EdgeShapes.from(shapes) }
+
+    // Puntos de la ruta siguiendo la forma de cada arista (también para el avance mientras se navega)
+    val routePoints = remember(routeNodeIds, nodoById, edgeShapes) {
+        routeNodeIds?.let { ids -> edgeShapes.routePoints(ids) { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } } }
     }
     val navProgress = if (navigating && routePoints != null) {
         animatedUser?.let { RouteProgressCalc.compute(routePoints, GeoPoint(it.lat, it.lon)) }
@@ -389,23 +392,27 @@ fun CampusMap(
             //    OpenStreetMap) con estilo de vereda, y las escaleras con peldaños; sin diseño, líneas simples.
             if (hasShapes && shapes.none { it.tipo == "VIA" }) {
                 val w = (4f * p.base * zoom / 111_320f).coerceIn(5f, 46f)
-                // (p1, p2, ¿escalera?, id1, id2); las escaleras decorativas (tipo ESCALERA) usan ids negativos
-                data class Seg(val a: Offset, val b: Offset, val esc: Boolean, val ia: Int, val ib: Int)
+                // (puntos en pantalla siguiendo la forma de la arista, ¿escalera?, id1, id2);
+                // las escaleras decorativas (tipo ESCALERA) usan ids negativos
+                data class Seg(val pts: List<Offset>, val esc: Boolean, val ia: Int, val ib: Int)
                 val segs = aristas.mapNotNull { e ->
                     val u = nodoById[e.idOrigen] ?: return@mapNotNull null
                     val v = nodoById[e.idDestino] ?: return@mapNotNull null
                     val esc = e.tieneEscaleras == 1
                     if (!PathVisibility.visible(u.id, v.id, u.tipo, v.tipo, esc)) return@mapNotNull null
-                    Seg(p.toScreen(u.latitud, u.longitud), p.toScreen(v.latitud, v.longitud),
-                        PathVisibility.drawnAsStairs(u.id, v.id, esc), u.id, v.id)
+                    val geo = edgeShapes.between(u.id, v.id) ?: listOf(GeoPoint(u.latitud, u.longitud), GeoPoint(v.latitud, v.longitud))
+                    Seg(geo.map { p.toScreen(it.lat, it.lon) }, PathVisibility.drawnAsStairs(u.id, v.id, esc), u.id, v.id)
                 } + shapes.filter { it.tipo == "ESCALERA" && it.puntos.size == 2 }.map { s ->
-                    Seg(p.toScreen(s.puntos[0].lat, s.puntos[0].lon), p.toScreen(s.puntos[1].lat, s.puntos[1].lon), true, -1, -2)
+                    Seg(s.puntos.map { p.toScreen(it.lat, it.lon) }, true, -1, -2)
                 }
                 // Vías dobles (Doble_Via en QGIS) se dibujan más anchas que las veredas
                 fun ancho(s: Seg) = if ((minOf(s.ia, s.ib) to maxOf(s.ia, s.ib)) in viasDobles) w * 1.7f else w
+                fun polyline(pts: List<Offset>, color: Color, width: Float) {
+                    for (i in 0 until pts.size - 1) drawLine(color, pts[i], pts[i + 1], strokeWidth = width, cap = StrokeCap.Round)
+                }
                 // bordes de todos los caminos primero y rellenos después: los cruces quedan limpios
-                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD_CASING, s.a, s.b, strokeWidth = ancho(s) + 4f, cap = StrokeCap.Round)
-                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD, s.a, s.b, strokeWidth = ancho(s), cap = StrokeCap.Round)
+                for (s in segs) if (!s.esc) polyline(s.pts, MapTheme.ROAD_CASING, ancho(s) + 4f)
+                for (s in segs) if (!s.esc) polyline(s.pts, MapTheme.ROAD, ancho(s))
                 // Una escalera que llega a un camino se recorta medio ancho para no tapar la vereda
                 val nodosConCamino = segs.filter { !it.esc }.flatMap { listOf(it.ia, it.ib) }.toSet()
                 fun recorte(desde: Offset, hacia: Offset): Offset {
@@ -414,13 +421,17 @@ fun CampusMap(
                 }
                 // escaleras: base clara + peldaños (trazo grueso discontinuo = barras perpendiculares)
                 val step = (1.2f * p.base * zoom / 111_320f).coerceIn(2.5f, 10f)
-                for (s in segs) if (s.esc) {
-                    val a = if (s.ia in nodosConCamino) recorte(s.a, s.b) else s.a
-                    val b = if (s.ib in nodosConCamino || s.ib == -2) recorte(s.b, s.a) else s.b
-                    drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Butt)
-                    drawLine(MapTheme.STAIRS_BASE, a, b, strokeWidth = w, cap = StrokeCap.Butt)
-                    drawLine(MapTheme.STAIRS, a, b, strokeWidth = w * 0.9f, cap = StrokeCap.Butt,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(step * 0.45f, step * 0.55f)))
+                for (s in segs) if (s.esc && s.pts.size >= 2) {
+                    val pts = s.pts.toMutableList()
+                    if (s.ia in nodosConCamino) pts[0] = recorte(pts[0], pts[1])
+                    if (s.ib in nodosConCamino || s.ib == -2) pts[pts.lastIndex] = recorte(pts.last(), pts[pts.lastIndex - 1])
+                    for (i in 0 until pts.size - 1) {
+                        val a = pts[i]; val b = pts[i + 1]
+                        drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Butt)
+                        drawLine(MapTheme.STAIRS_BASE, a, b, strokeWidth = w, cap = StrokeCap.Butt)
+                        drawLine(MapTheme.STAIRS, a, b, strokeWidth = w * 0.9f, cap = StrokeCap.Butt,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(step * 0.45f, step * 0.55f)))
+                    }
                 }
             }
             if (!hasShapes) aristas.forEach { edge ->
@@ -571,7 +582,7 @@ fun CampusMap(
             }
 
             // 4. TRAZADO DE RUTA ACTIVA (A*)
-            routeNodeIds?.let { ids ->
+            routeNodeIds?.let { _ ->
                 // Durante la navegación el tramo ya recorrido se atenúa y solo lo que falta queda resaltado
                 val progress = navProgress
                 progress?.let { pr ->
@@ -587,7 +598,7 @@ fun CampusMap(
                     }
                 }
                 val points = progress?.remaining?.map { p.toScreen(it.lat, it.lon) }
-                    ?: ids.mapNotNull { id -> nodoById[id]?.let { p.toScreen(it.latitud, it.longitud) } }
+                    ?: (routePoints ?: emptyList()).map { p.toScreen(it.lat, it.lon) }
                 // Con GPS real, línea punteada desde la posición del usuario hasta el inicio de la ruta
                 val u = animatedUser
                 if (progress == null && !isSimulationMode && u != null && points.isNotEmpty()) {

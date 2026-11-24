@@ -445,3 +445,35 @@ private fun DrawScope.drawCafeIcon(o: Offset) {
         drawLine(Color.White.copy(alpha = 0.9f), Offset(o.x + dx, o.y - 6f), Offset(o.x + dx + 1.5f, o.y - 11f), strokeWidth = 1.6f, cap = StrokeCap.Round)
     }
 }
+
+/**
+ * Forma real de las aristas dibujada en QGIS (filas ARISTA de campus_shapes.csv, código "a-b" con a < b y
+ * puntos de a hacia b). Solo afecta el dibujo: el cálculo de rutas usa los nodos y la distancia de aristas.csv.
+ */
+class EdgeShapes private constructor(private val byPair: Map<Pair<Int, Int>, List<GeoPoint>>) {
+    /** Polilínea de [from] a [to] (invertida si hace falta), o null si la arista es recta. */
+    fun between(from: Int, to: Int): List<GeoPoint>? =
+        if (from <= to) byPair[from to to] else byPair[to to from]?.asReversed()
+
+    /** Puntos de una ruta de nodos siguiendo la forma de cada tramo, sin repetir los nodos de unión. */
+    fun routePoints(ids: List<Int>, nodePoint: (Int) -> GeoPoint?): List<GeoPoint> {
+        val out = ArrayList<GeoPoint>()
+        for (i in ids.indices) {
+            if (i == 0) { nodePoint(ids[0])?.let(out::add); continue }
+            val tramo = between(ids[i - 1], ids[i])
+            if (tramo != null) out.addAll(tramo.drop(1)) else nodePoint(ids[i])?.let(out::add)
+        }
+        return out
+    }
+
+    val size: Int get() = byPair.size
+
+    companion object {
+        fun from(shapes: List<CampusShape>): EdgeShapes = EdgeShapes(
+            shapes.filter { it.tipo == "ARISTA" && it.puntos.size >= 2 }.mapNotNull { s ->
+                val ids = s.codigo.split('-').mapNotNull { it.toIntOrNull() }
+                if (ids.size == 2 && ids[0] < ids[1]) (ids[0] to ids[1]) to s.puntos else null
+            }.toMap()
+        )
+    }
+}

@@ -194,6 +194,12 @@ def main():
             if a in nodos and b in nodos:
                 puntos.append(["VIA_DOBLE", "%s-%s" % (a, b), "OTRO", "%.6f %.6f %.6f %.6f" % (*nodos[a], *nodos[b])])
 
+    # Forma real de las aristas (curvas dibujadas en QGIS): fila ARISTA, código "a-b" con a < b, puntos de a hacia b
+    ag = DATA_DIR / "aristas_geom.csv"
+    if ag.exists():
+        for r in csv.DictReader(open(ag, encoding="utf-8")):
+            puntos.append(["ARISTA", "%s-%s" % (r["id_a"], r["id_b"]), "OTRO", r["puntos"]])
+
     fmt = lambda ring: " ".join("%.6f %.6f" % q for q in ring)
     with open(OUT, "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh, lineterminator="\n")
