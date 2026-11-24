@@ -49,7 +49,7 @@ object OriginPicker {
         }
 
         buildingAt(p, shapes)?.let { b ->
-            val entrances = entrancesOf(b, graph)
+            val entrances = entrancesOf(b, graph, shapes)
             best(entrances)?.let { return Pick(it, walk(it), b) }
         }
 
@@ -80,12 +80,19 @@ object OriginPicker {
     fun buildingAt(p: GeoPoint, shapes: List<CampusShape>): CampusShape? =
         shapes.firstOrNull { it.tipo in BUILDING_TYPES && it.puntos.size >= 3 && contains(it.puntos, p) }
 
-    /** Nodos DESTINO pegados al contorno del edificio: sus entradas. */
-    fun entrancesOf(b: CampusShape, graph: CampusGraph): List<Int> =
-        graph.nodes.filter {
-            it.type == NodeType.DESTINO &&
-                distanceToPolygonM(GeoPoint(it.latitude, it.longitude), b.puntos) <= ENTRANCE_TO_BUILDING_M
+    /**
+     * Nodos DESTINO pegados al contorno del edificio: sus entradas. Una entrada pertenece solo al edificio
+     * más cercano (p. ej. la del DIIT, a 3 m de B-21, no cuenta como puerta de B-21).
+     */
+    fun entrancesOf(b: CampusShape, graph: CampusGraph, shapes: List<CampusShape> = listOf(b)): List<Int> {
+        val edificios = shapes.filter { it.tipo in BUILDING_TYPES && it.puntos.size >= 3 }
+        return graph.nodes.filter {
+            if (it.type != NodeType.DESTINO) return@filter false
+            val g = GeoPoint(it.latitude, it.longitude)
+            val d = distanceToPolygonM(g, b.puntos)
+            d <= ENTRANCE_TO_BUILDING_M && edificios.none { o -> o !== b && o.codigo != b.codigo && distanceToPolygonM(g, o.puntos) < d }
         }.map { it.id }
+    }
 
     /** Punto en polígono (ray casting) sobre (lon, lat). */
     fun contains(poly: List<GeoPoint>, p: GeoPoint): Boolean {

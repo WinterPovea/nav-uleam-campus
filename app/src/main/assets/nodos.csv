@@ -29,23 +29,23 @@ id,latitud,longitud,tipo,descripcion_interna
 225,-0.951321,-80.743654,DESTINO,Entrada Bloque B-25
 208,-0.951853,-80.746181,DESTINO,Entrada Bloque B-08
 300,-0.954495,-80.7464,DESTINO,Entrada a Paraninfo
-301,-0.954642,-80.746819,DESTINO,"Centro de Innovacion, Emprendimiento y Convenciones del Pacifico (CIECP)"
-230,-0.953696,-80.746734,DESTINO,Entrada laboratorio gastronomico B-05
-304,-0.953417,-80.747207,DESTINO,Cancha multiple
+301,-0.954988,-80.746715,DESTINO,"Centro de Innovacion, Emprendimiento y Convenciones del Pacifico (CIECP)"
+230,-0.953696,-80.746734,DESTINO,Entrada Laboratorio Gastronomico B-05
+304,-0.953417,-80.747207,DESTINO,Cancha Multiple
 305,-0.953195,-80.747199,DESTINO,Tasty Food 1
 306,-0.95341,-80.745879,DESTINO,Coliseo Edmundo Lourido
-307,-0.954563,-80.745482,DESTINO,Plaza cultural centenario
-308,-0.954343,-80.745277,DESTINO,Departamento bienestar universitario
-309,-0.95447,-80.74517,DESTINO,Edificio Rectorado y secretaria general y GYM
+307,-0.954563,-80.745482,DESTINO,Plaza Cultural Centenario
+308,-0.954343,-80.745277,DESTINO,Departamento Bienestar Universitario
+309,-0.95447,-80.74517,DESTINO,"Edificio Rectorado y Secretaria general,  GYM"
 310,-0.954649,-80.74463,DESTINO,Aula Magna de la Universidad Eloy Alfaro
-302,-0.953607,-80.745402,DESTINO,"Departamento bienestar, admision y nivelacion"
+302,-0.953607,-80.745402,DESTINO,"Departamento Bienestar, Adminision y Nivelacion"
 303,-0.953014,-80.744306,DESTINO,Instituto de Idiomas
-324,-0.952637,-80.74461,DESTINO,"Direccion de Infraestructura, Obras y Patrimonio (DIOP)"
+324,-0.952637,-80.74461,DESTINO,"Dirección de Infraestructura, Obras y Patrimonio (DIOP)"
 315,-0.952257,-80.745106,DESTINO,Agromarket
 326,-0.951577,-80.745981,DESTINO,Tasty Food 2
 327,-0.950073,-80.74526,DESTINO,Tasty Food 3
-328,-0.952386,-80.744359,DESTINO,Auditorio de comunicacion
-319,-0.951835,-80.744261,DESTINO,Decanato ciencias de la salud
+328,-0.952386,-80.744359,DESTINO,Auditorio de Comunicacion
+319,-0.951835,-80.744261,DESTINO,Decanato Ciencias de la Salud
 320,-0.951779,-80.744633,DESTINO,Bodega control de bienes
 321,-0.950876,-80.743503,DESTINO,Tasty Food 4
 322,-0.950744,-80.743418,DESTINO,Cancha
@@ -58,7 +58,7 @@ id,latitud,longitud,tipo,descripcion_interna
 312,-0.952892,-80.746797,DESTINO,El bosque
 405,-0.95379,-80.74655,CONEXION,Conexion
 406,-0.953428,-80.746576,CONEXION,Via doble
-407,-0.953471,-80.746757,CONEXION,Conexion Laboratorio gastronomico
+407,-0.953471,-80.746757,CONEXION,Conexion Laboratorio Gastronomico
 409,-0.953491,-80.747083,CONEXION,Conexion hacia cancha multiple
 412,-0.953139,-80.746722,CONEXION,Conexion hacia El bosque
 413,-0.952761,-80.746737,CONEXION,Via doble
@@ -69,7 +69,7 @@ id,latitud,longitud,tipo,descripcion_interna
 419,-0.9529,-80.746439,CONEXION,Conexion
 420,-0.952088,-80.746187,CONEXION,Conexion
 421,-0.952402,-80.746638,CONEXION,Conexion
-423,-0.952838,-80.747086,CONEXION,Conexion hacia tasty food 1
+423,-0.952838,-80.747086,CONEXION,Conexion hacia Tasty Food 1
 424,-0.951852,-80.746003,CONEXION,Conexion
 426,-0.951574,-80.745818,CONEXION,Via multiple
 427,-0.951351,-80.745968,CONEXION,Conexion
@@ -79,7 +79,6 @@ id,latitud,longitud,tipo,descripcion_interna
 433,-0.950612,-80.745998,CONEXION,Via doble
 434,-0.950519,-80.746002,CONEXION,Cruce Ingreso Puerta 3
 436,-0.950451,-80.745805,CONEXION,Conexion
-314,-0.950626,-80.745876,DESTINO,Entrada a bloque B-13
 323,-0.950126,-80.745142,DESTINO,Entrada Empresa publica de produccion y desarrollo estrategico
 437,-0.950124,-80.745631,CONEXION,Conexion
 442,-0.950427,-80.745466,CONEXION,Via doble
@@ -91,7 +90,7 @@ id,latitud,longitud,tipo,descripcion_interna
 450,-0.952409,-80.745089,CONEXION,Conexion hacia entrada Bloque B-16
 451,-0.95265,-80.744965,CONEXION,Conexion
 325,-0.952816,-80.744314,DESTINO,Entrada a cine
-452,-0.95262,-80.74472,CONEXION,"Conexion hacia Dirección de Infraestructura, Obras y Patrimonio (DIOP)"
+452,-0.95262,-80.74472,CONEXION,"Conexion hacia Direccion de Infraestructura, Obras y Patrimonio (DIOP)"
 453,-0.95254,-80.744578,CONEXION,Conexion
 454,-0.952994,-80.744834,CONEXION,Via doble
 455,-0.952908,-80.744578,CONEXION,Conexion
@@ -100,11 +99,11 @@ id,latitud,longitud,tipo,descripcion_interna
 458,-0.9529,-80.744193,CONEXION,Conexion
 459,-0.953224,-80.744265,CONEXION,Conexion
 460,-0.953062,-80.743826,CONEXION,Via multiple
-461,-0.952857,-80.743745,CONEXION,Conexion ingreso puerta 2
+461,-0.952857,-80.743745,CONEXION,Conexion Ingreso Puerta 2
 462,-0.952514,-80.743772,CONEXION,Conexion
 463,-0.95217,-80.743896,CONEXION,Conexion hacia Bloque B-18
 464,-0.951902,-80.743923,CONEXION,Conexion hacia Instituto de Neurociencias
-466,-0.951613,-80.743751,CONEXION,Conexion hacia bloque B-19
+466,-0.951613,-80.743751,CONEXION,Conexion hacia Bloque B-19
 467,-0.951349,-80.743583,CONEXION,Conexion hacia Bloque B-25
 468,-0.951116,-80.743402,CONEXION,Conexion hacia Bloque B-20
 470,-0.950933,-80.743391,CONEXION,Conexion
@@ -126,11 +125,15 @@ id,latitud,longitud,tipo,descripcion_interna
 491,-0.954935,-80.745214,CONEXION,Via multiple
 492,-0.95499,-80.744935,CONEXION,Conexion hacia Bloque B-23
 493,-0.954724,-80.744506,CONEXION,Conexion hacia Aula Magna de la Universidad Eloy Alfaro
-494,-0.954115,-80.744265,CONEXION,Via multiple
+494,-0.954094,-80.744084,CONEXION,Via multiple
 317,-0.953073,-80.747392,DESTINO,Entrada hacia Vicerrectorado
 489,-0.954458,-80.745683,CONEXION,Conexion
 318,-0.953014,-80.747228,DESTINO,Entrada hacia Tasty Food
 481,-0.953618,-80.745729,CONEXION,Conexion de camino (Escaleras)
 500,-0.954869,-80.746319,ZONA_SEGURA,Zona segura 1
 501,-0.95444,-80.745475,ZONA_SEGURA,Zona segura 2
-502,-0.953536,-80.744189,ZONA_SEGURA,Zona segura 3
+502,-0.953543,-80.744104,ZONA_SEGURA,Zona segura 3
+314,-0.950626,-80.745875,DESTINO,Entrada a Bloque B-13
+329,-0.950766,-80.74301,DESTINO,Entrada a Direccion de Informatica e Innovacion Tecnologica (DIIT)
+226,-0.952537,-80.74476,DESTINO,Entrada Bloque B-16
+495,-0.953739,-80.743957,CONEXION,Conexion

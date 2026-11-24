@@ -122,9 +122,12 @@ fun CampusMap(
     // Mapa "rumbo arriba": durante la navegación gira para que el frente del usuario apunte hacia arriba
     var followHeading by remember { mutableStateOf(true) }
 
-    // Avance del usuario sobre la ruta (solo mientras se navega)
-    val routePoints = remember(routeNodeIds, nodoById) {
-        routeNodeIds?.mapNotNull { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+    // Forma real de las aristas (curvas dibujadas en QGIS, filas ARISTA de campus_shapes.csv)
+    val edgeShapes = remember(shapes) { EdgeShapes.from(shapes) }
+
+    // Puntos de la ruta siguiendo la forma de cada arista (también para el avance mientras se navega)
+    val routePoints = remember(routeNodeIds, nodoById, edgeShapes) {
+        routeNodeIds?.let { ids -> edgeShapes.routePoints(ids) { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } } }
     }
     val navProgress = if (navigating && routePoints != null) {
         animatedUser?.let { RouteProgressCalc.compute(routePoints, GeoPoint(it.lat, it.lon)) }
@@ -165,6 +168,13 @@ fun CampusMap(
     }
 
     val ground = remember(shapes) { CampusShapesGeometry.ground(shapes) }
+    // Pares de nodos marcados como vía doble (filas VIA_DOBLE de campus_shapes.csv, código "a-b")
+    val viasDobles = remember(shapes) {
+        shapes.filter { it.tipo == "VIA_DOBLE" }.mapNotNull { s ->
+            val p = s.codigo.split('-').mapNotNull { it.toIntOrNull() }
+            if (p.size == 2) minOf(p[0], p[1]) to maxOf(p[0], p[1]) else null
+        }.toSet()
+    }
     val shapeLabels = remember(shapes) { CampusShapesGeometry.labels(shapes) }
     val hasShapes = shapes.isNotEmpty()
 
@@ -202,7 +212,7 @@ fun CampusMap(
     // Extensión visible del campus: nodos + edificios/canchas (los edificios del borde, como B-11 y B-12,
     // quedan fuera del rectángulo de los nodos)
     val cameraBounds = remember(bounds, shapes) {
-        val pts = shapes.filter { it.puntos.size >= 3 }.flatMap { it.puntos }
+        val pts = shapes.filter { it.puntos.size >= 3 && it.tipo !in CampusShapesGeometry.LINE_TYPES }.flatMap { it.puntos }
         if (pts.isEmpty()) bounds else doubleArrayOf(
             minOf(bounds[0], pts.minOf { it.lat }), maxOf(bounds[1], pts.maxOf { it.lat }),
             minOf(bounds[2], pts.minOf { it.lon }), maxOf(bounds[3], pts.maxOf { it.lon })
@@ -382,21 +392,27 @@ fun CampusMap(
             //    OpenStreetMap) con estilo de vereda, y las escaleras con peldaños; sin diseño, líneas simples.
             if (hasShapes && shapes.none { it.tipo == "VIA" }) {
                 val w = (4f * p.base * zoom / 111_320f).coerceIn(5f, 46f)
-                // (p1, p2, ¿escalera?, id1, id2); las escaleras decorativas (tipo ESCALERA) usan ids negativos
-                data class Seg(val a: Offset, val b: Offset, val esc: Boolean, val ia: Int, val ib: Int)
+                // (puntos en pantalla siguiendo la forma de la arista, ¿escalera?, id1, id2);
+                // las escaleras decorativas (tipo ESCALERA) usan ids negativos
+                data class Seg(val pts: List<Offset>, val esc: Boolean, val ia: Int, val ib: Int)
                 val segs = aristas.mapNotNull { e ->
                     val u = nodoById[e.idOrigen] ?: return@mapNotNull null
                     val v = nodoById[e.idDestino] ?: return@mapNotNull null
                     val esc = e.tieneEscaleras == 1
                     if (!PathVisibility.visible(u.id, v.id, u.tipo, v.tipo, esc)) return@mapNotNull null
-                    Seg(p.toScreen(u.latitud, u.longitud), p.toScreen(v.latitud, v.longitud),
-                        PathVisibility.drawnAsStairs(u.id, v.id, esc), u.id, v.id)
+                    val geo = edgeShapes.between(u.id, v.id) ?: listOf(GeoPoint(u.latitud, u.longitud), GeoPoint(v.latitud, v.longitud))
+                    Seg(geo.map { p.toScreen(it.lat, it.lon) }, PathVisibility.drawnAsStairs(u.id, v.id, esc), u.id, v.id)
                 } + shapes.filter { it.tipo == "ESCALERA" && it.puntos.size == 2 }.map { s ->
-                    Seg(p.toScreen(s.puntos[0].lat, s.puntos[0].lon), p.toScreen(s.puntos[1].lat, s.puntos[1].lon), true, -1, -2)
+                    Seg(s.puntos.map { p.toScreen(it.lat, it.lon) }, true, -1, -2)
+                }
+                // Vías dobles (Doble_Via en QGIS) se dibujan más anchas que las veredas
+                fun ancho(s: Seg) = if ((minOf(s.ia, s.ib) to maxOf(s.ia, s.ib)) in viasDobles) w * 1.7f else w
+                fun polyline(pts: List<Offset>, color: Color, width: Float) {
+                    for (i in 0 until pts.size - 1) drawLine(color, pts[i], pts[i + 1], strokeWidth = width, cap = StrokeCap.Round)
                 }
                 // bordes de todos los caminos primero y rellenos después: los cruces quedan limpios
-                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD_CASING, s.a, s.b, strokeWidth = w + 4f, cap = StrokeCap.Round)
-                for (s in segs) if (!s.esc) drawLine(MapTheme.ROAD, s.a, s.b, strokeWidth = w, cap = StrokeCap.Round)
+                for (s in segs) if (!s.esc) polyline(s.pts, MapTheme.ROAD_CASING, ancho(s) + 4f)
+                for (s in segs) if (!s.esc) polyline(s.pts, MapTheme.ROAD, ancho(s))
                 // Una escalera que llega a un camino se recorta medio ancho para no tapar la vereda
                 val nodosConCamino = segs.filter { !it.esc }.flatMap { listOf(it.ia, it.ib) }.toSet()
                 fun recorte(desde: Offset, hacia: Offset): Offset {
@@ -405,13 +421,17 @@ fun CampusMap(
                 }
                 // escaleras: base clara + peldaños (trazo grueso discontinuo = barras perpendiculares)
                 val step = (1.2f * p.base * zoom / 111_320f).coerceIn(2.5f, 10f)
-                for (s in segs) if (s.esc) {
-                    val a = if (s.ia in nodosConCamino) recorte(s.a, s.b) else s.a
-                    val b = if (s.ib in nodosConCamino || s.ib == -2) recorte(s.b, s.a) else s.b
-                    drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Butt)
-                    drawLine(MapTheme.STAIRS_BASE, a, b, strokeWidth = w, cap = StrokeCap.Butt)
-                    drawLine(MapTheme.STAIRS, a, b, strokeWidth = w * 0.9f, cap = StrokeCap.Butt,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(step * 0.45f, step * 0.55f)))
+                for (s in segs) if (s.esc && s.pts.size >= 2) {
+                    val pts = s.pts.toMutableList()
+                    if (s.ia in nodosConCamino) pts[0] = recorte(pts[0], pts[1])
+                    if (s.ib in nodosConCamino || s.ib == -2) pts[pts.lastIndex] = recorte(pts.last(), pts[pts.lastIndex - 1])
+                    for (i in 0 until pts.size - 1) {
+                        val a = pts[i]; val b = pts[i + 1]
+                        drawLine(MapTheme.ROAD_CASING, a, b, strokeWidth = w + 4f, cap = StrokeCap.Butt)
+                        drawLine(MapTheme.STAIRS_BASE, a, b, strokeWidth = w, cap = StrokeCap.Butt)
+                        drawLine(MapTheme.STAIRS, a, b, strokeWidth = w * 0.9f, cap = StrokeCap.Butt,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(step * 0.45f, step * 0.55f)))
+                    }
                 }
             }
             if (!hasShapes) aristas.forEach { edge ->
@@ -524,15 +544,10 @@ fun CampusMap(
                     val center = p.toScreen(node.latitud, node.longitud)
 
                     val label = when {
-                        // Zoom alto: sigla·bloque + primera carrera (el nombre oficial es demasiado largo)
-                        !place.codigo.isNullOrBlank() && zoom >= 2.8f && node.tipo == "DESTINO" &&
-                            !place.descripcion.isNullOrBlank() ->
-                            "${place.codigo} · ${place.descripcion!!.substringBefore(',').trim().take(22)}"
-                        // Zoom bajo/medio: etiqueta compacta (sigla·bloque, p. ej. FCS·B-04)
-                        !place.codigo.isNullOrBlank() -> place.codigo!!
+                        // Bloques de facultad: "Bloque B-16 (FACIVITEC)"
+                        blockLabel(place.codigo, place.nombre) != null -> blockLabel(place.codigo, place.nombre)!!
                         node.tipo == "ENTRADA" -> place.nombre.replace("Puerta", "P").trim()
                         node.tipo == "ZONA_SEGURA" -> "Zona Segura"
-                        place.nombre.length > 14 -> place.nombre.take(13) + "…"
                         else -> place.nombre
                     }
 
@@ -543,26 +558,26 @@ fun CampusMap(
                     labelBgPaint.color = if (MapTheme.dark) android.graphics.Color.argb(210, 30, 38, 42) else android.graphics.Color.argb(220, 255, 255, 255)
                     labelPaint.textSize = if (zoom > 3f) 30f else 24f
 
-                    val textWidth = labelPaint.measureText(label)
+                    // Nombre completo, repartido en varias líneas (máx. ~18 caracteres por línea)
+                    val lines = wrapLabel(label, 18)
+                    val lineH = labelPaint.textSize * 1.12f
+                    val textWidth = lines.maxOf { labelPaint.measureText(it) }
                     val bgRect = android.graphics.RectF(
                         center.x - textWidth / 2f - 8f,
                         center.y + textYOffset - labelPaint.textSize + 4f,
                         center.x + textWidth / 2f + 8f,
-                        center.y + textYOffset + 8f
+                        center.y + textYOffset + 8f + lineH * (lines.size - 1)
                     )
 
                     drawContext.canvas.nativeCanvas.drawRoundRect(bgRect, 8f, 8f, labelBgPaint)
-                    drawContext.canvas.nativeCanvas.drawText(
-                        label,
-                        center.x,
-                        center.y + textYOffset,
-                        labelPaint
-                    )
+                    lines.forEachIndexed { i, line ->
+                        drawContext.canvas.nativeCanvas.drawText(line, center.x, center.y + textYOffset + i * lineH, labelPaint)
+                    }
                 }
             }
 
             // 4. TRAZADO DE RUTA ACTIVA (A*)
-            routeNodeIds?.let { ids ->
+            routeNodeIds?.let { _ ->
                 // Durante la navegación el tramo ya recorrido se atenúa y solo lo que falta queda resaltado
                 val progress = navProgress
                 progress?.let { pr ->
@@ -578,7 +593,7 @@ fun CampusMap(
                     }
                 }
                 val points = progress?.remaining?.map { p.toScreen(it.lat, it.lon) }
-                    ?: ids.mapNotNull { id -> nodoById[id]?.let { p.toScreen(it.latitud, it.longitud) } }
+                    ?: (routePoints ?: emptyList()).map { p.toScreen(it.lat, it.lon) }
                 // Con GPS real, línea punteada desde la posición del usuario hasta el inicio de la ruta
                 val u = animatedUser
                 if (progress == null && !isSimulationMode && u != null && points.isNotEmpty()) {
@@ -775,7 +790,7 @@ fun CampusMap(
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = Color(0xFFA01B2C),
+                    contentColor = if (MapTheme.dark) Color(0xFF64B5F6) else Color(0xFFA01B2C),
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                 ) {
                     Icon(
@@ -842,4 +857,25 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSafeZoneIcon(c:
     // personas en el centro
     drawCircle(Color.White, 2.8f, c + Offset(0f, -4.6f))
     drawRoundRect(Color.White, c + Offset(-4f, -0.8f), Size(8f, 6.8f), CornerRadius(4f, 3f))
+}
+
+/** Etiqueta de un bloque de facultad en el mapa: código "FACIVITEC·B-16" → "Bloque B-16 (FACIVITEC)". */
+internal fun blockLabel(codigo: String?, nombre: String): String? {
+    if (codigo.isNullOrBlank() || !nombre.startsWith("Facultad")) return null
+    val bloque = Regex("B-\\d+").find(codigo)?.value ?: return null
+    val sigla = codigo.substringBefore('·', "").trim()
+    return if (sigla.isEmpty()) "Bloque $bloque" else "Bloque $bloque ($sigla)"
+}
+
+/** Parte una etiqueta en líneas de hasta [max] caracteres sin cortar palabras (una palabra más larga va sola). */
+internal fun wrapLabel(text: String, max: Int): List<String> {
+    val out = ArrayList<String>()
+    var cur = StringBuilder()
+    for (w in text.split(' ').filter { it.isNotEmpty() }) {
+        if (cur.isNotEmpty() && cur.length + 1 + w.length > max) { out.add(cur.toString()); cur = StringBuilder() }
+        if (cur.isNotEmpty()) cur.append(' ')
+        cur.append(w)
+    }
+    if (cur.isNotEmpty()) out.add(cur.toString())
+    return out.ifEmpty { listOf(text) }
 }

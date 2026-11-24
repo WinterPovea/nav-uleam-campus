@@ -4,8 +4,8 @@ Uso (desde la raíz del repo):
     python3 build_lugares.py [data/nodos_u.csv]
 
 - Fuente de Facultad/Carrera: data/nodos_u.csv (nodos crudos actualizados).
-- Los id_nodo se toman del lugares.csv actual: no se agregan ni quitan nodos, de modo que
-  nodos.csv y aristas.csv (y el cálculo de rutas) no se alteran.
+- Los id_nodo se toman del lugares.csv actual; los nodos nuevos que no son de calle (DESTINO, ENTRADA,
+  ZONA_SEGURA) presentes en nodos.csv se agregan como lugares nuevos (NUEVOS define su nombre y categoría).
 - Cada fila se escribe con `busqueda` en minúsculas, sin tildes y sin signos de puntuación.
 """
 import csv
@@ -24,11 +24,19 @@ FIXES = {
     "Comerico": "Comercio",
     "Ingeneria": "Ingenieria",
     "Billingue": "Bilingue",
+    "Sotfware": "Software",
 }
-# Bloque B-21 (nodo 221): sin carreras por el momento. Las carreras de Ciencias de la Salud que figuraban en él
-# (Psicología, Fisioterapia, Fonoaudiología, Terapia Ocupacional, Nutrición) se atienden en el B-20 (nodo 220).
-CARRERAS_DE = {220: 221}        # nodo -> nodo del que toma las carreras
-SIN_CARRERAS = {221}            # nodos sin carreras por el momento
+# Lugares nuevos (nodos agregados en QGIS): nombre visible, categoría y palabras clave
+NUEVOS = {
+    329: ("Dirección de Informática e Innovación Tecnológica (DIIT)", "ADMINISTRATIVO",
+          "diit informatica sistemas ti tecnologia soporte"),
+}
+# Segundas entradas de un bloque: se nombran "(Bloque B-xx, acceso 2)"
+ACCESO_2 = {314, 226}
+# B-21 (nodo 221) sin carreras por el momento; Psicología, Fisioterapia, etc. están en el B-20 (nodo 220).
+# data/nodos_u.csv ya trae ese reparto; estas tablas quedan vacías para casos futuros.
+CARRERAS_DE = {}                # nodo -> nodo del que toma las carreras
+SIN_CARRERAS = {221}            # nodos cuya descripción es "No disponible por el momento"
 BLOQUE_REAL = {}                # id_nodo -> bloque a mostrar si difiere del que trae el CSV (hoy ninguno)
 
 # Sinónimos que ayudan a encontrar la facultad por palabras sueltas.
@@ -55,7 +63,7 @@ innovacion:innovación investigacion:investigación maritima:marítima mecanica:
 nivelacion:nivelación nutricion:nutrición odontologia:odontología pacifico:pacífico pedagogia:pedagogía
 plasticas:plásticas politicas:políticas produccion:producción psicologia:psicología publica:pública
 publico:público raices:raíces secretaria:secretaría sociologia:sociología tecnologia:tecnología
-tecnologias:tecnologías electrica:eléctrica fonoaudologia:fonoaudiología
+tecnologias:tecnologías electrica:eléctrica fonoaudologia:fonoaudiología informatica:informática
 """.split())}
 
 
@@ -114,6 +122,20 @@ def main() -> None:
         vistos.add(r["id_nodo"])
         unicas.append(r)
 
+    # Nodos nuevos de nodos.csv que aún no están en el catálogo
+    with (ASSETS / "nodos.csv").open(encoding="utf-8", newline="") as f:
+        en_grafo = {int(r["id"]): r for r in csv.DictReader(f)}
+    for nid, n in en_grafo.items():
+        if n["tipo"] == "CONEXION" or str(nid) in vistos:
+            continue
+        nombre, cat, et = NUEVOS.get(nid, (re.sub(r"^(Ingreso|Entrada( hacia| a)?)\s+", "", n["descripcion_interna"]).strip(),
+                                           "BLOQUE" if re.search(r"B-\d+", n["descripcion_interna"]) else "ADMINISTRATIVO", ""))
+        m = re.search(r"B-\d+", n["descripcion_interna"])
+        unicas.append(dict(id_nodo=str(nid), codigo=m.group(0) if m else "", nombre=nombre, descripcion="",
+                           categoria=cat, etiquetas=et, busqueda="", activo="1"))
+        vistos.add(str(nid))
+        print("lugar nuevo:", nid, nombre)
+
     # Ajustes manuales de catálogo (se reaplican en cada ejecución).
     for r in unicas:
         if r["id_nodo"] == "305":  # Tasty Food 1 tiene dos entradas: 305 y 318
@@ -141,7 +163,7 @@ def main() -> None:
             md = re.search(r"B-\d+", src.get("Descri", ""))  # el bloque sale de la descripción original del nodo
             bloque = BLOQUE_REAL.get(nid) or (md.group(0) if md else (m.group(0) if m else ""))
             if bloque:
-                acceso2 = ", acceso 2" if nid == 314 else ""
+                acceso2 = ", acceso 2" if nid in ACCESO_2 else ""
                 if nid == 230:
                     r["nombre"] = f"Laboratorio gastronomico (Bloque {bloque})"
                 else:

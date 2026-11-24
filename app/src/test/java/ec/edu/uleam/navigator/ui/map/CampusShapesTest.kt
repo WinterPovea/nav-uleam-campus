@@ -73,7 +73,7 @@ class CampusShapesTest {
         val otra = CampusShapesGeometry.ground(realShapes())
         assertEquals(ground.trees, otra.trees)
         assertTrue(ground.trees.size > 100)
-        assertTrue(ground.trees.all { CampusShapesGeometry.insideConvex(ground.hull, GeoPoint(it.lat, it.lon)) })
+        assertTrue(ground.trees.all { OriginPicker.contains(ground.hull, GeoPoint(it.lat, it.lon)) })
     }
 
     @Test

@@ -60,3 +60,5 @@ id_nodo,codigo,nombre,descripcion,categoria,etiquetas,busqueda,activo
 500,,Zona segura 1,,ZONA_SEGURA,,zona segura 1,1
 501,,Zona segura 2,,ZONA_SEGURA,,zona segura 2,1
 502,,Zona segura 3,,ZONA_SEGURA,,zona segura 3,1
+329,,Dirección de Informática e Innovación Tecnológica (DIIT),,ADMINISTRATIVO,diit informatica sistemas ti tecnologia soporte,direccion de informatica e innovacion tecnologica diit sistemas ti tecnologia soporte,1
+226,FACIVITEC·B-16,"Facultad de Ciencias de la Vida y Tecnologías (Bloque B-16, acceso 2)","Tecnologías de la Información, Software",BLOQUE,facivitec ciencias vida tecnologias,facultad de ciencias la vida y tecnologias bloque b-16 acceso 2 facivitec informacion software,1

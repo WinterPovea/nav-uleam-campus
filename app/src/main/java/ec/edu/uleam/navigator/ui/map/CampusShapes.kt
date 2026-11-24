@@ -60,6 +60,7 @@ object MapTheme {
     val GROUND get() = c(0xFFF5F1D3, 0xFF222C30)
     val ROAD get() = c(0xFFFFFFFF, 0xFF44535A)
     val ROAD_CASING get() = c(0xFF9C977F, 0xFF12181A)
+    val WALKWAY get() = c(0xFFDCCBA6, 0xFF4A4538)
     val SIDEWALK get() = c(0xFFE0796B, 0xFFB86A5E)
     val STAIRS_BASE get() = c(0xFFF3E3D3, 0xFF4E4038)
     val STAIRS get() = c(0xFFB5654F, 0xFFD9906F)
@@ -73,6 +74,17 @@ object MapTheme {
     val FOOD get() = c(0xFFF1D29A, 0xFF8C6E3C)
     val OTHER_BUILDING get() = c(0xFF5E8A8F, 0xFF4C6A6E)
     val OUTLINE get() = c(0xFFFFFFFF, 0xFF0E1315)
+    /** Relleno de calle según su clase OSM (primaria naranja, terciaria amarilla clara, resto blanco). */
+    fun roadFill(clase: String): Color = when (clase) {
+        "primary", "primary_link" -> c(0xFFFCD6A4, 0xFF7A5A33)
+        "secondary" -> c(0xFFF7FABF, 0xFF66673A)
+        "tertiary", "tertiary_link" -> c(0xFFFFFFFF, 0xFF55646B)
+        else -> ROAD
+    }
+    fun roadCasing(clase: String): Color = when (clase) {
+        "primary", "primary_link" -> c(0xFFC48A3B, 0xFF0F1416)
+        else -> ROAD_CASING
+    }
     val TREES get() = if (dark) listOf(Color(0x66336B48), Color(0x6629583C), Color(0x55417F56))
         else listOf(Color(0x8878B98A), Color(0x8868A87A), Color(0x7788C497))
 }
@@ -169,13 +181,18 @@ object CampusShapesGeometry {
         while (out.size < count && tries < count * 12) {
             tries++
             val g = GeoPoint(minLat + next() * (maxLat - minLat), minLon + next() * (maxLon - minLon))
-            if (insideConvex(hull, g)) out.add(Tree(g.lat, g.lon, (2.5 + next() * 3.5).toFloat(), (next() * 3).toInt().coerceIn(0, 2)))
+            if (OriginPicker.contains(hull, g)) out.add(Tree(g.lat, g.lon, (2.5 + next() * 3.5).toFloat(), (next() * 3).toInt().coerceIn(0, 2)))
         }
         return out
     }
 
+    /** Tipos que son líneas (calles, veredas, formas de aristas): no definen el contorno del campus. */
+    val LINE_TYPES = setOf("VIA", "VEREDA", "PELDANOS", "ARISTA", "VIA_DOBLE", "ESCALERA", "TERRENO")
+
+    /** Terreno: el contorno cóncavo de la universidad (fila TERRENO) o, si no existe, la envolvente convexa. */
     fun ground(shapes: List<CampusShape>): CampusGround {
-        val hull = convexHull(shapes.flatMap { it.puntos })
+        val hull = shapes.firstOrNull { it.tipo == "TERRENO" && it.puntos.size >= 3 }?.puntos
+            ?: convexHull(shapes.filter { it.tipo !in LINE_TYPES }.flatMap { it.puntos })
         return CampusGround(hull, trees(hull))
     }
 
@@ -290,29 +307,35 @@ private fun DrawScope.drawPlazaIcon(c: Offset, k: Float) {
 
 /** Vías decorativas (tipo VIA: `codigo` = ancho en metros). Son diseño: la ruta real sigue las aristas del grafo. */
 private fun DrawScope.drawCampusRoads(p: MapProjection, shapes: List<CampusShape>, k: Float) {
-    val vias = shapes.filter { it.tipo == "VIA" && it.puntos.size >= 2 }
-    val paths = vias.map { s ->
-        val path = Path()
-        s.puntos.forEachIndexed { i, g ->
-            val o = p.toScreen(g.lat, g.lon)
-            if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
-        }
-        (s.codigo.toFloatOrNull() ?: 6f) * k to path
-    }
     val round = androidx.compose.ui.graphics.StrokeJoin.Round
-    // primero todos los bordes y luego los rellenos, para que los cruces se fundan sin costuras
-    for ((w, path) in paths) drawPath(path, MapTheme.ROAD_CASING, style = Stroke(width = w.coerceAtLeast(6f) + 6f, cap = StrokeCap.Round, join = round))
-    for ((w, path) in paths) drawPath(path, MapTheme.ROAD, style = Stroke(width = w.coerceAtLeast(6f), cap = StrokeCap.Round, join = round))
-    // Veredas (highway=footway): línea punteada rojiza como en OpenStreetMap
-    val dash = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(9f, 6f))
-    for (s in shapes) {
-        if (s.tipo != "VEREDA" || s.puntos.size < 2) continue
-        val path = Path()
+    fun pathOfLine(s: CampusShape) = Path().apply {
         s.puntos.forEachIndexed { i, g ->
             val o = p.toScreen(g.lat, g.lon)
-            if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
+            if (i == 0) moveTo(o.x, o.y) else lineTo(o.x, o.y)
         }
-        drawPath(path, MapTheme.SIDEWALK, style = Stroke(width = 2.2f, cap = StrokeCap.Butt, join = round, pathEffect = dash))
+    }
+    // Calles (tipo VIA, `grupo` = clase OSM): de menor a mayor jerarquía para que las principales queden encima
+    val rango = mapOf("service" to 0, "track" to 0, "pedestrian" to 0, "living_street" to 1, "residential" to 1,
+        "unclassified" to 1, "tertiary_link" to 2, "tertiary" to 2, "secondary" to 3, "primary_link" to 3, "primary" to 4)
+    val vias = shapes.filter { it.tipo == "VIA" && it.puntos.size >= 2 }.sortedBy { rango[it.grupo] ?: 0 }
+        .map { Triple(it.grupo, ((it.codigo.toFloatOrNull() ?: 6f) * k).coerceAtLeast(if (it.grupo == "service") 3f else 5f), pathOfLine(it)) }
+    // Veredas peatonales (footway/path): camino de adoquín color arena, más angosto y sin borde, para que no
+    // se confunda con las calles blancas
+    val veredas = shapes.filter { it.tipo == "VEREDA" && it.puntos.size >= 2 }.map { pathOfLine(it) }
+    val wv = (2.2f * k).coerceIn(2.5f, 20f)
+    for (path in veredas) drawPath(path, MapTheme.WALKWAY, style = Stroke(width = wv, cap = StrokeCap.Round, join = round))
+    // primero todos los bordes y luego los rellenos, para que los cruces se fundan sin costuras
+    for ((clase, w, path) in vias) drawPath(path, MapTheme.roadCasing(clase), style = Stroke(width = w + 3f, cap = StrokeCap.Round, join = round))
+    for ((clase, w, path) in vias) drawPath(path, MapTheme.roadFill(clase), style = Stroke(width = w, cap = StrokeCap.Round, join = round))
+    // Escaleras (highway=steps): base clara + peldaños
+    for (s in shapes) {
+        if (s.tipo != "PELDANOS" || s.puntos.size < 2) continue
+        val path = pathOfLine(s)
+        val w = (3f * k).coerceIn(5f, 30f)
+        val step = (1.0f * k).coerceIn(2.5f, 9f)
+        drawPath(path, MapTheme.STAIRS_BASE, style = Stroke(width = w, cap = StrokeCap.Butt, join = round))
+        drawPath(path, MapTheme.STAIRS, style = Stroke(width = w * 0.9f, cap = StrokeCap.Butt, join = round,
+            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(step * 0.45f, step * 0.55f))))
     }
 }
 
@@ -443,5 +466,37 @@ private fun DrawScope.drawCafeIcon(o: Offset) {
     // vapor
     for (dx in listOf(-5f, 0f)) {
         drawLine(Color.White.copy(alpha = 0.9f), Offset(o.x + dx, o.y - 6f), Offset(o.x + dx + 1.5f, o.y - 11f), strokeWidth = 1.6f, cap = StrokeCap.Round)
+    }
+}
+
+/**
+ * Forma real de las aristas dibujada en QGIS (filas ARISTA de campus_shapes.csv, código "a-b" con a < b y
+ * puntos de a hacia b). Solo afecta el dibujo: el cálculo de rutas usa los nodos y la distancia de aristas.csv.
+ */
+class EdgeShapes private constructor(private val byPair: Map<Pair<Int, Int>, List<GeoPoint>>) {
+    /** Polilínea de [from] a [to] (invertida si hace falta), o null si la arista es recta. */
+    fun between(from: Int, to: Int): List<GeoPoint>? =
+        if (from <= to) byPair[from to to] else byPair[to to from]?.asReversed()
+
+    /** Puntos de una ruta de nodos siguiendo la forma de cada tramo, sin repetir los nodos de unión. */
+    fun routePoints(ids: List<Int>, nodePoint: (Int) -> GeoPoint?): List<GeoPoint> {
+        val out = ArrayList<GeoPoint>()
+        for (i in ids.indices) {
+            if (i == 0) { nodePoint(ids[0])?.let(out::add); continue }
+            val tramo = between(ids[i - 1], ids[i])
+            if (tramo != null) out.addAll(tramo.drop(1)) else nodePoint(ids[i])?.let(out::add)
+        }
+        return out
+    }
+
+    val size: Int get() = byPair.size
+
+    companion object {
+        fun from(shapes: List<CampusShape>): EdgeShapes = EdgeShapes(
+            shapes.filter { it.tipo == "ARISTA" && it.puntos.size >= 2 }.mapNotNull { s ->
+                val ids = s.codigo.split('-').mapNotNull { it.toIntOrNull() }
+                if (ids.size == 2 && ids[0] < ids[1]) (ids[0] to ids[1]) to s.puntos else null
+            }.toMap()
+        )
     }
 }
