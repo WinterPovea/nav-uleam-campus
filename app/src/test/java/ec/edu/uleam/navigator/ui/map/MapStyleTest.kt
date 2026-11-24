@@ -58,3 +58,13 @@ class BlockLabelTest {
         assertNull(blockLabel(null, "Paraninfo"))
     }
 }
+
+class WrapLabelTest {
+    @Test
+    fun nombresLargosSeMuestranCompletosEnVariasLineas() {
+        val l = wrapLabel("Bodega control de bienes", 18)
+        assertEquals(listOf("Bodega control de", "bienes"), l)
+        assertEquals("Bodega control de bienes", l.joinToString(" "))
+        assertEquals(listOf("Cine"), wrapLabel("Cine", 18))
+    }
+}

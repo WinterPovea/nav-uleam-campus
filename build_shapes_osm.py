@@ -293,7 +293,7 @@ def main():
             puntos.append(["ARISTA", "%s-%s" % (r["id_a"], r["id_b"]), "OTRO", r["puntos"]])
 
     fmt = lambda ring: " ".join("%.6f %.6f" % q for q in ring)
-    puntos.insert(0, ["TERRENO", "campus", "OTRO", fmt([m_ll(*q) for q in terreno])])
+    # (el contorno cóncavo solo se usa para recortar; el fondo de la app mantiene la forma redondeada)
     with open(OUT, "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh, lineterminator="\n")
         w.writerow(["tipo", "codigo", "grupo", "puntos"])

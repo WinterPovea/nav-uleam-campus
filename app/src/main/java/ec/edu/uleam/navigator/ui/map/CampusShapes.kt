@@ -60,6 +60,7 @@ object MapTheme {
     val GROUND get() = c(0xFFF5F1D3, 0xFF222C30)
     val ROAD get() = c(0xFFFFFFFF, 0xFF44535A)
     val ROAD_CASING get() = c(0xFF9C977F, 0xFF12181A)
+    val WALKWAY get() = c(0xFFDCCBA6, 0xFF4A4538)
     val SIDEWALK get() = c(0xFFE0796B, 0xFFB86A5E)
     val STAIRS_BASE get() = c(0xFFF3E3D3, 0xFF4E4038)
     val STAIRS get() = c(0xFFB5654F, 0xFFD9906F)
@@ -318,11 +319,11 @@ private fun DrawScope.drawCampusRoads(p: MapProjection, shapes: List<CampusShape
         "unclassified" to 1, "tertiary_link" to 2, "tertiary" to 2, "secondary" to 3, "primary_link" to 3, "primary" to 4)
     val vias = shapes.filter { it.tipo == "VIA" && it.puntos.size >= 2 }.sortedBy { rango[it.grupo] ?: 0 }
         .map { Triple(it.grupo, ((it.codigo.toFloatOrNull() ?: 6f) * k).coerceAtLeast(if (it.grupo == "service") 3f else 5f), pathOfLine(it)) }
-    // Veredas (footway/path): caminos blancos delgados, debajo de las calles
+    // Veredas peatonales (footway/path): camino de adoquín color arena, más angosto y sin borde, para que no
+    // se confunda con las calles blancas
     val veredas = shapes.filter { it.tipo == "VEREDA" && it.puntos.size >= 2 }.map { pathOfLine(it) }
-    val wv = (2.5f * k).coerceIn(2.5f, 22f)
-    for (path in veredas) drawPath(path, MapTheme.ROAD_CASING, style = Stroke(width = wv + 2.5f, cap = StrokeCap.Round, join = round))
-    for (path in veredas) drawPath(path, MapTheme.ROAD, style = Stroke(width = wv, cap = StrokeCap.Round, join = round))
+    val wv = (2.2f * k).coerceIn(2.5f, 20f)
+    for (path in veredas) drawPath(path, MapTheme.WALKWAY, style = Stroke(width = wv, cap = StrokeCap.Round, join = round))
     // primero todos los bordes y luego los rellenos, para que los cruces se fundan sin costuras
     for ((clase, w, path) in vias) drawPath(path, MapTheme.roadCasing(clase), style = Stroke(width = w + 3f, cap = StrokeCap.Round, join = round))
     for ((clase, w, path) in vias) drawPath(path, MapTheme.roadFill(clase), style = Stroke(width = w, cap = StrokeCap.Round, join = round))

@@ -548,7 +548,6 @@ fun CampusMap(
                         blockLabel(place.codigo, place.nombre) != null -> blockLabel(place.codigo, place.nombre)!!
                         node.tipo == "ENTRADA" -> place.nombre.replace("Puerta", "P").trim()
                         node.tipo == "ZONA_SEGURA" -> "Zona Segura"
-                        place.nombre.length > 14 -> place.nombre.take(13) + "…"
                         else -> place.nombre
                     }
 
@@ -559,21 +558,21 @@ fun CampusMap(
                     labelBgPaint.color = if (MapTheme.dark) android.graphics.Color.argb(210, 30, 38, 42) else android.graphics.Color.argb(220, 255, 255, 255)
                     labelPaint.textSize = if (zoom > 3f) 30f else 24f
 
-                    val textWidth = labelPaint.measureText(label)
+                    // Nombre completo, repartido en varias líneas (máx. ~18 caracteres por línea)
+                    val lines = wrapLabel(label, 18)
+                    val lineH = labelPaint.textSize * 1.12f
+                    val textWidth = lines.maxOf { labelPaint.measureText(it) }
                     val bgRect = android.graphics.RectF(
                         center.x - textWidth / 2f - 8f,
                         center.y + textYOffset - labelPaint.textSize + 4f,
                         center.x + textWidth / 2f + 8f,
-                        center.y + textYOffset + 8f
+                        center.y + textYOffset + 8f + lineH * (lines.size - 1)
                     )
 
                     drawContext.canvas.nativeCanvas.drawRoundRect(bgRect, 8f, 8f, labelBgPaint)
-                    drawContext.canvas.nativeCanvas.drawText(
-                        label,
-                        center.x,
-                        center.y + textYOffset,
-                        labelPaint
-                    )
+                    lines.forEachIndexed { i, line ->
+                        drawContext.canvas.nativeCanvas.drawText(line, center.x, center.y + textYOffset + i * lineH, labelPaint)
+                    }
                 }
             }
 
@@ -866,4 +865,17 @@ internal fun blockLabel(codigo: String?, nombre: String): String? {
     val bloque = Regex("B-\\d+").find(codigo)?.value ?: return null
     val sigla = codigo.substringBefore('·', "").trim()
     return if (sigla.isEmpty()) "Bloque $bloque" else "Bloque $bloque ($sigla)"
+}
+
+/** Parte una etiqueta en líneas de hasta [max] caracteres sin cortar palabras (una palabra más larga va sola). */
+internal fun wrapLabel(text: String, max: Int): List<String> {
+    val out = ArrayList<String>()
+    var cur = StringBuilder()
+    for (w in text.split(' ').filter { it.isNotEmpty() }) {
+        if (cur.isNotEmpty() && cur.length + 1 + w.length > max) { out.add(cur.toString()); cur = StringBuilder() }
+        if (cur.isNotEmpty()) cur.append(' ')
+        cur.append(w)
+    }
+    if (cur.isNotEmpty()) out.add(cur.toString())
+    return out.ifEmpty { listOf(text) }
 }
