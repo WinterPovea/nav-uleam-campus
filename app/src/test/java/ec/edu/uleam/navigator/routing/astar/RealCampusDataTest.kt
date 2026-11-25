@@ -100,9 +100,9 @@ class RealCampusDataTest {
         assertTrue(218 in buscar("Enfermería"))
         assertTrue(206 in buscar("Derecho"))
         assertTrue(209 in buscar("Ingeniería Industrial"))
-        assertTrue(221 in buscar("psicologia"))
+        assertTrue(220 in buscar("psicologia"))   // Psicología está en el B-20 (el B-21 no está disponible por el momento)
         assertTrue(313 in buscar("estadio"))
-        assertTrue(buscar("salud").containsAll(listOf(204, 218, 219, 221)))
+        assertTrue(buscar("salud").containsAll(listOf(204, 218, 219, 220)))
     }
 
     @Test fun `los nombres mostrados llevan tildes pero la busqueda las ignora`() {
