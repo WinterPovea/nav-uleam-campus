@@ -21,6 +21,7 @@ import ec.edu.uleam.navigator.routing.astar.RouteResult
 import ec.edu.uleam.navigator.ui.map.CampusShape
 import ec.edu.uleam.navigator.ui.map.GeoPoint
 import ec.edu.uleam.navigator.ui.map.OriginPicker
+import ec.edu.uleam.navigator.ui.map.EdgeShapes
 import ec.edu.uleam.navigator.ui.map.RouteProgressCalc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,7 +57,10 @@ data class UiState(
     /** true mientras el usuario recorre la ruta (botón "Empezar ruta"). */
     val navigating: Boolean = false,
     /** true si el GPS indica que el usuario ya está en el destino elegido (no hace falta ruta). */
-    val enDestino: Boolean = false
+    val enDestino: Boolean = false,
+    /** Tramo inicial (GPS real): del punto del camino más cercano al usuario hasta [routeLeadNode]. */
+    val routeLead: List<GeoPoint> = emptyList(),
+    val routeLeadNode: Int? = null
 )
 
 class CampusViewModel(app: Application) : AndroidViewModel(app) {
@@ -593,15 +597,39 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         val astar = repo.astar ?: return null
         val opts = RouteOptions(avoidStairs = ui.avoidStairs)
         val cost: ((Int) -> Double?)? = ui.destino?.let { d ->
-            { id: Int -> (astar.findRoute(id, d.idNodo, opts) as? RouteResult.Success)?.distanceM }
+            { id: Int -> if (id == d.idNodo) 0.0 else (astar.findRoute(id, d.idNodo, opts) as? RouteResult.Success)?.distanceM }
         }
         val pick = OriginPicker.pick(lat, lon, graph, repo.shapes, cost) ?: return null
+        ui = ui.copy(routeLead = pick.lead, routeLeadNode = pick.nodeId)
         val label = if (pick.building != null) {
             val l = repo.lugares.firstOrNull { it.idNodo == pick.nodeId }
             val nombre = l?.codigo?.substringAfter('·')?.takeIf { it.isNotBlank() } ?: l?.nombre ?: "edificio"
             "Mi ubicación GPS (entrada de $nombre)"
         } else "Mi ubicación GPS (nodo ${pick.nodeId})"
         return pick.nodeId to label
+    }
+
+    /** Tramo inicial vigente: solo con GPS real y mientras el origen sea el nodo al que lleva ese tramo. */
+    fun leadActivo(): List<GeoPoint> =
+        if (!ui.isSimulationMode && ui.origenId != null && ui.origenId == ui.routeLeadNode) ui.routeLead else emptyList()
+
+    private var edgeShapesCache: EdgeShapes? = null
+    private fun edgeShapes(): EdgeShapes =
+        edgeShapesCache?.takeIf { it.size > 0 || repo.shapes.isEmpty() } ?: EdgeShapes.from(repo.shapes).also { edgeShapesCache = it }
+
+    /** Geometría completa de la ruta: tramo inicial + forma de cada arista. */
+    fun routeGeometry(): List<GeoPoint>? {
+        val r = ui.route ?: return null
+        val pts = edgeShapes().routePoints(r.nodeIds) { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+        val lead = leadActivo()
+        return if (lead.size >= 2) lead + pts.drop(1) else pts
+    }
+
+    /** Distancia total a mostrar (ruta + tramo inicial). */
+    fun routeDistanceM(): Double? {
+        val r = ui.route ?: return null
+        val lead = leadActivo()
+        return r.distanceM + (0 until lead.size - 1).sumOf { RouteProgressCalc.distanceM(lead[it], lead[it + 1]) }
     }
 
     private fun yaEnDestino(lat: Double, lon: Double): Boolean {
@@ -628,8 +656,8 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         const val OFF_ROUTE_CONFIRMATION_MS = 3_000L
 
-        /** Distancia al destino (m) a la que se considera que el usuario llegó (también cuenta estar dentro de su edificio). */
-        const val ARRIVAL_RADIUS_M = 20.0
+        /** Distancia al destino (m) a la que se considera que el usuario llegó (también cuenta estar dentro de su edificio). 8 m ≈ precisión del GPS. */
+        const val ARRIVAL_RADIUS_M = 8.0
 
         /** Velocidad del caminante virtual en Modo Simulación (m/s): paso humano normal (≈ 5 km/h). */
         const val DEMO_WALK_SPEED_MPS = 1.4

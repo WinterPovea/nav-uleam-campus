@@ -256,7 +256,7 @@ def main():
                     elif hwy in ANCHO_VIA: vias.append(["VIA", "%.1f" % ANCHO_VIA[hwy], hwy, tramo])
     else:
         vias = []   # sin líneas OSM la app dibuja los caminos a partir de las aristas del grafo
-    puntos = [r for r in viejo if r[0] in ("PARQUEO", "AGUA", "CAFE")]
+    puntos = [r for r in viejo if r[0] in ("PARQUEO", "AGUA")]
     # Escaleras que no son arista del grafo (solo dibujo), ajustadas sobre capturas del equipo
     ESCALERAS = [
         ("Infraestructura", nodos["453"], (-0.952416, -80.744401)),   # sigue la arista 453-328 hasta la vía
@@ -264,9 +264,14 @@ def main():
     ]
     for nombre, a, b in ESCALERAS:
         puntos.append(["ESCALERA", nombre, "OTRO", "%.6f %.6f %.6f %.6f" % (*a, *b)])
+    # Ícono de cafetería sobre su nodo; algunos se corren (metros norte, este) a su sitio real según pruebas en campo
+    ICONO_DESPLAZADO = {"Tasty Food 2": (8.6, 4.3)}
+    sin_huella = [("El bosque", nodos["312"])] + [x for x in sin_huella if x[0] != "El bosque"]
     for nombre, g in sin_huella:
-        if not any(r[0] == "CAFE" and r[1] == nombre for r in puntos):
-            puntos.append(["CAFE", nombre, "OTRO", "%.6f %.6f" % g])
+        if any(r[0] == "CAFE" and r[1] == nombre for r in puntos): continue
+        dn, de = ICONO_DESPLAZADO.get(nombre, (0.0, 0.0))
+        g = (g[0] + dn / 111320.0, g[1] + de / (111320.0 * math.cos(math.radians(g[0]))))
+        puntos.append(["CAFE", nombre, "OTRO", "%.6f %.6f" % g])
 
     # Edificios que no están en los polígonos de OSM: trazados sobre una captura de QGIS georreferenciada con
     # los nodos 470 (px 200,456) y 329 (px 554,299) -> ~0,12 m por píxel, norte arriba

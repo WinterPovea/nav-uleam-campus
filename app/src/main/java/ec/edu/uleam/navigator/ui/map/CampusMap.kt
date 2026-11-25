@@ -101,7 +101,9 @@ fun CampusMap(
     navigating: Boolean = false,
     controlsBottomPadding: Dp = 16.dp,
     /** Estilo del mapa actual (el botón para alternarlo está en la pantalla principal, bajo las puertas). */
-    mapStyle: MapStyle = MapStyle.CLARO
+    mapStyle: MapStyle = MapStyle.CLARO,
+    /** Tramo inicial de la ruta con GPS real: desde el camino junto al usuario hasta el primer nodo. */
+    routeLead: List<GeoPoint> = emptyList()
 ) {
     var size by remember { mutableStateOf(IntSize(1, 1)) }
     var zoom by remember { mutableFloatStateOf(1.2f) }
@@ -126,8 +128,11 @@ fun CampusMap(
     val edgeShapes = remember(shapes) { EdgeShapes.from(shapes) }
 
     // Puntos de la ruta siguiendo la forma de cada arista (también para el avance mientras se navega)
-    val routePoints = remember(routeNodeIds, nodoById, edgeShapes) {
-        routeNodeIds?.let { ids -> edgeShapes.routePoints(ids) { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } } }
+    val routePoints = remember(routeNodeIds, nodoById, edgeShapes, routeLead) {
+        routeNodeIds?.let { ids ->
+            val pts = edgeShapes.routePoints(ids) { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+            if (routeLead.size >= 2) routeLead + pts.drop(1) else pts
+        }
     }
     val navProgress = if (navigating && routePoints != null) {
         animatedUser?.let { RouteProgressCalc.compute(routePoints, GeoPoint(it.lat, it.lon)) }

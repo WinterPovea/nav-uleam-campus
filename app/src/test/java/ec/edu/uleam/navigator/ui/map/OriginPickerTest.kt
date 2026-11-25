@@ -81,4 +81,25 @@ class OriginPickerTest {
         val lejos = graph.node(222)!!   // B-22
         assertFalse(OriginPicker.isAtDestination(lejos.latitude, lejos.longitude, dest.latitude, dest.longitude, shapes, 20.0))
     }
+
+    @Test
+    fun dentroDeB13HaciaPuerta3SalePorLaEntradaNorte() {
+        val poly = shapes.filter { it.tipo == "EDIFICIO" && it.codigo == "B-13" }.maxBy { it.puntos.size }.puntos
+        val c = GeoPoint(poly.map { it.lat }.average(), poly.map { it.lon }.average())
+        assertEquals(314, OriginPicker.pick(c.lat, c.lon, graph, shapes, cost(102))!!.nodeId)
+    }
+
+    @Test
+    fun fueraDeEdificiosLaRutaEmpiezaEnElCaminoJuntoAlUsuarioSinAtravesarEdificios() {
+        // Justo al sur de B-06: el nodo 419 queda al otro lado del edificio y no debe elegirse
+        val poly = shapes.filter { it.tipo == "EDIFICIO" && it.codigo == "B-06" }.maxBy { it.puntos.size }.puntos
+        val sur = poly.minBy { it.lat }
+        val p = GeoPoint(sur.lat - 4 / 111_320.0, sur.lon)
+        val pick = OriginPicker.pick(p.lat, p.lon, graph, shapes, cost(208))!!
+        assertTrue(pick.nodeId != 419, "no debe cruzar B-06")
+        assertTrue(pick.lead.size >= 2)
+        assertTrue(shapes.filter { it.tipo == "EDIFICIO" }.none { OriginPicker.crosses(p, pick.lead.first(), it.puntos) })
+        val n = graph.node(pick.nodeId)!!
+        assertTrue(RouteProgressCalc.distanceM(pick.lead.last(), GeoPoint(n.latitude, n.longitude)) < 0.5)
+    }
 }

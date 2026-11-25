@@ -275,7 +275,8 @@ fun CampusApp(vm: CampusViewModel) {
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
             controlsBottomPadding = cardHeightDp + 24.dp,
-            mapStyle = effectiveStyle
+            mapStyle = effectiveStyle,
+            routeLead = vm.leadActivo()
         )
 
         // CAPA 2: CONTROLES SUPERIORES (Búsqueda + Selector de Puertas + Conmutador Demo)
@@ -614,7 +615,9 @@ fun CollapsibleNavigationCard(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "%.0f m  ·  ≈ %.1f min a pie".format(s.route.distanceM, s.route.estimatedMinutes),
+                        text = (vm.routeDistanceM() ?: s.route.distanceM).let { d ->
+                            "%.0f m  ·  ≈ %.1f min a pie".format(d, s.route.estimatedMinutes * d / s.route.distanceM.coerceAtLeast(0.1))
+                        },
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = tc(0xFF0D47A1, 0xFF90CAF9)
@@ -645,10 +648,8 @@ fun CollapsibleNavigationCard(
                         Text("Empezar ruta", fontWeight = FontWeight.Bold)
                     }
                 } else {
-                    val byId = remember(vm.nodos.size) { vm.nodoById }
                     val remainingM = vm.userPosition?.let { u ->
-                        val pts = s.route.nodeIds.mapNotNull { id -> byId[id]?.let { GeoPoint(it.latitud, it.longitud) } }
-                        RouteProgressCalc.compute(pts, GeoPoint(u.lat, u.lon))?.remainingM
+                        vm.routeGeometry()?.let { pts -> RouteProgressCalc.compute(pts, GeoPoint(u.lat, u.lon))?.remainingM }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
