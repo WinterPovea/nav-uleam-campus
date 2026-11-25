@@ -139,9 +139,9 @@ def main() -> None:
     # Ajustes manuales de catálogo (se reaplican en cada ejecución).
     for r in unicas:
         if r["id_nodo"] == "305":  # Tasty Food 1 tiene dos entradas: 305 y 318
-            r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 1)", "tasty food cafeteria comida"
+            r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 1)", "tasty food patio de comidas comida"
         elif r["id_nodo"] == "318":
-            r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 2)", "tasty food cafeteria comida"
+            r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 2)", "tasty food patio de comidas comida"
         elif r["id_nodo"] == "312":  # El bosque es una cafetería, no un lugar cultural
             r["categoria"], r["etiquetas"] = "COMIDA", "cafeteria cafe comida"
 
@@ -181,6 +181,18 @@ def main() -> None:
             enriquecidas += 1
         else:
             r["busqueda"] = norm(" ".join([r["nombre"], r["codigo"], r["etiquetas"]]))
+
+    # Dónde comer: los Tasty Food y el Laboratorio gastronómico son patios de comidas; El bosque es cafetería.
+    for r in unicas:
+        if r["nombre"].startswith("Tasty Food"):
+            r["descripcion"] = "Patio de comidas"
+            r["etiquetas"] = "tasty food patio de comidas comida"
+            r["busqueda"] = " ".join([r["nombre"], r["etiquetas"]])
+        elif r["id_nodo"] == "230":
+            r["descripcion"] = "Gastronomía · Patio de comidas"
+            r["busqueda"] += " patio de comidas comida"
+        elif r["id_nodo"] == "312":
+            r["descripcion"] = "Cafetería"
 
     for r in unicas:
         r["nombre"] = acentuar(r["nombre"])

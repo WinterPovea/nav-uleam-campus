@@ -173,6 +173,11 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         ui = ui.copy(query = q, results = repo.buscar(q), categoria = null)
     }
 
+    /** Cierra la búsqueda: borra el texto, los resultados y el filtro de categoría. */
+    fun cerrarBusqueda() {
+        ui = ui.copy(query = "", results = emptyList(), categoria = null)
+    }
+
     /** Chip de categoría: muestra todos los lugares de esa categoría (tocarlo de nuevo lo quita). */
     fun filtrarCategoria(cat: String?) {
         val nueva = if (cat == ui.categoria) null else cat

@@ -11,6 +11,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
@@ -279,6 +280,14 @@ fun CampusApp(vm: CampusViewModel) {
     LaunchedEffect(s.vozActiva) { if (!s.vozActiva) voiceGuide.stop() }
 
     var searchFocused by remember { mutableStateOf(false) }
+    // Sugerencias abiertas (recientes, filtros o resultados): se cierran con la X, tocando el mapa o con "Atrás"
+    val busquedaAbierta = searchFocused || s.categoria != null || s.results.isNotEmpty()
+    fun cerrarBusqueda() {
+        focusManager.clearFocus()
+        keyboard?.hide()
+        vm.cerrarBusqueda()
+    }
+    BackHandler(enabled = busquedaAbierta) { cerrarBusqueda() }
 
     // Altura de la tarjeta inferior: los botones flotantes del mapa quedan siempre por encima de ella
     var cardHeightPx by remember { mutableStateOf(0) }
@@ -297,8 +306,8 @@ fun CampusApp(vm: CampusViewModel) {
             destinationNodeId = s.destino?.idNodo,
             userPosition = vm.userPosition,
             isSimulationMode = s.isSimulationMode,
-            onMapTap = vm::onMapTap,
-            onPlaceTap = vm::onPlaceTap,
+            onMapTap = { lat, lon -> if (busquedaAbierta) cerrarBusqueda() else vm.onMapTap(lat, lon) },
+            onPlaceTap = { l -> if (busquedaAbierta) cerrarBusqueda() else vm.onPlaceTap(l) },
             modifier = Modifier.fillMaxSize(),
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
@@ -338,9 +347,9 @@ fun CampusApp(vm: CampusViewModel) {
                         textStyle = MaterialTheme.typography.bodyMedium,
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = tc(0xFFA01B2C, 0xFF64B5F6)) },
                         trailingIcon = {
-                            if (s.query.isNotEmpty()) {
-                                IconButton(onClick = { vm.onQuery("") }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Limpiar")
+                            if (s.query.isNotEmpty() || busquedaAbierta) {
+                                IconButton(onClick = { cerrarBusqueda() }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Cerrar búsqueda")
                                 }
                             }
                         },

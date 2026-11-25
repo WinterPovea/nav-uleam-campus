@@ -11,7 +11,10 @@ class CategoriasTest {
 
     @Test
     fun cafeteriasYZonasSeguras() {
-        assertTrue(Categorias.filtrar(lugares, "COMIDA").all { it.categoria == "COMIDA" })
+        val comer = Categorias.filtrar(lugares, "COMIDA").map { it.idNodo }
+        // Patios de comidas (Tasty Food), la cafetería El bosque y el Laboratorio gastronómico
+        assertTrue(comer.containsAll(listOf(305, 318, 326, 327, 321, 312, 230)))
+        assertTrue(Categorias.filtrar(lugares, "COMIDA").all { it.categoria == "COMIDA" || it.idNodo == 230 })
         assertEquals(3, Categorias.filtrar(lugares, "ZONA_SEGURA").size)
     }
 
