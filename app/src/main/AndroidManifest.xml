@@ -6,7 +6,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="ULEAM Navigator"
+        android:label="Uleam Go Map"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity android:name=".ui.MainActivity" android:exported="true">
             <intent-filter>
