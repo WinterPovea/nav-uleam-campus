@@ -193,6 +193,7 @@ ec.edu.uleam.navigator/
     - **Mapa:** las etiquetas ya no se enciman con zoom bajo (`LabelPlacer`: la que choca con otra ya dibujada se omite; el origen y el destino siempre se muestran). Al abrir en modo oscuro ya no hay un destello claro (el tema se decide antes del primer cuadro).
     - **Un solo script de datos:** `python actualizar_mapa.py [--gpkg ruta] [--shp ruta]` lee `data/qgis/nodos_u.gpkg` (posición desde la geometría) y `data/qgis/aristas_uleam.shp`, escribe `data/nodos_u.csv` y `data/aristas.csv` (manteniendo la arista 433–434 y las carreras de B-20/B-21 de la app) y ejecuta `build_grafo.py`, `build_lugares.py` y `build_shapes_osm.py`.
     - **Integración continua:** `.github/workflows/android.yml` corre `:app:testDebugUnitTest` y `:app:assembleDebug` (JDK 17, Gradle 8.7) en cada push y pull request y deja el APK debug como artefacto descargable.
+29. **Sin Modo Simulación (nov-2026, rama `Uleam-go-map`):** se eliminó el modo demo (interruptor "Demo", barra de Puertas P1–P4, origen manual tocando el mapa y caminante virtual). La app usa siempre el GPS real: al abrir, el origen es "Obteniendo tu ubicación…" y luego "Tu ubicación" (o "Tu ubicación (B-06)" si estás dentro de un bloque), sin mostrar números de nodo. Fuera del campus el mensaje es solo "Pareces estar fuera del campus ULEAM." Los interruptores de Evitar escaleras y Guía por voz tienen contorno visible cuando están apagados y un check cuando están encendidos.
 
 ### Vista del mapa
 

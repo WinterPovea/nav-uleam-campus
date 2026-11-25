@@ -93,7 +93,6 @@ fun CampusMap(
     originNodeId: Int?,
     destinationNodeId: Int?,
     userPosition: UserPosition?,
-    isSimulationMode: Boolean,
     onMapTap: (lat: Double, lon: Double) -> Unit,
     onPlaceTap: (LugarEntity) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -114,8 +113,8 @@ fun CampusMap(
     val currentNavigating by rememberUpdatedState(navigating)
     val scope = rememberCoroutineScope()
 
-    // Posición con movimiento suave (el marcador se desliza entre lecturas GPS / pasos de simulación)
-    val animatedUser = rememberAnimatedUserPosition(userPosition, if (isSimulationMode) 130 else 900)
+    // Posición con movimiento suave (el marcador se desliza entre lecturas GPS)
+    val animatedUser = rememberAnimatedUserPosition(userPosition, 900)
     val latestUser by rememberUpdatedState(animatedUser)
 
     // Modo seguimiento: la cámara acompaña al usuario mientras se navega (como Google Maps)
@@ -139,8 +138,7 @@ fun CampusMap(
     } else null
     // En simulación el rumbo es el del tramo; con GPS real manda la brújula (si falla, el del tramo)
     val headingDeg: Float? =
-        if (isSimulationMode) navProgress?.bearingDeg?.toFloat()
-        else azimuthDeg ?: navProgress?.bearingDeg?.toFloat()
+        azimuthDeg ?: navProgress?.bearingDeg?.toFloat()
     val latestHeading by rememberUpdatedState(headingDeg)
 
     // Animación continua para el marcador de usuario 'pulsing blue dot'
@@ -298,7 +296,7 @@ fun CampusMap(
     }
 
     // Con GPS real, ¿el usuario está fuera del campus? (más de ~110 m fuera del rectángulo de los nodos)
-    val userOutsideCampus = !isSimulationMode && userPosition?.let { u ->
+    val userOutsideCampus = userPosition?.let { u ->
         val m = 0.001
         u.lat < bounds[0] - m || u.lat > bounds[1] + m || u.lon < bounds[2] - m || u.lon > bounds[3] + m
     } == true
@@ -378,7 +376,7 @@ fun CampusMap(
                                 }
                             }
                         },
-                        // Mantener pulsado: fija el origen aunque haya un lugar bajo el dedo (Modo Simulación)
+                        // Mantener pulsado: se trata como un toque en el mapa aunque haya un lugar bajo el dedo
                         onLongPress = { offset ->
                             if (!currentNavigating) {
                                 val (lat, lon) = proj().toGeo(offset)
@@ -606,7 +604,7 @@ fun CampusMap(
                     ?: (routePoints ?: emptyList()).map { p.toScreen(it.lat, it.lon) }
                 // Con GPS real, línea punteada desde la posición del usuario hasta el inicio de la ruta
                 val u = animatedUser
-                if (progress == null && !isSimulationMode && u != null && points.isNotEmpty()) {
+                if (progress == null && u != null && points.isNotEmpty()) {
                     val us = p.toScreen(u.lat, u.lon)
                     if ((us - points.first()).getDistance() > 12f) {
                         drawLine(
@@ -680,7 +678,7 @@ fun CampusMap(
                 }
 
                 // Cono de visión azimutal translúcido de 45° (FOV) orientado según la brújula
-                (if (navigating && isSimulationMode) headingDeg else azimuthDeg)?.let { headingDeg ->
+                azimuthDeg?.let { headingDeg ->
                     // En coordenadas geográficas 0° = Norte (arriba, -90° en Canvas)
                     val screenHeadingDeg = headingDeg + mapRotationDeg
                     val canvasCenterAngle = screenHeadingDeg - 90f
@@ -769,7 +767,7 @@ fun CampusMap(
         // Aviso cuando el GPS ubica al usuario fuera de la universidad (el mapa se queda en el campus)
         if (userOutsideCampus) {
             Text(
-                text = "📍 No te encuentras en el campus ULEAM",
+                text = "No te encuentras en el campus ULEAM",
                 style = MaterialTheme.typography.labelLarge,
                 color = Color.White,
                 modifier = Modifier
