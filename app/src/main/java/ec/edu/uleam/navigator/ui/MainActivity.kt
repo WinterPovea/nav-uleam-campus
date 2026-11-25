@@ -101,6 +101,7 @@ import ec.edu.uleam.navigator.location.LocationState
 import ec.edu.uleam.navigator.routing.astar.DirectionType
 import ec.edu.uleam.navigator.routing.astar.NavigationInstruction
 import ec.edu.uleam.navigator.ui.map.CampusMap
+import ec.edu.uleam.navigator.ui.map.blockLabel
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.SmallFloatingActionButton
 import ec.edu.uleam.navigator.ui.map.MapTheme
@@ -543,7 +544,9 @@ fun CollapsibleNavigationCard(
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
         modifier = modifier.animateContentSize()
     ) {
-        Column(Modifier.padding(14.dp)) {
+        // Navegando y sin expandir: tarjeta compacta (destino corto + metros restantes) para no tapar el mapa
+        val compact = s.navigating && !expanded
+        Column(Modifier.padding(if (compact) 10.dp else 14.dp)) {
             // CABECERA: Título, estado y botón de colapso
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -551,12 +554,15 @@ fun CollapsibleNavigationCard(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = s.destino?.nombre ?: "Selecciona un destino",
+                        text = if (compact) s.destino?.let { blockLabel(it.codigo, it.nombre) ?: it.nombre } ?: ""
+                            else s.destino?.nombre ?: "Selecciona un destino",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
+                        fontSize = if (compact) 15.sp else 17.sp,
+                        maxLines = if (compact) 1 else Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis,
                         color = if (s.destino != null) tc(0xFFA01B2C, 0xFF90CAF9) else MaterialTheme.colorScheme.onSurface
                     )
-                    s.destino?.descripcion?.takeIf { it.isNotBlank() }?.let { d ->
+                    if (!compact) s.destino?.descripcion?.takeIf { it.isNotBlank() }?.let { d ->
                         Text(
                             text = d,
                             fontSize = 12.sp,
@@ -565,7 +571,7 @@ fun CollapsibleNavigationCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Text(
+                    if (!compact) Text(
                         text = "Origen: ${s.origenLabel}",
                         fontSize = 12.sp,
                         color = Color.Gray
@@ -597,8 +603,8 @@ fun CollapsibleNavigationCard(
                 )
             }
 
-            // RESUMEN MÉTRICO PRINCIPAL DE RUTA
-            if (s.route != null) {
+            // RESUMEN MÉTRICO PRINCIPAL DE RUTA (navegando, lo reemplaza "Faltan X m")
+            if (s.route != null && !compact) {
                 Spacer(Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
@@ -636,7 +642,7 @@ fun CollapsibleNavigationCard(
 
             // EMPEZAR RUTA (como Google Maps) / NAVEGANDO CON METROS RESTANTES
             if (s.route != null) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
                 if (!s.navigating) {
                     Button(
                         onClick = vm::empezarRuta,
@@ -664,6 +670,12 @@ fun CollapsibleNavigationCard(
                                 color = Color.Gray
                             )
                         }
+                        if (compact) {
+                            // Zona Segura sigue a mano aunque la tarjeta esté compacta
+                            IconButton(onClick = vm::zonaSegura) {
+                                Icon(Icons.Default.Security, contentDescription = "Zona Segura", tint = tc(0xFFD32F2F, 0xFF1E88E5))
+                            }
+                        }
                         OutlinedButton(onClick = vm::terminarRuta) { Text("Terminar") }
                     }
                 }
@@ -679,7 +691,7 @@ fun CollapsibleNavigationCard(
                     fontWeight = FontWeight.Medium
                 )
             }
-            s.infoMsg?.let { infoText ->
+            if (!compact) s.infoMsg?.let { infoText ->
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = infoText,
@@ -770,10 +782,10 @@ fun CollapsibleNavigationCard(
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            if (!compact) Spacer(Modifier.height(10.dp))
 
-            // ACCIONES PRINCIPALES: ZONA SEGURA (EVACUACIÓN) Y LIMPIAR
-            Row(
+            // ACCIONES PRINCIPALES: ZONA SEGURA (EVACUACIÓN) Y LIMPIAR (en la tarjeta compacta, Zona Segura va junto a Terminar)
+            if (!compact) Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
