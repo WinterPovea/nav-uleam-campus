@@ -114,12 +114,28 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.SideEffect
 import androidx.compose.foundation.isSystemInDarkTheme
 import android.widget.Toast
+import android.content.res.Configuration
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.focus.onFocusChanged
+import ec.edu.uleam.navigator.ui.voice.VoiceGuide
 
 class MainActivity : ComponentActivity() {
     private val vm: CampusViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Se decide el modo oscuro ANTES del primer cuadro: así no se ve un destello claro al abrir en modo oscuro.
+        val sistemaOscuro = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val oscuro = (MapStylePrefs(this).load() ?: MapStyle.CLARO).esOscuro(sistemaOscuro)
+        MapTheme.dark = oscuro
+        if (oscuro) setTheme(android.R.style.Theme_Material_NoActionBar)
         super.onCreate(savedInstanceState)
+        window.decorView.setBackgroundColor(if (oscuro) 0xFF12171A.toInt() else 0xFFFFFFFF.toInt())
         setContent {
             // La interfaz sigue el estilo del mapa (claro / oscuro / sistema): MapTheme.dark es estado de Compose
             MaterialTheme(colorScheme = if (MapTheme.dark) UleamDarkColors else UleamLightColors) {
@@ -153,6 +169,7 @@ private fun hasLocationPermission(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun CampusApp(vm: CampusViewModel) {
     val context = LocalContext.current
@@ -210,8 +227,8 @@ fun CampusApp(vm: CampusViewModel) {
         }
         if (!vm.ui.isSimulationMode) {
             when (val s = locationState) {
-                is LocationState.Fix -> vm.onGpsLocation(s.lat, s.lon)
-                is LocationState.LowAccuracy -> vm.onGpsLocation(s.lat, s.lon)
+                is LocationState.Fix -> vm.onGpsLocation(s.lat, s.lon, s.accuracyM)
+                is LocationState.LowAccuracy -> vm.onGpsLocation(s.lat, s.lon, s.accuracyM)
                 else -> {}
             }
         }
@@ -252,6 +269,16 @@ fun CampusApp(vm: CampusViewModel) {
     if (mapStyle == null) {
         MapStyleDialog(onElegir = { guardarEstilo(it) })
     }
+
+    // GUÍA POR VOZ: el ViewModel emite frases (inicio, giros, escaleras, llegada) y aquí se dicen con TextToSpeech
+    val voiceGuide = remember { VoiceGuide(context) }
+    DisposableEffect(Unit) { onDispose { voiceGuide.shutdown() } }
+    LaunchedEffect(Unit) {
+        vm.voz.collect { frase -> if (vm.ui.vozActiva) voiceGuide.speak(frase) }
+    }
+    LaunchedEffect(s.vozActiva) { if (!s.vozActiva) voiceGuide.stop() }
+
+    var searchFocused by remember { mutableStateOf(false) }
 
     // Altura de la tarjeta inferior: los botones flotantes del mapa quedan siempre por encima de ella
     var cardHeightPx by remember { mutableStateOf(0) }
@@ -321,14 +348,43 @@ fun CampusApp(vm: CampusViewModel) {
                             focusedBorderColor = Color.Transparent,
                             unfocusedBorderColor = Color.Transparent
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().onFocusChanged { searchFocused = it.isFocused }
                     )
 
-                    // Resultados de búsqueda
-                    if (s.results.isNotEmpty()) {
+                    // Filtros rápidos por categoría (al tocar la búsqueda o con un filtro activo)
+                    if (searchFocused || s.categoria != null) {
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Categorias.CHIPS.forEach { (cat, etiqueta) ->
+                                FilterChip(
+                                    selected = s.categoria == cat,
+                                    onClick = { vm.filtrarCategoria(cat) },
+                                    label = { Text(etiqueta, fontSize = 12.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = tc(0xFFF6DADD, 0xFF1E3A50)
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // Resultados de búsqueda, o los destinos recientes si la búsqueda está vacía
+                    val mostrarRecientes = s.results.isEmpty() && searchFocused && s.query.isEmpty() &&
+                        s.categoria == null && s.recientes.isNotEmpty()
+                    val lista = if (mostrarRecientes) s.recientes else s.results
+                    if (lista.isNotEmpty()) {
                         HorizontalDivider()
+                        if (mostrarRecientes) {
+                            Row(Modifier.padding(start = 14.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.History, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Recientes", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
                         LazyColumn(Modifier.heightIn(max = 240.dp).fillMaxWidth()) {
-                            items(s.results) { place ->
+                            items(lista) { place ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -752,6 +808,24 @@ fun CollapsibleNavigationCard(
                         Switch(
                             checked = s.avoidStairs,
                             onCheckedChange = vm::toggleEscaleras,
+                            colors = SwitchDefaults.colors(checkedThumbColor = tc(0xFFA01B2C, 0xFF64B5F6))
+                        )
+                    }
+
+                    // SWITCH GUÍA POR VOZ
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.RecordVoiceOver, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Guía por voz:", fontSize = 13.sp)
+                        }
+                        Switch(
+                            checked = s.vozActiva,
+                            onCheckedChange = vm::toggleVoz,
                             colors = SwitchDefaults.colors(checkedThumbColor = tc(0xFFA01B2C, 0xFF64B5F6))
                         )
                     }

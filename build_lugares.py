@@ -45,7 +45,7 @@ SINONIMOS = {
     "FIIA": "ingenieria industria arquitectura",
     "FCSDB": "sociales derecho bienestar",
     "FETAH": "educacion turismo artes humanidades",
-    "FACIVITEC": "ciencias vida tecnologias",
+    "FACIVITEC": "ciencias vida tecnologias fcvt",
     "FCACC": "administrativas contables comercio",
 }
 

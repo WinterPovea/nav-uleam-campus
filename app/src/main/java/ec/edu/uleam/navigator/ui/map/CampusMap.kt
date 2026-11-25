@@ -467,7 +467,9 @@ fun CampusMap(
             }
 
             // 1b. EDIFICIOS, ESTADIO, CANCHAS, PARQUEOS Y AGUA (sobre las vías, bajo ruta y etiquetas)
-            drawCampusShapes(p, shapes, zoom, shapeLabels)
+            // Etiquetas sin encimarse: el destino y el origen tienen prioridad, luego los bloques, luego el resto
+            val placer = LabelPlacer()
+            drawCampusShapes(p, shapes, zoom, shapeLabels, placer)
 
             // 2. DIBUJAR INFRAESTRUCTURA DE EDIFICIOS Y BLOQUES (GEOMETRÍA Y RELLENO)
             nodos.forEach { node ->
@@ -542,7 +544,8 @@ fun CampusMap(
             // 3. ETIQUETAS DE TEXTO LEGIBLES PARA BLOQUES Y EDIFICIOS
             // Se dibujan cuando el zoom permite lectura clara
             if (zoom >= 1.2f) {
-                nodos.forEach { node ->
+                val ordenados = nodos.sortedBy { if (it.id == destinationNodeId || it.id == originNodeId) 0 else 1 }
+                ordenados.forEach { node ->
                     val place = lugaresByNodoId[node.id] ?: return@forEach
                     // Con huellas dibujadas el código del bloque ya va dentro del edificio (salvo con zoom alto)
                     if (hasShapes && zoom < 2.8f && node.tipo == "DESTINO" && !place.codigo.isNullOrBlank()) return@forEach
@@ -574,6 +577,8 @@ fun CampusMap(
                         center.y + textYOffset + 8f + lineH * (lines.size - 1)
                     )
 
+                    val prioritaria = node.id == destinationNodeId || node.id == originNodeId
+                    if (!placer.tryPlace(bgRect.left, bgRect.top, bgRect.right, bgRect.bottom) && !prioritaria) return@forEach
                     drawContext.canvas.nativeCanvas.drawRoundRect(bgRect, 8f, 8f, labelBgPaint)
                     lines.forEachIndexed { i, line ->
                         drawContext.canvas.nativeCanvas.drawText(line, center.x, center.y + textYOffset + i * lineH, labelPaint)
