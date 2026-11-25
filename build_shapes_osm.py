@@ -265,7 +265,7 @@ def main():
     for nombre, a, b in ESCALERAS:
         puntos.append(["ESCALERA", nombre, "OTRO", "%.6f %.6f %.6f %.6f" % (*a, *b)])
     # Ícono de cafetería sobre su nodo; algunos se corren (metros norte, este) a su sitio real según pruebas en campo
-    ICONO_DESPLAZADO = {"Tasty Food 2": (8.6, 4.3)}
+    ICONO_DESPLAZADO = {}   # (Tasty Food 2: el nodo 326 ya se movió a su sitio real en QGIS)
     sin_huella = [("El bosque", nodos["312"])] + [x for x in sin_huella if x[0] != "El bosque"]
     for nombre, g in sin_huella:
         if any(r[0] == "CAFE" and r[1] == nombre for r in puntos): continue

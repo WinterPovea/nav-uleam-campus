@@ -1,192 +1,194 @@
 id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
-100,400,9.07,1,0,Acceso desde puerta 1
-101,461,15.79,1,0,Acceso desde puerta 2
-102,434,6.67,1,0,Acceso desde puerta 3
+100,400,9.15,1,0,Acceso desde puerta 1
+101,461,15.72,1,0,Acceso desde puerta 2
+102,434,6.69,1,0,Acceso desde puerta 3
 103,494,92.25,1,0,Acceso desde puerta 4 (vehiculos)
 103,493,46.63,1,0,Acceso desde puerta 4 (vehiculos)
-400,401,21.92,1,1,Conexion de camino (escaleras)
-401,300,13.46,1,0,Conexion hacia Paraninfo
-400,485,35.0,1,0,Conexion de camino
-485,201,14.91,1,0,Conexion hacia entrada de Bloque B-01
-485,202,21.89,1,0,Conexion hacia entrada de Bloque B-02
-485,483,43.87,1,0,Conexion de camino
-483,203,11.45,1,0,Conexion hacia entrada de Bloque B-03
-400,402,37.29,1,0,Conexion de camino
-402,403,29.69,1,0,Conexion de via
-403,404,32.01,1,0,Conexion de camino
-404,204,16.12,1,0,Conexion hacia entrada de Bloque B-04
-403,405,33.32,1,0,Conexion de camino
-405,406,40.36,1,0,Conexion de via
-406,407,20.68,1,0,Conexion de camino
-407,409,36.31,1,0,Conexion de camino
-409,205,11.39,1,0,Conexion hacia entrada de Bloque B-05
-409,304,17.25,1,0,Conexion hacia cancha multiple
-409,305,36.47,1,0,Conexion hacia Tasty Food
-409,317,59.59,1,0,Conexion hacia Vicerrectorado
-406,412,38.33,1,0,Conexion de camino
-412,312,29.15,1,0,Conexion hacia cafeteria El Bosque
-412,413,42.22,1,0,Conexion de camino
-413,312,16.33,1,0,Conexion hacia cafeteria El Bosque
-413,423,39.92,1,0,Conexion de camino
-423,317,44.14,1,0,Conexion hacia Vicerrectorado
-423,318,25.37,1,0,Conexion hacia Tasty Food
-406,415,52.18,1,0,Conexion de camino
+400,401,21.86,1,1,Conexion de camino (escaleras)
+401,300,13.47,1,0,Conexion hacia Paraninfo
+400,485,35.01,1,0,Conexion de camino
+485,201,14.87,1,0,Conexion hacia entrada de Bloque B-01
+485,202,21.92,1,0,Conexion hacia entrada de Bloque B-02
+485,483,43.89,1,0,Conexion de camino
+483,203,11.51,1,0,Conexion hacia entrada de Bloque B-03
+400,402,37.26,1,0,Conexion de camino
+402,403,29.72,1,0,Conexion de via
+403,404,32.03,1,0,Conexion de camino
+404,204,16.09,1,0,Conexion hacia entrada de Bloque B-04
+403,405,33.79,1,0,Conexion de camino
+405,406,40.34,1,0,Conexion de via
+406,407,20.76,1,0,Conexion de camino
+407,409,36.22,1,0,Conexion de camino
+409,304,17.2,1,0,Conexion hacia cancha multiple
+409,305,36.52,1,0,Conexion hacia Tasty Food
+409,317,59.57,1,0,Conexion hacia Vicerrectorado
+406,412,38.37,1,0,Conexion de camino
+412,312,29.04,1,0,Conexion hacia cafeteria El Bosque
+412,413,42.12,1,0,Conexion de camino
+413,312,16.31,1,0,Conexion hacia cafeteria El Bosque
+413,423,39.86,1,0,Conexion de camino
+423,317,44.18,1,0,Conexion hacia Vicerrectorado
+423,318,25.34,1,0,Conexion hacia Tasty Food
+406,415,52.11,1,0,Conexion de camino
 415,206,8.41,1,0,Conexion hacia entrada de Bloque B-06
-415,416,31.61,1,0,Conexion de via
-416,313,14.56,1,0,Conexion hacia entrada hacia de gradas del estadio
-413,207,31.12,1,0,Conexion hacia entrada de Bloque B-07
-412,419,42.51,1,0,Conexion de camino
-416,418,50.22,1,0,Conexion de camino
-418,419,46.54,1,0,Conexion de camino
-419,207,22.5,1,0,Conexion de camino
-413,419,37.26,1,0,Conexion de camino
-413,421,42.08,1,0,Conexion de camino
-418,420,70.32,1,1,Conexion de camino (Escaleras)
-421,420,63.56,1,0,Conexion de camino
-420,208,26.14,1,0,Conexion hacia entrada de Bloque B-08
-420,424,33.27,1,0,Conexion de camino
-424,208,19.79,1,0,Conexion de camino
-424,326,34.11,1,0,Conexion hacia Tasty Food
-424,426,37.13,1,0,Conexion de camino
-426,326,18.34,1,0,Conexion hacia Tasty Food
-426,427,30.58,1,0,Conexion de camino
-427,209,18.2,1,0,Conexion hacia entrada de Bloque B-09
-427,429,32.48,1,0,Conexion de camino
-429,209,17.8,1,0,Conexion hacia entrada de Bloque B-09
-429,213,19.89,1,0,Conexion hacia entrada de Bloque B-13
-429,430,22.91,1,0,Conexion de camino
-430,214,38.65,1,0,Conexion hacia entrada de Bloque B-14
-429,432,34.87,1,0,Conexion de camino
-432,433,20.64,1,0,Conexion de via
-433,314,14.25,1,0,Conexion hacia entrada de Bloque B-13
-433,444,102.57,1,0,Conexion de camino
-314,213,37.01,1,0,Conexion entrada y salida de Bloque B-13
-434,436,23.17,1,0,Conexion de camino
-436,210,16.67,1,0,Conexion hacia entrada de Bloque B-10
-436,437,55.76,1,0,Conexion de camino
-437,211,25.77,1,0,Conexion hacia entrada de Bloque B-11
-437,212,16.93,1,0,Conexion de camino
+415,416,31.62,1,0,Conexion de via
+416,313,14.6,1,0,Conexion hacia entrada hacia de gradas del estadio
+413,207,31.07,1,0,Conexion hacia entrada de Bloque B-07
+412,419,42.47,1,0,Conexion de camino
+416,418,50.23,1,0,Conexion de camino
+418,419,46.57,1,0,Conexion de camino
+419,207,22.43,1,0,Conexion de camino
+413,419,37.25,1,0,Conexion de camino
+413,421,42.11,1,0,Conexion de camino
+418,420,70.26,1,1,Conexion de camino (Escaleras)
+421,420,63.59,1,0,Conexion de camino
+420,208,16.2,1,0,Conexion hacia entrada de Bloque B-08
+420,424,33.25,1,0,Conexion de camino
+424,208,42.78,1,0,Conexion de camino
+424,326,40.32,1,0,Conexion hacia Tasty Food
+424,426,37.19,1,0,Conexion de camino
+426,326,17.08,1,0,Conexion hacia Tasty Food
+426,427,30.56,1,0,Conexion de camino
+427,209,18.27,1,0,Conexion hacia entrada de Bloque B-09
+427,429,32.58,1,0,Conexion de camino
+429,209,17.79,1,0,Conexion hacia entrada de Bloque B-09
+429,213,19.8,1,0,Conexion hacia entrada de Bloque B-13
+429,430,22.88,1,0,Conexion de camino
+430,214,38.64,1,0,Conexion hacia entrada de Bloque B-14
+429,432,34.77,1,0,Conexion de camino
+432,433,20.72,1,0,Conexion de via
+433,314,14.19,1,0,Conexion hacia entrada de Bloque B-13
+433,444,102.56,1,0,Conexion de camino
+314,213,37.0,1,0,Conexion entrada y salida de Bloque B-13
+434,436,23.19,1,0,Conexion de camino
+436,210,16.63,1,0,Conexion hacia entrada de Bloque B-10
+436,437,55.75,1,0,Conexion de camino
+437,211,25.84,1,0,Conexion hacia entrada de Bloque B-11
+437,212,16.97,1,0,Conexion de camino
 437,327,41.64,1,0,Conexion hacia Tasty Food
 437,323,54.37,1,0,Conexion hacia EPPDE
 436,442,40.73,1,0,Conexion de camino
-437,442,38.36,1,0,Conexion de camino
-442,327,54.82,1,0,Conexion hacia Tasty Food
-442,323,51.09,1,0,Conexion hacia EPPDE
-442,314,51.2,1,0,Conexion hacia entrada de Bloque B-13
-442,443,67.87,1,0,Conexion de camino
-443,214,30.65,1,0,Conexion hacia entrada de Bloque B-14
+437,442,38.33,1,0,Conexion de camino
+442,327,54.88,1,0,Conexion hacia Tasty Food
+442,323,51.14,1,0,Conexion hacia EPPDE
+442,314,51.24,1,0,Conexion hacia entrada de Bloque B-13
+442,443,67.91,1,0,Conexion de camino
+443,214,30.64,1,0,Conexion hacia entrada de Bloque B-14
 443,444,51.99,1,0,Conexion de camino
-444,214,27.24,1,0,Conexion de camino
-444,430,40.02,1,0,Conexion de camino
-444,215,33.92,1,0,Conexion hacia entrada de Bloque B-15
+444,214,27.25,1,0,Conexion de camino
+444,430,39.97,1,0,Conexion de camino
+444,215,33.89,1,0,Conexion hacia entrada de Bloque B-15
 444,446,44.27,1,1,Conexion de camino (Escaleras)
-444,426,55.39,1,0,Conexion de via
-446,215,21.63,1,0,Conexion hacia entrada de Bloque B-15
-426,215,25.38,1,0,Conexion hacia entrada de Bloque B-15
-305,318,20.38,1,0,Conexion entrada y salida Tasty Food
-446,447,39.58,1,0,Conexion de camino
-451,452,27.45,1,0,Conexion de camino
-448,450,42.66,1,0,Conexion de camino
-450,216,28.14,1,0,Conexion hacia entrada de Bloque B-16
-452,324,12.37,1,0,Conexion hacia DIOP
-447,426,48.24,1,0,Conexion de via
-447,448,41.86,1,0,Conexion de via
-448,315,27.52,1,0,Conexion hacia Agro Market
-450,451,30.14,1,0,Conexion de camino
+444,426,55.74,1,0,Conexion de via
+446,215,22.84,1,0,Conexion hacia entrada de Bloque B-15
+426,215,25.33,1,0,Conexion hacia entrada de Bloque B-15
+305,318,20.37,1,0,Conexion entrada y salida Tasty Food
+446,447,39.53,1,0,Conexion de camino
+451,452,27.42,1,0,Conexion de camino
+448,450,42.64,1,0,Conexion de camino
+450,216,28.12,1,0,Conexion hacia entrada de Bloque B-16
+452,324,12.34,1,0,Conexion hacia DIOP
+447,426,48.26,1,0,Conexion de via
+447,448,41.87,1,0,Conexion de via
+448,315,27.53,1,0,Conexion hacia Agro Market
+450,451,30.16,1,0,Conexion de camino
 452,453,18.12,1,1,Conexion de camino (Escaleras)
-451,454,40.93,1,0,Conexion de camino
-454,455,32.58,1,0,Conexion de camino
-455,303,35.84,1,0,Conexion hacia Instituto de Idiomas
-455,457,25.27,1,0,Conexion de camino
-457,325,6.46,1,0,Conexion hacia Cine
-457,456,17.45,1,0,Conexion de camino
-456,458,12.18,1,1,Conexion de camino (Escaleras)
-454,459,68.86,1,0,Conexion de camino
-459,460,54.07,1,0,Conexion de via
-460,461,25.03,1,0,Conexion de camino
-461,462,38.26,1,0,Conexion de camino
-462,463,44.35,1,0,Conexion de camino
-463,218,18.19,1,0,Conexion hacia entrada de Bloque B-18
-463,224,35.05,1,0,Conexion hacia entrada de Bloque B-24
-463,464,29.95,1,0,Conexion de camino
-464,319,41.6,1,0,Conexion hacia Decanato Ciencias de la Salud
-464,219,21.14,1,0,Conexion hacia entrada de Bloque B-19
-464,466,39.7,1,0,Conexion de camino
-464,224,16.9,1,0,Conexion hacia entrada de Bloque B-24
-466,219,33.86,1,0,Conexion hacia entrada de Bloque B-19
-466,467,41.5,1,0,Conexion de camino
-467,225,8.49,1,0,Conexion hacia entrada de Bloque B-25
-467,468,33.71,1,0,Conexion de camino
-468,220,13.97,1,0,Conexion hacia entrada de Bloque B-20
+451,454,40.9,1,0,Conexion de camino
+454,455,32.62,1,0,Conexion de camino
+455,303,35.82,1,0,Conexion hacia Instituto de Idiomas
+455,457,25.24,1,0,Conexion de camino
+457,325,6.47,1,0,Conexion hacia Cine
+457,456,17.47,1,0,Conexion de camino
+456,458,12.17,1,1,Conexion de camino (Escaleras)
+454,459,68.93,1,0,Conexion de camino
+459,460,54.05,1,0,Conexion de via
+460,461,25.02,1,0,Conexion de camino
+461,462,38.18,1,0,Conexion de camino
+462,463,44.36,1,0,Conexion de camino
+463,218,18.23,1,0,Conexion hacia entrada de Bloque B-18
+463,224,35.12,1,0,Conexion hacia entrada de Bloque B-24
+463,464,30.01,1,0,Conexion de camino
+464,319,41.53,1,0,Conexion hacia Decanato Ciencias de la Salud
+464,219,21.09,1,0,Conexion hacia entrada de Bloque B-19
+464,466,39.79,1,0,Conexion de camino
+464,224,16.94,1,0,Conexion hacia entrada de Bloque B-24
+466,219,33.87,1,0,Conexion hacia entrada de Bloque B-19
+466,467,41.4,1,0,Conexion de camino
+467,225,8.52,1,0,Conexion hacia entrada de Bloque B-25
+467,468,33.64,1,0,Conexion de camino
+468,220,13.98,1,0,Conexion hacia entrada de Bloque B-20
 468,470,22.48,1,0,Conexion de camino
-470,321,13.97,1,0,Conexion hacia Tasty Food
-470,322,23.01,1,0,Conexion hacia cancha de psicologia
-470,221,29.58,1,0,Conexion hacia entrada de Bloque B-21
+470,321,13.93,1,0,Conexion hacia Tasty Food
+470,322,23.05,1,0,Conexion hacia cancha de psicologia
+470,221,29.6,1,0,Conexion hacia entrada de Bloque B-21
 462,472,40.35,1,0,Conexion de camino
-461,472,23.3,1,0,Conexion de camino
-458,472,31.5,1,0,Conexion de camino
-472,217,34.01,1,0,Conexion hacia entrada de Bloque B-17
-472,473,47.94,1,0,Conexion de camino
-473,217,15.94,1,0,Conexion hacia entrada de Bloque B-17
-473,328,18.41,1,0,Conexion hacia el Auditorio de Comunicacion
-453,473,38.53,1,0,Conexion de camino
+461,472,23.31,1,0,Conexion de camino
+458,472,31.44,1,0,Conexion de camino
+472,217,33.99,1,0,Conexion hacia entrada de Bloque B-17
+472,473,47.83,1,0,Conexion de camino
+473,217,15.88,1,0,Conexion hacia entrada de Bloque B-17
+473,328,18.43,1,0,Conexion hacia el Auditorio de Comunicacion
+453,473,38.63,1,0,Conexion de camino
 453,328,29.77,1,0,Conexion hacia el Auditorio de Comunicacion
-473,474,57.0,1,0,Conexion de camino
-474,328,39.62,1,0,Conexion hacia el Auditorio de Comunicacion
-474,475,37.97,1,0,Conexion de via
-475,320,27.45,1,0,Conexion hacia Bodega Control de Bienes
-448,475,53.95,1,0,Conexion de via
-459,477,47.27,1,0,Conexion de camino
-460,477,21.14,1,0,Conexion de camino
-477,311,16.99,1,0,Conexion hacia Estudios y Construcciones
-454,478,38.45,1,0,Conexion de camino
-459,478,54.17,1,0,Conexion de camino
-454,479,56.33,1,0,Conexion de via
+473,474,57.05,1,0,Conexion de camino
+474,328,39.57,1,0,Conexion hacia el Auditorio de Comunicacion
+474,475,37.98,1,0,Conexion de via
+475,320,27.44,1,0,Conexion hacia Bodega Control de Bienes
+448,475,53.98,1,0,Conexion de via
+459,477,47.24,1,0,Conexion de camino
+460,477,21.21,1,0,Conexion de camino
+477,311,16.93,1,0,Conexion hacia Estudios y Construcciones
+454,478,38.51,1,0,Conexion de camino
+459,478,54.19,1,0,Conexion de camino
+454,479,56.37,1,0,Conexion de via
 478,222,20.76,1,0,Conexion hacia entrada de Bloque B-22
-479,222,40.35,1,0,Conexion hacia entrada de Bloque B-22
-479,302,47.92,1,0,Conexion hacia DBANU
-479,480,53.06,1,0,Conexion de camino
-480,302,21.93,1,0,Conexion hacia DBANU
-480,482,29.46,1,0,Conexion de camino
-416,480,57.27,1,0,Conexion de camino
-482,483,45.36,1,1,Conexion de camino (Escaleras)
-479,486,33.17,1,0,Conexion de camino
-486,487,43.83,1,0,Conexion de via
-487,488,26.39,1,0,Conexion de camino
-488,308,20.45,1,0,Conexion hacia DBU
-488,490,33.7,1,0,Conexion de camino
-488,489,51.72,1,1,Conexion de camino (Escaleras)
-489,307,27.74,1,0,Conexion hacia Plaza Centenario
-490,307,21.56,1,0,Conexion hacia Plaza Centenario
-490,308,14.84,1,0,Conexion hacia DBU
-490,309,17.58,1,1,Conexion hacia RSG y GYM (Escaleras)
-490,491,57.38,1,0,Conexion de via
-491,492,32.24,1,0,Conexion de camino
-492,223,19.36,1,0,Conexion hacia entrada de Bloque B-23
-492,493,61.64,1,0,Conexion de camino
-493,310,16.11,1,0,Aula Magna de la Universidad Eloy Alfaro
-486,494,125.52,1,0,Conexion de camino
-485,489,23.78,1,1,Conexion de camino (Escaleras)
-400,301,85.92,1,0,Conexion hacia Centro de Convenciones del Pacifico
-405,230,22.97,1,0,Conexion hacia Laboratorio Gastronomico
-450,315,17.01,1,0,Conexion hacia Agromarket
-418,313,36.88,1,0,Conexion hacia gradas de estadio
-403,481,92.53,1,0,Conexion de camino
-481,482,9.16,1,0,Conexion de camino
-481,306,28.51,1,0,Conexion entrada hacia Coliseo Edmundo Lourido
-415,306,44.81,1,0,Conexion de camino
-481,415,76.66,1,0,Conexion de camino
-400,500,44.82,1,0,Conexion hacia zona segura 1
-489,501,23.21,1,0,Conexion hacia zona segura 2
-488,501,34.63,1,0,Conexion hacia zona segura 2
-490,501,17.42,1,0,Conexion hacia zona segura 2
-477,502,46.86,1,0,Conexion hacia zona segura 3
-470,329,54.41,1,0,Conexion hacia Direccion de Informatica e Innovacion Tecnologica (DIIT)
-453,474,47.65,1,0,Conexion de camino
-452,226,10.77,1,0,Conexion hacia entrada Bloque B-16
+479,222,40.44,1,0,Conexion hacia entrada de Bloque B-22
+479,302,47.89,1,0,Conexion hacia DBANU
+479,480,53.02,1,0,Conexion de camino
+480,302,21.97,1,0,Conexion hacia DBANU
+480,482,29.49,1,0,Conexion de camino
+416,480,57.28,1,0,Conexion de camino
+482,483,45.38,1,1,Conexion de camino (Escaleras)
+479,486,33.13,1,0,Conexion de camino
+486,487,43.82,1,0,Conexion de via
+487,488,26.45,1,0,Conexion de camino
+488,308,20.5,1,0,Conexion hacia DBU
+488,490,33.71,1,0,Conexion de camino
+488,489,51.71,1,1,Conexion de camino (Escaleras)
+489,307,27.7,1,0,Conexion hacia Plaza Centenario
+490,307,21.62,1,0,Conexion hacia Plaza Centenario
+490,308,14.83,1,0,Conexion hacia DBU
+490,309,17.59,1,1,Conexion hacia RSG y GYM (Escaleras)
+490,491,57.37,1,0,Conexion de via
+491,492,32.35,1,0,Conexion de camino
+492,223,19.42,1,0,Conexion hacia entrada de Bloque B-23
+492,493,61.6,1,0,Conexion de camino
+493,310,16.06,1,0,Aula Magna de la Universidad Eloy Alfaro
+486,494,125.56,1,0,Conexion de camino
+485,489,23.77,1,1,Conexion de camino (Escaleras)
+400,301,85.85,1,0,Conexion hacia Centro de Convenciones del Pacifico
+405,230,24.46,1,0,Conexion hacia Laboratorio Gastronomico
+450,315,16.97,1,0,Conexion hacia Agromarket
+418,313,36.84,1,0,Conexion hacia gradas de estadio
+403,481,92.58,1,0,Conexion de camino
+481,482,9.1,1,0,Conexion de camino
+481,306,28.62,1,0,Conexion entrada hacia Coliseo Edmundo Lourido
+415,306,44.8,1,0,Conexion de camino
+481,415,76.74,1,0,Conexion de camino
+400,500,44.77,1,0,Conexion hacia zona segura 1
+489,501,23.24,1,0,Conexion hacia zona segura 2
+488,501,34.61,1,0,Conexion hacia zona segura 2
+490,501,17.39,1,0,Conexion hacia zona segura 2
+477,502,46.76,1,0,Conexión hacia zona segura 3
+470,329,54.43,1,0,Conexion hacia Direccion de Informatica e Innovacion Tecnologica (DIIT)
+453,474,47.68,1,0,Conexion de camino
+452,226,10.79,1,0,Conexion hacia entrada Bloque B-16
 451,226,26.03,1,0,Entrada hacia Bloque B-16
-494,495,42.64,1,0,Conexion de camino
+494,495,42.59,1,0,Conexion de camino
 495,502,29.07,1,0,Conexion hacia Zona Segura
-495,477,55.71,1,0,Conexion de camino
+495,477,55.66,1,0,Conexion de camino
 495,311,49.15,1,0,Conexion hacia Estudios y construcciones Uleam -EP
-433,434,10.35,1,0,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)
+405,205,51.04,1,0,Conexion hacia entrada Bloque B-05
+426,227,31.18,1,0,Conexion a Entrada Bloque B-08
+424,227,14.73,1,0,Conexion a Entrada Bloque B-08
+433,434,10.26,1,0,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)

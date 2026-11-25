@@ -32,7 +32,7 @@ NUEVOS = {
           "diit informatica sistemas ti tecnologia soporte"),
 }
 # Segundas entradas de un bloque: se nombran "(Bloque B-xx, acceso 2)"
-ACCESO_2 = {314, 226}
+ACCESO_2 = {314, 226, 227}
 # B-21 (nodo 221) sin carreras por el momento; Psicología, Fisioterapia, etc. están en el B-20 (nodo 220).
 # data/nodos_u.csv ya trae ese reparto; estas tablas quedan vacías para casos futuros.
 CARRERAS_DE = {}                # nodo -> nodo del que toma las carreras

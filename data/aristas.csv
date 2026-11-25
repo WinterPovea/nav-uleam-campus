@@ -19,7 +19,6 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 405,406,Si,Conexion de via
 406,407,No,Conexion de camino
 407,409,No,Conexion de camino
-409,205,No,Conexion hacia entrada de Bloque B-05
 409,304,No,Conexion hacia cancha multiple
 409,305,No,Conexion hacia Tasty Food
 409,317,No,Conexion hacia Vicerrectorado
@@ -182,7 +181,7 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 489,501,No,Conexion hacia zona segura 2
 488,501,No,Conexion hacia zona segura 2
 490,501,No,Conexion hacia zona segura 2
-477,502,No,Conexion hacia zona segura 3
+477,502,No,Conexión hacia zona segura 3
 470,329,No,Conexion hacia Direccion de Informatica e Innovacion Tecnologica (DIIT)
 453,474,No,Conexion de camino
 452,226,No,Conexion hacia entrada Bloque B-16
@@ -191,4 +190,7 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 495,502,No,Conexion hacia Zona Segura
 495,477,No,Conexion de camino
 495,311,No,Conexion hacia Estudios y construcciones Uleam -EP
+405,205,No,Conexion hacia entrada Bloque B-05
+426,227,No,Conexion a Entrada Bloque B-08
+424,227,No,Conexion a Entrada Bloque B-08
 433,434,No,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)
