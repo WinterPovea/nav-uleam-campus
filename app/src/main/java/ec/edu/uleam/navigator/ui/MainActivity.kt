@@ -11,6 +11,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
@@ -101,6 +102,7 @@ import ec.edu.uleam.navigator.location.LocationState
 import ec.edu.uleam.navigator.routing.astar.DirectionType
 import ec.edu.uleam.navigator.routing.astar.NavigationInstruction
 import ec.edu.uleam.navigator.ui.map.CampusMap
+import ec.edu.uleam.navigator.ui.map.blockLabel
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.SmallFloatingActionButton
 import ec.edu.uleam.navigator.ui.map.MapTheme
@@ -113,12 +115,28 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.SideEffect
 import androidx.compose.foundation.isSystemInDarkTheme
 import android.widget.Toast
+import android.content.res.Configuration
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.focus.onFocusChanged
+import ec.edu.uleam.navigator.ui.voice.VoiceGuide
 
 class MainActivity : ComponentActivity() {
     private val vm: CampusViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Se decide el modo oscuro ANTES del primer cuadro: así no se ve un destello claro al abrir en modo oscuro.
+        val sistemaOscuro = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val oscuro = (MapStylePrefs(this).load() ?: MapStyle.CLARO).esOscuro(sistemaOscuro)
+        MapTheme.dark = oscuro
+        if (oscuro) setTheme(android.R.style.Theme_Material_NoActionBar)
         super.onCreate(savedInstanceState)
+        window.decorView.setBackgroundColor(if (oscuro) 0xFF12171A.toInt() else 0xFFFFFFFF.toInt())
         setContent {
             // La interfaz sigue el estilo del mapa (claro / oscuro / sistema): MapTheme.dark es estado de Compose
             MaterialTheme(colorScheme = if (MapTheme.dark) UleamDarkColors else UleamLightColors) {
@@ -152,6 +170,7 @@ private fun hasLocationPermission(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun CampusApp(vm: CampusViewModel) {
     val context = LocalContext.current
@@ -209,8 +228,8 @@ fun CampusApp(vm: CampusViewModel) {
         }
         if (!vm.ui.isSimulationMode) {
             when (val s = locationState) {
-                is LocationState.Fix -> vm.onGpsLocation(s.lat, s.lon)
-                is LocationState.LowAccuracy -> vm.onGpsLocation(s.lat, s.lon)
+                is LocationState.Fix -> vm.onGpsLocation(s.lat, s.lon, s.accuracyM)
+                is LocationState.LowAccuracy -> vm.onGpsLocation(s.lat, s.lon, s.accuracyM)
                 else -> {}
             }
         }
@@ -252,6 +271,24 @@ fun CampusApp(vm: CampusViewModel) {
         MapStyleDialog(onElegir = { guardarEstilo(it) })
     }
 
+    // GUÍA POR VOZ: el ViewModel emite frases (inicio, giros, escaleras, llegada) y aquí se dicen con TextToSpeech
+    val voiceGuide = remember { VoiceGuide(context) }
+    DisposableEffect(Unit) { onDispose { voiceGuide.shutdown() } }
+    LaunchedEffect(Unit) {
+        vm.voz.collect { frase -> if (vm.ui.vozActiva) voiceGuide.speak(frase) }
+    }
+    LaunchedEffect(s.vozActiva) { if (!s.vozActiva) voiceGuide.stop() }
+
+    var searchFocused by remember { mutableStateOf(false) }
+    // Sugerencias abiertas (recientes, filtros o resultados): se cierran con la X, tocando el mapa o con "Atrás"
+    val busquedaAbierta = searchFocused || s.categoria != null || s.results.isNotEmpty()
+    fun cerrarBusqueda() {
+        focusManager.clearFocus()
+        keyboard?.hide()
+        vm.cerrarBusqueda()
+    }
+    BackHandler(enabled = busquedaAbierta) { cerrarBusqueda() }
+
     // Altura de la tarjeta inferior: los botones flotantes del mapa quedan siempre por encima de ella
     var cardHeightPx by remember { mutableStateOf(0) }
     val cardHeightDp = with(LocalDensity.current) { cardHeightPx.toDp() }
@@ -269,13 +306,14 @@ fun CampusApp(vm: CampusViewModel) {
             destinationNodeId = s.destino?.idNodo,
             userPosition = vm.userPosition,
             isSimulationMode = s.isSimulationMode,
-            onMapTap = vm::onMapTap,
-            onPlaceTap = vm::onPlaceTap,
+            onMapTap = { lat, lon -> if (busquedaAbierta) cerrarBusqueda() else vm.onMapTap(lat, lon) },
+            onPlaceTap = { l -> if (busquedaAbierta) cerrarBusqueda() else vm.onPlaceTap(l) },
             modifier = Modifier.fillMaxSize(),
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
             controlsBottomPadding = cardHeightDp + 24.dp,
-            mapStyle = effectiveStyle
+            mapStyle = effectiveStyle,
+            routeLead = vm.leadActivo()
         )
 
         // CAPA 2: CONTROLES SUPERIORES (Búsqueda + Selector de Puertas + Conmutador Demo)
@@ -309,9 +347,9 @@ fun CampusApp(vm: CampusViewModel) {
                         textStyle = MaterialTheme.typography.bodyMedium,
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = tc(0xFFA01B2C, 0xFF64B5F6)) },
                         trailingIcon = {
-                            if (s.query.isNotEmpty()) {
-                                IconButton(onClick = { vm.onQuery("") }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Limpiar")
+                            if (s.query.isNotEmpty() || busquedaAbierta) {
+                                IconButton(onClick = { cerrarBusqueda() }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Cerrar búsqueda")
                                 }
                             }
                         },
@@ -319,14 +357,43 @@ fun CampusApp(vm: CampusViewModel) {
                             focusedBorderColor = Color.Transparent,
                             unfocusedBorderColor = Color.Transparent
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().onFocusChanged { searchFocused = it.isFocused }
                     )
 
-                    // Resultados de búsqueda
-                    if (s.results.isNotEmpty()) {
+                    // Filtros rápidos por categoría (al tocar la búsqueda o con un filtro activo)
+                    if (searchFocused || s.categoria != null) {
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Categorias.CHIPS.forEach { (cat, etiqueta) ->
+                                FilterChip(
+                                    selected = s.categoria == cat,
+                                    onClick = { vm.filtrarCategoria(cat) },
+                                    label = { Text(etiqueta, fontSize = 12.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = tc(0xFFF6DADD, 0xFF1E3A50)
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // Resultados de búsqueda, o los destinos recientes si la búsqueda está vacía
+                    val mostrarRecientes = s.results.isEmpty() && searchFocused && s.query.isEmpty() &&
+                        s.categoria == null && s.recientes.isNotEmpty()
+                    val lista = if (mostrarRecientes) s.recientes else s.results
+                    if (lista.isNotEmpty()) {
                         HorizontalDivider()
+                        if (mostrarRecientes) {
+                            Row(Modifier.padding(start = 14.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.History, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Recientes", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
                         LazyColumn(Modifier.heightIn(max = 240.dp).fillMaxWidth()) {
-                            items(s.results) { place ->
+                            items(lista) { place ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -542,7 +609,9 @@ fun CollapsibleNavigationCard(
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
         modifier = modifier.animateContentSize()
     ) {
-        Column(Modifier.padding(14.dp)) {
+        // Navegando y sin expandir: tarjeta compacta (destino corto + metros restantes) para no tapar el mapa
+        val compact = s.navigating && !expanded
+        Column(Modifier.padding(if (compact) 10.dp else 14.dp)) {
             // CABECERA: Título, estado y botón de colapso
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -550,12 +619,15 @@ fun CollapsibleNavigationCard(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = s.destino?.nombre ?: "Selecciona un destino",
+                        text = if (compact) s.destino?.let { blockLabel(it.codigo, it.nombre) ?: it.nombre } ?: ""
+                            else s.destino?.nombre ?: "Selecciona un destino",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
+                        fontSize = if (compact) 15.sp else 17.sp,
+                        maxLines = if (compact) 1 else Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis,
                         color = if (s.destino != null) tc(0xFFA01B2C, 0xFF90CAF9) else MaterialTheme.colorScheme.onSurface
                     )
-                    s.destino?.descripcion?.takeIf { it.isNotBlank() }?.let { d ->
+                    if (!compact) s.destino?.descripcion?.takeIf { it.isNotBlank() }?.let { d ->
                         Text(
                             text = d,
                             fontSize = 12.sp,
@@ -564,7 +636,7 @@ fun CollapsibleNavigationCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Text(
+                    if (!compact) Text(
                         text = "Origen: ${s.origenLabel}",
                         fontSize = 12.sp,
                         color = Color.Gray
@@ -596,8 +668,8 @@ fun CollapsibleNavigationCard(
                 )
             }
 
-            // RESUMEN MÉTRICO PRINCIPAL DE RUTA
-            if (s.route != null) {
+            // RESUMEN MÉTRICO PRINCIPAL DE RUTA (navegando, lo reemplaza "Faltan X m")
+            if (s.route != null && !compact) {
                 Spacer(Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
@@ -614,7 +686,9 @@ fun CollapsibleNavigationCard(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "%.0f m  ·  ≈ %.1f min a pie".format(s.route.distanceM, s.route.estimatedMinutes),
+                        text = (vm.routeDistanceM() ?: s.route.distanceM).let { d ->
+                            "%.0f m  ·  ≈ %.1f min a pie".format(d, s.route.estimatedMinutes * d / s.route.distanceM.coerceAtLeast(0.1))
+                        },
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = tc(0xFF0D47A1, 0xFF90CAF9)
@@ -633,7 +707,7 @@ fun CollapsibleNavigationCard(
 
             // EMPEZAR RUTA (como Google Maps) / NAVEGANDO CON METROS RESTANTES
             if (s.route != null) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
                 if (!s.navigating) {
                     Button(
                         onClick = vm::empezarRuta,
@@ -645,10 +719,8 @@ fun CollapsibleNavigationCard(
                         Text("Empezar ruta", fontWeight = FontWeight.Bold)
                     }
                 } else {
-                    val byId = remember(vm.nodos.size) { vm.nodoById }
                     val remainingM = vm.userPosition?.let { u ->
-                        val pts = s.route.nodeIds.mapNotNull { id -> byId[id]?.let { GeoPoint(it.latitud, it.longitud) } }
-                        RouteProgressCalc.compute(pts, GeoPoint(u.lat, u.lon))?.remainingM
+                        vm.routeGeometry()?.let { pts -> RouteProgressCalc.compute(pts, GeoPoint(u.lat, u.lon))?.remainingM }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -662,6 +734,12 @@ fun CollapsibleNavigationCard(
                                 fontSize = 12.sp,
                                 color = Color.Gray
                             )
+                        }
+                        if (compact) {
+                            // Zona Segura sigue a mano aunque la tarjeta esté compacta
+                            IconButton(onClick = vm::zonaSegura) {
+                                Icon(Icons.Default.Security, contentDescription = "Zona Segura", tint = tc(0xFFD32F2F, 0xFF1E88E5))
+                            }
                         }
                         OutlinedButton(onClick = vm::terminarRuta) { Text("Terminar") }
                     }
@@ -678,7 +756,7 @@ fun CollapsibleNavigationCard(
                     fontWeight = FontWeight.Medium
                 )
             }
-            s.infoMsg?.let { infoText ->
+            if (!compact) s.infoMsg?.let { infoText ->
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = infoText,
@@ -743,6 +821,24 @@ fun CollapsibleNavigationCard(
                         )
                     }
 
+                    // SWITCH GUÍA POR VOZ
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.RecordVoiceOver, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Guía por voz:", fontSize = 13.sp)
+                        }
+                        Switch(
+                            checked = s.vozActiva,
+                            onCheckedChange = vm::toggleVoz,
+                            colors = SwitchDefaults.colors(checkedThumbColor = tc(0xFFA01B2C, 0xFF64B5F6))
+                        )
+                    }
+
                     // LISTADO DE INSTRUCCIONES TURN-BY-TURN (ROL 4)
                     if (s.instructions.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
@@ -769,10 +865,10 @@ fun CollapsibleNavigationCard(
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            if (!compact) Spacer(Modifier.height(10.dp))
 
-            // ACCIONES PRINCIPALES: ZONA SEGURA (EVACUACIÓN) Y LIMPIAR
-            Row(
+            // ACCIONES PRINCIPALES: ZONA SEGURA (EVACUACIÓN) Y LIMPIAR (en la tarjeta compacta, Zona Segura va junto a Terminar)
+            if (!compact) Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {

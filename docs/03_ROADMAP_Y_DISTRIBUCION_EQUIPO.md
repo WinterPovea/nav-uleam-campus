@@ -105,7 +105,9 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 
 ### Módulo 2: Base de Datos y Persistencia Avanzada (G2)
 
-#### Tarea 2.1: Historial de Búsquedas y Lugares Favoritos
+#### Tarea 2.1: Historial de Búsquedas y Lugares Favoritos — 🟡 HISTORIAL COMPLETADO
+> Los 5 destinos recientes se guardan en SharedPreferences (`map_prefs/recientes`) y se muestran al tocar la búsqueda vacía. Faltan los favoritos.
+
 - **Asignado a:** Desarrollador 3 (Desarrollador de Persistencia Android)
 - **Rama Git:** `feature/g2-favorites-history`
 - **Archivos a crear/modificar:**
@@ -218,7 +220,9 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 
 ### Módulo 6: UI/UX, Accesibilidad y Voz (G6)
 
-#### Tarea 6.1: Asistente de Voz Turn-by-Turn (Text-To-Speech) y Háptica
+#### Tarea 6.1: Asistente de Voz Turn-by-Turn (Text-To-Speech) y Háptica — 🟡 VOZ COMPLETADA
+> Voz hecha en `ui/voice/VoiceCues.kt` + `VoiceGuide.kt` (inicio, giros, escaleras adelante, llegada; interruptor en la tarjeta). Falta la vibración (háptica).
+
 - **Asignado a:** Desarrollador 11 (Especialista en Accesibilidad y Android Framework)
 - **Rama Git:** `feature/g6-voice-and-haptics`
 - **Archivos a crear/modificar:**
@@ -229,7 +233,9 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
   - `feat(accessibility): implementar VoiceGuidanceManager con TTS en espanol`
   - `feat(accessibility): agregar retroalimentacion haptica en giros y emergencias`
 
-#### Tarea 6.2: Ficha Desplegable de Detalles del Lugar (Modal Bottom Sheet) y Categorías
+#### Tarea 6.2: Ficha Desplegable de Detalles del Lugar (Modal Bottom Sheet) y Categorías — 🟡 CHIPS COMPLETADOS
+> Chips de categoría hechos (`ui/Categorias.kt`, en la búsqueda). Falta la ficha desplegable del lugar.
+
 - **Asignado a:** Desarrollador 12 (Diseñador de Interfaz Móvil Compose)
 - **Rama Git:** `feature/g6-place-details-sheet`
 - **Archivos a crear/modificar:**
@@ -248,7 +254,7 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **T1.1** | G1 | Parser GeoJSON a Room | Dev 1 | `feature/g1-geojson-importer` | `GeoJsonParser.kt` |
 | **T1.2** | G1 | Polígonos de Edificios | Dev 2 | `feature/g1-campus-polygons` | `edificios_poligonos.json` |
-| **T2.1** | G2 | Favoritos e Historial | Dev 3 | `feature/g2-favorites-history` | Entidades y DAOs favoritos |
+| **T2.1** | G2 | Historial 🟡 (faltan favoritos) | Dev 3 | `feature/g2-favorites-history` | Entidades y DAOs favoritos |
 | **T2.2** | G2 | Migración Room y Pisos | Dev 4 | `feature/g2-schema-migration-v2` | `Migration(1, 2)` |
 | **T3.1** | G3 | Recálculo Fuera de Ruta ✅ | Dev 5 | `feature/g3-dynamic-rerouting` | `isOffRoute()` y tests (Completado) |
 | **T3.2** | G3 | Ponderación Peatonal | Dev 6 | `feature/g3-routing-penalties` | Opciones de caminata |
@@ -256,8 +262,8 @@ Para que cada desarrollador tenga una contribución clara, medible y comprobable
 | **T4.2** | G4 | Filtro Suavizado GNSS ✅ | Dev 8 | `feature/g4-gnss-filtering` | `LocationFilter.kt` (Completado) |
 | **T5.1** | G5 | Cono de Visión y Rotación ✅| Dev 9 | `feature/g5-compass-canvas` | Canvas con FOV (Completado) |
 | **T5.2** | G5 | Renderizado de Áreas | Dev 10 | `feature/g5-infrastructure-polygons`| Paleta y polígonos |
-| **T6.1** | G6 | Voz TTS y Vibración | Dev 11 | `feature/g6-voice-and-haptics` | `VoiceGuidanceManager` |
-| **T6.2** | G6 | Bottom Sheet de Detalles | Dev 12 | `feature/g6-place-details-sheet` | BottomSheet y chips |
+| **T6.1** | G6 | Voz TTS 🟡 (falta vibración) | Dev 11 | `feature/g6-voice-and-haptics` | `VoiceGuidanceManager` |
+| **T6.2** | G6 | Chips 🟡 (falta Bottom Sheet) | Dev 12 | `feature/g6-place-details-sheet` | BottomSheet y chips |
 
 ---
 

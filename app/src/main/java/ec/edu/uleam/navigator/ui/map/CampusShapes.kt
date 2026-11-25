@@ -340,7 +340,13 @@ private fun DrawScope.drawCampusRoads(p: MapProjection, shapes: List<CampusShape
 }
 
 /** Edificios, estadio, canchas, plaza, parqueos y agua. Va DESPUÉS de las vías para que las tape en las huellas. */
-fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom: Float, labels: List<ShapeLabel> = emptyList()) {
+fun DrawScope.drawCampusShapes(
+    p: MapProjection,
+    shapes: List<CampusShape>,
+    zoom: Float,
+    labels: List<ShapeLabel> = emptyList(),
+    placer: LabelPlacer? = null
+) {
     val order = listOf("PISTA", "PISTA_INT", "CANCHA_ESTADIO", "GRADA", "PLAZA", "CANCHA_VERDE", "CANCHA", "COMIDA", "OTRO", "EDIFICIO")
     val flatTypes = setOf("PISTA", "PISTA_INT", "CANCHA_ESTADIO", "GRADA", "PLAZA", "CANCHA_VERDE", "CANCHA")
     val k = pxPerMeter(p, zoom)
@@ -394,6 +400,13 @@ fun DrawScope.drawCampusShapes(p: MapProjection, shapes: List<CampusShape>, zoom
             val o = p.toScreen(l.centro.lat, l.centro.lon)
             val lines = l.texto.split('\n')
             val dark = l.tipo == "ESTADIO" || l.tipo == "PLAZA"
+            // Con zoom bajo, una etiqueta que se encima con otra ya dibujada se omite
+            if (placer != null) {
+                val w = lines.maxOf { labelPaint.measureText(it) } / 2f
+                val h = labelPaint.textSize * (0.55f + lines.size * 0.55f)
+                val cy = o.y + (if (l.tipo == "PLAZA") 6f * k else 0f)
+                if (!placer.tryPlace(o.x - w, cy - h, o.x + w, cy + h)) continue
+            }
             lines.forEachIndexed { i, t ->
                 val y = o.y + labelPaint.textSize * 0.35f + (i - (lines.size - 1) / 2f) * labelPaint.textSize * 1.05f +
                     (if (l.tipo == "PLAZA") 6f * k else 0f)

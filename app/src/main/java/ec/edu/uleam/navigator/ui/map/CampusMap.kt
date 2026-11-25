@@ -101,7 +101,9 @@ fun CampusMap(
     navigating: Boolean = false,
     controlsBottomPadding: Dp = 16.dp,
     /** Estilo del mapa actual (el botón para alternarlo está en la pantalla principal, bajo las puertas). */
-    mapStyle: MapStyle = MapStyle.CLARO
+    mapStyle: MapStyle = MapStyle.CLARO,
+    /** Tramo inicial de la ruta con GPS real: desde el camino junto al usuario hasta el primer nodo. */
+    routeLead: List<GeoPoint> = emptyList()
 ) {
     var size by remember { mutableStateOf(IntSize(1, 1)) }
     var zoom by remember { mutableFloatStateOf(1.2f) }
@@ -126,8 +128,11 @@ fun CampusMap(
     val edgeShapes = remember(shapes) { EdgeShapes.from(shapes) }
 
     // Puntos de la ruta siguiendo la forma de cada arista (también para el avance mientras se navega)
-    val routePoints = remember(routeNodeIds, nodoById, edgeShapes) {
-        routeNodeIds?.let { ids -> edgeShapes.routePoints(ids) { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } } }
+    val routePoints = remember(routeNodeIds, nodoById, edgeShapes, routeLead) {
+        routeNodeIds?.let { ids ->
+            val pts = edgeShapes.routePoints(ids) { id -> nodoById[id]?.let { GeoPoint(it.latitud, it.longitud) } }
+            if (routeLead.size >= 2) routeLead + pts.drop(1) else pts
+        }
     }
     val navProgress = if (navigating && routePoints != null) {
         animatedUser?.let { RouteProgressCalc.compute(routePoints, GeoPoint(it.lat, it.lon)) }
@@ -462,7 +467,9 @@ fun CampusMap(
             }
 
             // 1b. EDIFICIOS, ESTADIO, CANCHAS, PARQUEOS Y AGUA (sobre las vías, bajo ruta y etiquetas)
-            drawCampusShapes(p, shapes, zoom, shapeLabels)
+            // Etiquetas sin encimarse: el destino y el origen tienen prioridad, luego los bloques, luego el resto
+            val placer = LabelPlacer()
+            drawCampusShapes(p, shapes, zoom, shapeLabels, placer)
 
             // 2. DIBUJAR INFRAESTRUCTURA DE EDIFICIOS Y BLOQUES (GEOMETRÍA Y RELLENO)
             nodos.forEach { node ->
@@ -537,7 +544,8 @@ fun CampusMap(
             // 3. ETIQUETAS DE TEXTO LEGIBLES PARA BLOQUES Y EDIFICIOS
             // Se dibujan cuando el zoom permite lectura clara
             if (zoom >= 1.2f) {
-                nodos.forEach { node ->
+                val ordenados = nodos.sortedBy { if (it.id == destinationNodeId || it.id == originNodeId) 0 else 1 }
+                ordenados.forEach { node ->
                     val place = lugaresByNodoId[node.id] ?: return@forEach
                     // Con huellas dibujadas el código del bloque ya va dentro del edificio (salvo con zoom alto)
                     if (hasShapes && zoom < 2.8f && node.tipo == "DESTINO" && !place.codigo.isNullOrBlank()) return@forEach
@@ -569,6 +577,8 @@ fun CampusMap(
                         center.y + textYOffset + 8f + lineH * (lines.size - 1)
                     )
 
+                    val prioritaria = node.id == destinationNodeId || node.id == originNodeId
+                    if (!placer.tryPlace(bgRect.left, bgRect.top, bgRect.right, bgRect.bottom) && !prioritaria) return@forEach
                     drawContext.canvas.nativeCanvas.drawRoundRect(bgRect, 8f, 8f, labelBgPaint)
                     lines.forEachIndexed { i, line ->
                         drawContext.canvas.nativeCanvas.drawText(line, center.x, center.y + textYOffset + i * lineH, labelPaint)

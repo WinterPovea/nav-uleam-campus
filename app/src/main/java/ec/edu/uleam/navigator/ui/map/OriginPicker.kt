@@ -25,8 +25,18 @@ object OriginPicker {
 
     private val BUILDING_TYPES = setOf("EDIFICIO", "OTRO", "COMIDA")
 
-    /** @param building figura dentro de la cual está el usuario (null si está en exteriores). */
-    data class Pick(val nodeId: Int, val walkM: Double, val building: CampusShape?)
+    /** Margen (m) sobre el camino más cercano para considerar otros caminos cercanos. */
+    const val EDGE_CANDIDATE_MARGIN_M = 15.0
+
+    /**
+     * @param building figura dentro de la cual está el usuario (null si está en exteriores).
+     * @param lead tramo inicial dibujado antes de la ruta: desde el punto del camino más cercano al usuario
+     *   hasta [nodeId], siguiendo la forma del camino (vacío si la ruta parte de una entrada de edificio).
+     */
+    data class Pick(val nodeId: Int, val walkM: Double, val building: CampusShape?, val lead: List<GeoPoint> = emptyList()) {
+        /** Largo (m) del tramo inicial sobre el camino. */
+        val leadM: Double get() = (0 until lead.size - 1).sumOf { RouteProgressCalc.distanceM(lead[it], lead[it + 1]) }
+    }
 
     /**
      * @param routeCost distancia de la ruta desde un nodo candidato hasta el destino (null = sin ruta).
@@ -53,15 +63,74 @@ object OriginPicker {
             best(entrances)?.let { return Pick(it, walk(it), b) }
         }
 
-        val street = graph.nodes.filter { it.type.isStreet }
-            .map { it.id to distanceM(p, GeoPoint(it.latitude, it.longitude)) }
-            .sortedBy { it.second }
-        val nearest = street.firstOrNull() ?: return null
-        if (nearest.second > MAX_SNAP_M) return null
-        val candidates = street.takeWhile { it.second <= nearest.second + STREET_CANDIDATE_MARGIN_M }
-            .take(MAX_STREET_CANDIDATES).map { it.first }
-        val id = best(candidates) ?: nearest.first
-        return Pick(id, walk(id), null)
+        // Exteriores: el usuario se proyecta sobre el camino (arista) más cercano y la ruta empieza en ese punto.
+        // Se descartan caminos a los que solo se llega atravesando un edificio.
+        val edgeShapes = EdgeShapes.from(shapes)
+        val buildings = shapes.filter { it.tipo in BUILDING_TYPES && it.puntos.size >= 3 }
+        data class Snap(val a: Int, val b: Int, val q: GeoPoint, val d: Double, val toA: List<GeoPoint>, val toB: List<GeoPoint>)
+        val snaps = ArrayList<Snap>()
+        for (u in graph.nodes) {
+            if (!u.type.isStreet) continue
+            for (nb in graph.neighbors(u.id)) {
+                val v = graph.node(nb.toId) ?: continue
+                if (!v.type.isStreet || v.id < u.id && graph.neighbors(v.id).any { it.toId == u.id }) continue
+                val line = edgeShapes.between(u.id, v.id)
+                    ?: listOf(GeoPoint(u.latitude, u.longitude), GeoPoint(v.latitude, v.longitude))
+                val (q, idx) = nearestOnLine(p, line)
+                val d = distanceM(p, q)
+                if (d > MAX_SNAP_M) continue
+                val toA = listOf(q) + line.subList(0, idx + 1).asReversed()
+                val toB = listOf(q) + line.subList(idx + 1, line.size)
+                snaps.add(Snap(u.id, v.id, q, d, toA, toB))
+            }
+        }
+        if (snaps.isEmpty()) return null
+        val libres = snaps.filter { s -> buildings.none { crosses(p, s.q, it.puntos) } }.ifEmpty { snaps }
+        val dMin = libres.minOf { it.d }
+        val cercanos = libres.filter { it.d <= dMin + EDGE_CANDIDATE_MARGIN_M }.sortedBy { it.d }.take(MAX_STREET_CANDIDATES)
+        var best: Pick? = null
+        var bestCost = Double.MAX_VALUE
+        for (s in cercanos) {
+            for ((id, lead) in listOf(s.a to s.toA, s.b to s.toB)) {
+                val pick = Pick(id, s.d, null, lead)
+                val rest = if (routeCost == null) 0.0 else routeCost(id) ?: continue
+                val cost = s.d + pick.leadM + rest
+                if (cost < bestCost) { bestCost = cost; best = pick }
+            }
+        }
+        return best
+    }
+
+    /** Punto más cercano a [p] sobre la polilínea y el índice del segmento (line[i]..line[i+1]) en que cae. */
+    fun nearestOnLine(p: GeoPoint, line: List<GeoPoint>): Pair<GeoPoint, Int> {
+        val kx = M_PER_DEG * cos(Math.toRadians(p.lat))
+        var best = line.first() to 0
+        var bestD = Double.MAX_VALUE
+        for (i in 0 until line.size - 1) {
+            val a = line[i]; val b = line[i + 1]
+            val ax = (a.lon - p.lon) * kx; val ay = (a.lat - p.lat) * M_PER_DEG
+            val dx = (b.lon - a.lon) * kx; val dy = (b.lat - a.lat) * M_PER_DEG
+            val len2 = dx * dx + dy * dy
+            val t = if (len2 < 1e-9) 0.0 else (-(ax * dx + ay * dy) / len2).coerceIn(0.0, 1.0)
+            val d = hypot(ax + t * dx, ay + t * dy)
+            if (d < bestD) {
+                bestD = d
+                best = GeoPoint(a.lat + t * (b.lat - a.lat), a.lon + t * (b.lon - a.lon)) to i
+            }
+        }
+        return best
+    }
+
+    /** ¿El segmento a–b atraviesa el contorno del polígono? */
+    fun crosses(a: GeoPoint, b: GeoPoint, poly: List<GeoPoint>): Boolean {
+        fun side(p: GeoPoint, q: GeoPoint, r: GeoPoint) =
+            (q.lon - p.lon) * (r.lat - p.lat) - (q.lat - p.lat) * (r.lon - p.lon)
+        for (i in poly.indices) {
+            val c = poly[i]; val d = poly[(i + 1) % poly.size]
+            val d1 = side(a, b, c); val d2 = side(a, b, d); val d3 = side(c, d, a); val d4 = side(c, d, b)
+            if (d1 * d2 < 0 && d3 * d4 < 0) return true
+        }
+        return false
     }
 
     /**

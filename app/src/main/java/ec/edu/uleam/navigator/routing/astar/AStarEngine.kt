@@ -35,6 +35,40 @@ class AStarEngine(private val graph: CampusGraph) {
         return RouteResult.Failure(reason)
     }
 
+    /**
+     * Distancia de la ruta más corta desde CADA nodo hasta [destinationId] (Dijkstra inverso, una sola pasada).
+     * Respeta las mismas reglas que [findRoute]: los DESTINO solo pueden ser extremo (el destino, o el nodo
+     * de partida, que sale por su única arista) y con avoidStairs se descartan escaleras.
+     * Sirve para comparar muchos orígenes candidatos sin correr un A* por cada uno.
+     */
+    fun distancesTo(destinationId: Int, options: RouteOptions = RouteOptions()): Map<Int, Double> {
+        if (graph.node(destinationId) == null) return emptyMap()
+        // Aristas invertidas: quién llega a cada nodo y con qué costo.
+        val incoming = HashMap<Int, MutableList<Pair<Int, CampusGraph.Neighbor>>>()
+        for (u in graph.nodes) for (nb in graph.neighbors(u.id)) {
+            if (options.avoidStairs && nb.hasStairs) continue
+            incoming.getOrPut(nb.toId) { ArrayList() }.add(u.id to nb)
+        }
+        val dist = HashMap<Int, Double>()
+        val open = PriorityQueue<Pair<Int, Double>>(compareBy { it.second })
+        dist[destinationId] = 0.0
+        open.add(destinationId to 0.0)
+        while (open.isNotEmpty()) {
+            val (v, d) = open.poll()!!
+            if (d > (dist[v] ?: Double.MAX_VALUE)) continue
+            // Un DESTINO distinto del objetivo no se atraviesa: se le asigna distancia (puede ser origen) pero no se expande.
+            if (v != destinationId && graph.node(v)?.type == NodeType.DESTINO) continue
+            for ((u, nb) in incoming[v].orEmpty()) {
+                val nd = d + nb.distanceM
+                if (nd < (dist[u] ?: Double.MAX_VALUE)) {
+                    dist[u] = nd
+                    open.add(u to nd)
+                }
+            }
+        }
+        return dist
+    }
+
     /** Flujo real: coordenada GPS cruda -> snap-to-node -> A*. */
     fun findRouteFromLocation(
         latitude: Double,

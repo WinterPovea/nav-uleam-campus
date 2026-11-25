@@ -1,140 +1,141 @@
 ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
-100,ENTRADA,Ingreso puerta 1,-0.954599,-80.746021,No aplica,No aplica
-101,ENTRADA,Ingreso puerta 2,-0.952992,-80.743712,No aplica,No aplica
-102,ENTRADA,Ingreso puerta 3,-0.95052,-80.746062,No aplica,No aplica
-103,ENTRADA,Ingreso puerta 4,-0.954886,-80.744175,No aplica,No aplica
-201,DESTINO,Entrada Bloque B-01,-0.954292,-80.745985,"Educacion, Turismo, Artes y Humanidades (FETAH)","Educacion Inicial, Educacion Basica, Pedagogia de la Lengua y Literatura, Pedagogia de los Idiomas Nacionales y Extranjeros, Educacion Basica Billingue, Educacion Inicial Bilingue, Educacion Inclusiva, Educacion Especial"
-202,DESTINO,Entrada Bloque B-02,-0.954146,-80.745803,"Ciencias Sociales, Derecho y Bienestar (FCSDB)","Economia, Gestion Publica y Desarrollo"
-203,DESTINO,Entrada Bloque B-03,-0.953957,-80.745748,"Ciencias Administrativas, Contables y Comerico (FCACC)","Gestion de la Informacion Gerencial, Comercio exterior, Bienes Raices"
-205,DESTINO,Entrada Bloque B-05,-0.953583,-80.747128,"Educacion, Turismo, Artes y Humanidades (FETAH)","Turismo sostenible, Turismo, Hospitalidad y Hoteleria, Gestion de Hoteleria internacional, Gastronomia"
-206,DESTINO,Entrada Bloque B-06,-0.953136,-80.746188,"Ciencias Sociales, Derecho y Bienestar (FCSDB)","Criminologia y Ciencias Forenses, Derecho, Ciencias Politicas"
-207,DESTINO,Entrada Bloque B-07,-0.952739,-80.746458,"Ingeneria, Industria y Arquitectura (FIIA)","Arquitectura, Tecnologia Construccion Sismorresistente"
-209,DESTINO,Entrada Bloque B-09,-0.951192,-80.746007,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Industrial, Ingeneria de Alimentos"
-210,DESTINO,Entrada Bloque B-10,-0.950309,-80.745853,Ciencias de la Vida y Tecnologias (FACIVITEC),"Ingeneria Ambiental, Biologia"
-211,DESTINO,Entrada Bloque B-11,-0.949972,-80.745806,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria maritima, Tecnologia Superior en Metal Mecanica"
-212,DESTINO,Entrada Bloque B-12,-0.949997,-80.745547,"Ciencias Administrativas, Contables y Comerico (FCACC)","Administracion de Empresas, Gestion de Talento Humano"
-213,DESTINO,Entrada Bloque B-13,-0.950945,-80.74578,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
-214,DESTINO,Entrada Bloque B-14,-0.951068,-80.745427,"Ciencias Sociales, Derecho y Bienestar (FCSDB)",Trabajo social
-215,DESTINO,Entrada Bloque B-15,-0.951385,-80.74569,Ciencias de la Vida y Tecnologias (FACIVITEC),"Agropecuaria, Agroindustria, Agronegocios"
-216,DESTINO,Entrada Bloque B-16,-0.952267,-80.744888,Ciencias de la Vida y Tecnologias (FACIVITEC),"Tecnologias de la Informacion, Software"
-219,DESTINO,Entrada Bloque B-19,-0.951736,-80.74399,Ciencias de la Salud (FCS),"Medicina, Laboratorio Clinico"
-220,DESTINO,Entrada Bloque B-20,-0.951082,-80.743523,Ciencias de la Salud (FCS),"Psicologia, Fisioterapia, Fonoaudologia, Terapia Ocupacional, Nutricion y Dietetica"
-221,DESTINO,Entrada Bloque B-21,-0.95094,-80.743125,Ciencias de la Salud (FCS),No disponible
-204,DESTINO,Entrada Bloque B-04,-0.954136,-80.746855,Ciencias de la Salud (FCS),Odontologia
-217,DESTINO,Entrada Bloque B-17,-0.952562,-80.744128,"Ciencias Sociales, Derecho y Bienestar (FCSDB)",Comunicacion y Tecnologia
-218,DESTINO,Entrada Bloque B-18,-0.952096,-80.744001,Ciencias de la Salud (FCS),Enfermeria
-222,DESTINO,Entrada Bloque B-22,-0.95351,-80.744759,"Educacion, Turismo, Artes y Humanidades (FETAH)","Entrenamiento Deportivo, Pedagogia de la Actividad Fisica y el Deporte, Psicologia Educativa"
-223,DESTINO,Entrada Bloque B-23,-0.955164,-80.744929,"Educacion, Turismo, Artes y Humanidades (FETAH)","Artes Plasticas, Artes Escenicas, Arqueologia, Diseño Textil, Sociologia"
-224,DESTINO,Entrada Bloque B-24,-0.95194,-80.743782,Ciencias de la Salud (FCS),Instituto de Neurociencias
-225,DESTINO,Entrada Bloque B-25,-0.951321,-80.743654,Ciencias de la Salud (FCS),Instituto Postgrado e Investigacion en Ciencias de la Salud (IPICS)
-208,DESTINO,Entrada Bloque B-08,-0.951853,-80.746181,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Civil, Ingeneria Electrica"
-300,DESTINO,Entrada a Paraninfo,-0.954495,-80.7464,No aplica,No aplica
-301,DESTINO,"Centro de Innovacion, Emprendimiento y Convenciones del Pacifico (CIECP)",-0.954988,-80.746715,No aplica,No aplica
-230,DESTINO,Entrada Laboratorio Gastronomico B-05,-0.953696,-80.746734,"Educacion, Turismo, Artes y Humanidades (FETAH)",Gastronomia
-304,DESTINO,Cancha Multiple,-0.953417,-80.747207,No aplica,No aplica
-305,DESTINO,Tasty Food 1,-0.953195,-80.747199,No aplica,No aplica
-306,DESTINO,Coliseo Edmundi Lourido,-0.95341,-80.745879,No aplica,No aplica
-307,DESTINO,Plaza Cultural Centenario,-0.954563,-80.745482,No aplica,No aplica
-308,DESTINO,Departamento Bienestar Universitario,-0.954343,-80.745277,No aplica,No aplica
-309,DESTINO,"Edificio Rectorado y Secretaria general,  GYM",-0.95447,-80.74517,No aplica,No aplica
-310,DESTINO,Aula Magna de la Universidad Eloy Alfaro,-0.954649,-80.74463,No aplica,No aplica
-302,DESTINO,"Departamento Bienestar, Adminision y Nivelacion",-0.953607,-80.745402,No aplica,No aplica
-303,DESTINO,Instituto de Idiomas,-0.953014,-80.744306,No aplica,No aplica
-324,DESTINO,"Dirección de Infraestructura, Obras y Patrimonio (DIOP)",-0.952637,-80.74461,No aplica,No aplica
-315,DESTINO,Agromarket,-0.952257,-80.745106,Ciencias de la Vida y Tecnologias (FACIVITEC),No aplica
-316,DESTINO,Estadio,-0.952662,-80.745479,No aplica,No aplica
-326,DESTINO,Tasty Food 2,-0.951577,-80.745981,No aplica,No aplica
-327,DESTINO,Tasty Food 3,-0.950073,-80.74526,No aplica,No aplica
-328,DESTINO,Aduitorio de Comunicacion,-0.952386,-80.744359,"Ciencias Sociales, Derecho y Bienestar (FCSDB)",No aplica
-319,DESTINO,Decanato Ciencias de la Salud,-0.951835,-80.744261,Ciencias de la Salud (FCS),No aplica
-320,DESTINO,Bodega control de bienes,-0.951779,-80.744633,No aplica,No aplica
-321,DESTINO,Tasty Food 4,-0.950876,-80.743503,No aplica,No aplica
-322,DESTINO,Cancha,-0.950744,-80.743418,No aplica,No aplica
-400,CONEXION,Cruce Principal Ingreso Puerta 1,-0.954551,-80.746087,No aplica,No aplica
-401,CONEXION,Acceso Peatonal Paraninfo,-0.954522,-80.746282,No aplica,No aplica
-311,DESTINO,Estudios y construcciones Uleam -EP,-0.95336,-80.743748,No aplica,No aplica
-402,CONEXION,Conexion,-0.954306,-80.746316,No aplica,No aplica
-403,CONEXION,Via multiple,-0.954065,-80.746431,No aplica,No aplica
-404,CONEXION,Conexion hacia bloque B-04,-0.954136,-80.74671,No aplica,No aplica
-312,DESTINO,El bosque,-0.952892,-80.746797,No aplica,No aplica
-405,CONEXION,Conexion,-0.95379,-80.74655,No aplica,No aplica
-406,CONEXION,Via doble,-0.953428,-80.746576,No aplica,No aplica
-407,CONEXION,Conexion Laboratorio Gastronomico,-0.953471,-80.746757,No aplica,No aplica
-409,CONEXION,Conexion hacia cancha multiple,-0.953491,-80.747083,No aplica,No aplica
-412,CONEXION,Conexion hacia El bosque,-0.953139,-80.746722,No aplica,No aplica
-413,CONEXION,Via doble,-0.952761,-80.746737,No aplica,No aplica
-415,CONEXION,Conexion hacia bloque B-06,-0.953207,-80.746162,No aplica,No aplica
-313,DESTINO,Entrada a gradas de estadio,-0.952993,-80.745905,No aplica,No aplica
-416,CONEXION,Via multiple,-0.953121,-80.745891,No aplica,No aplica
-418,CONEXION,Conexion,-0.952708,-80.746067,No aplica,No aplica
-419,CONEXION,Conexion,-0.9529,-80.746439,No aplica,No aplica
-420,CONEXION,Conexion,-0.952088,-80.746187,No aplica,No aplica
-421,CONEXION,Conexion,-0.952402,-80.746638,No aplica,No aplica
-423,CONEXION,Conexion hacia Tasty Food 1,-0.952838,-80.747086,No aplica,No aplica
-424,CONEXION,Conexion,-0.951852,-80.746003,No aplica,No aplica
-426,CONEXION,Via multiple,-0.951574,-80.745818,No aplica,No aplica
-427,CONEXION,Conexion,-0.951351,-80.745968,No aplica,No aplica
-429,CONEXION,Conexion,-0.951092,-80.745882,No aplica,No aplica
-430,CONEXION,Conexion,-0.951089,-80.745676,No aplica,No aplica
-432,CONEXION,Conexion,-0.950791,-80.74597,No aplica,No aplica
-433,CONEXION,Via doble,-0.950612,-80.745998,No aplica,No aplica
-434,CONEXION,Cruce Ingreso Puerta 3,-0.950519,-80.746002,No aplica,No aplica
-436,CONEXION,Conexion,-0.950451,-80.745805,No aplica,No aplica
-323,DESTINO,Entrada Empresa publica de produccion y desarrollo estrategico,-0.950126,-80.745142,No aplica,No aplica
-437,CONEXION,Conexion,-0.950124,-80.745631,No aplica,No aplica
-442,CONEXION,Via doble,-0.950427,-80.745466,No aplica,No aplica
-443,CONEXION,Conexion,-0.950979,-80.745209,No aplica,No aplica
-444,CONEXION,Conexion,-0.951311,-80.745396,No aplica,No aplica
-446,CONEXION,Conexion,-0.951574,-80.745644,No aplica,No aplica
-447,CONEXION,Conexion,-0.95189,-80.745547,No aplica,No aplica
-448,CONEXION,Via doble,-0.952134,-80.745271,No aplica,No aplica
-450,CONEXION,Conexion hacia entrada Bloque B-16,-0.952409,-80.745089,No aplica,No aplica
-451,CONEXION,Conexion,-0.95265,-80.744965,No aplica,No aplica
-325,DESTINO,Entrada a cine,-0.952816,-80.744314,No aplica,No aplica
-452,CONEXION,"Conexion hacia Direccion de Infraestructura, Obras y Patrimonio (DIOP)",-0.95262,-80.74472,No aplica,No aplica
-453,CONEXION,Conexion,-0.95254,-80.744578,No aplica,No aplica
-454,CONEXION,Via doble,-0.952994,-80.744834,No aplica,No aplica
-455,CONEXION,Conexion,-0.952908,-80.744578,No aplica,No aplica
-456,CONEXION,Conexion,-0.952947,-80.744292,No aplica,No aplica
-457,CONEXION,Conexion hacia Cine,-0.952812,-80.744372,No aplica,No aplica
-458,CONEXION,Conexion,-0.9529,-80.744193,No aplica,No aplica
-459,CONEXION,Conexion,-0.953224,-80.744265,No aplica,No aplica
-460,CONEXION,Via multiple,-0.953062,-80.743826,No aplica,No aplica
-461,CONEXION,Conexion Ingreso Puerta 2,-0.952857,-80.743745,No aplica,No aplica
-462,CONEXION,Conexion,-0.952514,-80.743772,No aplica,No aplica
-463,CONEXION,Conexion hacia Bloque B-18,-0.95217,-80.743896,No aplica,No aplica
-464,CONEXION,Conexion hacia Instituto de Neurociencias,-0.951902,-80.743923,No aplica,No aplica
-466,CONEXION,Conexion hacia Bloque B-19,-0.951613,-80.743751,No aplica,No aplica
-467,CONEXION,Conexion hacia Bloque B-25,-0.951349,-80.743583,No aplica,No aplica
-468,CONEXION,Conexion hacia Bloque B-20,-0.951116,-80.743402,No aplica,No aplica
-470,CONEXION,Conexion,-0.950933,-80.743391,No aplica,No aplica
-472,CONEXION,Conexion,-0.952797,-80.743936,No aplica,No aplica
-473,CONEXION,Conexion,-0.952523,-80.744266,No aplica,No aplica
-474,CONEXION,Conexion,-0.952213,-80.744658,No aplica,No aplica
-475,CONEXION,Interseccion en L,-0.951921,-80.744835,No aplica,No aplica
-477,CONEXION,Conexion hacia Estudios y Construcciones,-0.95325,-80.743854,No aplica,No aplica
-478,CONEXION,Conexion hacia Bloque B-22,-0.953325,-80.744734,No aplica,No aplica
-479,CONEXION,Via doble,-0.953446,-80.745029,No aplica,No aplica
-480,CONEXION,"Conexion hacia Departamento de Bienestar, Admisión y Nivelacion Universitaria",-0.953437,-80.745493,No aplica,No aplica
-482,CONEXION,Conexion,-0.953626,-80.745647,No aplica,No aplica
-483,CONEXION,Conexion hacia Bloque B-03,-0.954018,-80.745665,No aplica,No aplica
-485,CONEXION,Conexion hacia Bloque B-01,-0.954335,-80.745858,No aplica,No aplica
-486,CONEXION,Via doble,-0.953744,-80.745042,No aplica,No aplica
-487,CONEXION,Interseccion L,-0.95413,-80.745094,No aplica,No aplica
-488,CONEXION,Conexion hacia Departamento de Bienestar Universitario,-0.954166,-80.745327,No aplica,No aplica
-490,CONEXION,Conexion hacia Rectorado y Secretaria General y GYM,-0.954469,-80.745321,No aplica,No aplica
-491,CONEXION,Via multiple,-0.954935,-80.745214,No aplica,No aplica
-492,CONEXION,Conexion hacia Bloque B-25,-0.95499,-80.744935,No aplica,No aplica
-493,CONEXION,Conexion hacia Aula Magna de la Universidad Eloy Alfaro,-0.954724,-80.744506,No aplica,No aplica
-494,CONEXION,Via multiple,-0.954094,-80.744084,No aplica,No aplica
-317,DESTINO,Entrada hacia Vicerrectorado,-0.953073,-80.747392,No aplica,No aplica
-489,CONEXION,Conexion,-0.954458,-80.745683,No aplica,No aplica
-318,DESTINO,Entrada hacia Tasty Food,-0.953014,-80.747228,No aplica,No aplica
-481,CONEXION,Conexion de camino (Escaleras),-0.953618,-80.745729,No aplica,No aplica
-500,ZONA SEGURA,Zona segura 1,-0.954869,-80.746319,No aplica,No aplica
-501,ZONA SEGURA,Zona segura 2,-0.95444,-80.745475,No aplica,No aplica
-502,ZONA SEGURA,Zona segura 3,-0.953543,-80.744104,No aplica,No aplica
-314,DESTINO,Entrada a Bloque B-13,-0.950626,-80.745875,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
-329,DESTINO,Entrada a Direccion de Informatica e Innovacion Tecnologica (DIIT),-0.950766,-80.74301,No aplica,No aplica
-226,DESTINO,Entrada Bloque B-16,-0.952537,-80.74476,Ciencias de la Vida y Tecnologias (FACIVITEC),"Tecnologias de la Informacion, Sotfware"
-495,CONEXION,Conexion,-0.953739,-80.743957,No aplica,No aplica
+100,ENTRADA,Ingreso puerta 1,-0.9545990,-80.7460205,No aplica,No aplica
+101,ENTRADA,Ingreso puerta 2,-0.9529917,-80.7437118,No aplica,No aplica
+102,ENTRADA,Ingreso puerta 3,-0.9505201,-80.7460624,No aplica,No aplica
+103,ENTRADA,Ingreso puerta 4,-0.9548856,-80.7441752,No aplica,No aplica
+201,DESTINO,Entrada Bloque B-01,-0.9542920,-80.7459847,"Educacion, Turismo, Artes y Humanidades (FETAH)","Educacion Inicial, Educacion Basica, Pedagogia de la Lengua y Literatura, Pedagogia de los Idiomas Nacionales y Extranjeros, Educacion Basica Billingue, Educacion Inicial Bilingue, Educacion Inclusiva, Educacion Especial"
+202,DESTINO,Entrada Bloque B-02,-0.9541458,-80.7458034,"Ciencias Sociales, Derecho y Bienestar (FCSDB)","Economia, Gestion Publica y Desarrollo"
+203,DESTINO,Entrada Bloque B-03,-0.9539569,-80.7457483,"Ciencias Administrativas, Contables y Comerico (FCACC)","Gestion de la Informacion Gerencial, Comercio exterior, Bienes Raices"
+205,DESTINO,Entrada Bloque B-05,-0.9538196,-80.7469828,"Educacion, Turismo, Artes y Humanidades (FETAH)","Turismo sostenible, Turismo, Hospitalidad y Hoteleria, Gestion de Hoteleria internacional, Gastronomia"
+206,DESTINO,Entrada Bloque B-06,-0.9531361,-80.7461878,"Ciencias Sociales, Derecho y Bienestar (FCSDB)","Criminologia y Ciencias Forenses, Derecho, Ciencias Politicas"
+207,DESTINO,Entrada Bloque B-07,-0.9527394,-80.7464585,"Ingeneria, Industria y Arquitectura (FIIA)","Arquitectura, Tecnologia Construccion Sismorresistente"
+209,DESTINO,Entrada Bloque B-09,-0.9511917,-80.7460068,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Industrial, Ingeneria de Alimentos"
+210,DESTINO,Entrada Bloque B-10,-0.9503092,-80.7458525,Ciencias de la Vida y Tecnologias (FACIVITEC),"Ingeneria Ambiental, Biologia"
+211,DESTINO,Entrada Bloque B-11,-0.9499719,-80.7458060,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria maritima, Tecnologia Superior en Metal Mecanica"
+212,DESTINO,Entrada Bloque B-12,-0.9499969,-80.7455465,"Ciencias Administrativas, Contables y Comerico (FCACC)","Administracion de Empresas, Gestion de Talento Humano"
+213,DESTINO,Entrada Bloque B-13,-0.9509454,-80.7457802,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
+214,DESTINO,Entrada Bloque B-14,-0.9510681,-80.7454271,"Ciencias Sociales, Derecho y Bienestar (FCSDB)",Trabajo social
+215,DESTINO,Entrada Bloque B-15,-0.9513849,-80.7456902,Ciencias de la Vida y Tecnologias (FACIVITEC),"Agropecuaria, Agroindustria, Agronegocios"
+216,DESTINO,Entrada Bloque B-16,-0.9522666,-80.7448884,Ciencias de la Vida y Tecnologias (FACIVITEC),"Tecnologias de la Informacion, Software"
+219,DESTINO,Entrada Bloque B-19,-0.9517361,-80.7439896,Ciencias de la Salud (FCS),"Medicina, Laboratorio Clinico"
+220,DESTINO,Entrada Bloque B-20,-0.9510820,-80.7435232,Ciencias de la Salud (FCS),"Psicologia, Fisioterapia, Fonoaudologia, Terapia Ocupacional, Nutricion y Dietetica"
+221,DESTINO,Entrada Bloque B-21,-0.9509404,-80.7431254,Ciencias de la Salud (FCS),No disponible
+204,DESTINO,Entrada Bloque B-04,-0.9541359,-80.7468549,Ciencias de la Salud (FCS),Odontologia
+217,DESTINO,Entrada Bloque B-17,-0.9525616,-80.7441280,"Ciencias Sociales, Derecho y Bienestar (FCSDB)",Comunicacion y Tecnologia
+218,DESTINO,Entrada Bloque B-18,-0.9520958,-80.7440010,Ciencias de la Salud (FCS),Enfermeria
+222,DESTINO,Entrada Bloque B-22,-0.9535102,-80.7447586,"Educacion, Turismo, Artes y Humanidades (FETAH)","Entrenamiento Deportivo, Pedagogia de la Actividad Fisica y el Deporte, Psicologia Educativa"
+223,DESTINO,Entrada Bloque B-23,-0.9551644,-80.7449289,"Educacion, Turismo, Artes y Humanidades (FETAH)","Artes Plasticas, Artes Escenicas, Arqueologia, Diseño Textil, Sociologia"
+224,DESTINO,Entrada Bloque B-24,-0.9519395,-80.7437817,Ciencias de la Salud (FCS),Instituto de Neurociencias
+225,DESTINO,Entrada Bloque B-25,-0.9513209,-80.7436538,Ciencias de la Salud (FCS),Instituto Postgrado e Investigacion en Ciencias de la Salud (IPICS)
+208,DESTINO,Entrada Bloque B-08,-0.9520489,-80.7463268,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Civil, Ingeneria Electrica"
+300,DESTINO,Entrada a Paraninfo,-0.9544945,-80.7463999,No aplica,No aplica
+301,DESTINO,"Centro de Innovacion, Emprendimiento y Convenciones del Pacifico (CIECP)",-0.9549878,-80.7467148,No aplica,No aplica
+230,DESTINO,Entrada Laboratorio Gastronomico B-05,-0.9536583,-80.7467154,"Educacion, Turismo, Artes y Humanidades (FETAH)",Gastronomia
+304,DESTINO,Cancha Multiple,-0.9534175,-80.7472066,No aplica,No aplica
+305,DESTINO,Tasty Food 1,-0.9531946,-80.7471995,No aplica,No aplica
+306,DESTINO,Coliseo Edmundi Lourido,-0.9534096,-80.7458793,No aplica,No aplica
+307,DESTINO,Plaza Cultural Centenario,-0.9545627,-80.7454824,No aplica,No aplica
+308,DESTINO,Departamento Bienestar Universitario,-0.9543428,-80.7452768,No aplica,No aplica
+309,DESTINO,"Edificio Rectorado y Secretaria general,  GYM",-0.9544695,-80.7451696,No aplica,No aplica
+310,DESTINO,Aula Magna de la Universidad Eloy Alfaro,-0.9546494,-80.7446300,No aplica,No aplica
+302,DESTINO,"Departamento Bienestar, Adminision y Nivelacion",-0.9536071,-80.7454022,No aplica,No aplica
+303,DESTINO,Instituto de Idiomas,-0.9530137,-80.7443059,No aplica,No aplica
+324,DESTINO,"Dirección de Infraestructura, Obras y Patrimonio (DIOP)",-0.9526367,-80.7446104,No aplica,No aplica
+315,DESTINO,Agromarket,-0.9522572,-80.7451057,Ciencias de la Vida y Tecnologias (FACIVITEC),No aplica
+316,DESTINO,Estadio,-0.9526618,-80.7454789,No aplica,No aplica
+326,DESTINO,Tasty Food 2,-0.9515249,-80.7459574,No aplica,No aplica
+327,DESTINO,Tasty Food 3,-0.9500730,-80.7452596,No aplica,No aplica
+328,DESTINO,Aduitorio de Comunicacion,-0.9523863,-80.7443592,"Ciencias Sociales, Derecho y Bienestar (FCSDB)",No aplica
+319,DESTINO,Decanato Ciencias de la Salud,-0.9518355,-80.7442609,Ciencias de la Salud (FCS),No aplica
+320,DESTINO,Bodega control de bienes,-0.9517787,-80.7446329,No aplica,No aplica
+321,DESTINO,Tasty Food 4,-0.9508759,-80.7435030,No aplica,No aplica
+322,DESTINO,Cancha,-0.9507438,-80.7434178,No aplica,No aplica
+400,CONEXION,Cruce Principal Ingreso Puerta 1,-0.9545510,-80.7460874,No aplica,No aplica
+401,CONEXION,Acceso Peatonal Paraninfo,-0.9545217,-80.7462818,No aplica,No aplica
+311,DESTINO,Estudios y construcciones Uleam -EP,-0.9533598,-80.7437483,No aplica,No aplica
+402,CONEXION,Conexion,-0.9543064,-80.7463164,No aplica,No aplica
+403,CONEXION,Via multiple,-0.9540650,-80.7464311,No aplica,No aplica
+404,CONEXION,Conexion hacia bloque B-04,-0.9541365,-80.7467102,No aplica,No aplica
+312,DESTINO,El bosque,-0.9528923,-80.7467965,No aplica,No aplica
+405,CONEXION,Conexion,-0.9537897,-80.7465504,No aplica,No aplica
+406,CONEXION,Via doble,-0.9534278,-80.7465760,No aplica,No aplica
+407,CONEXION,Conexion Laboratorio Gastronomico,-0.9534715,-80.7467575,No aplica,No aplica
+409,CONEXION,Conexion hacia cancha multiple,-0.9534908,-80.7470827,No aplica,No aplica
+412,CONEXION,Conexion hacia El bosque,-0.9531385,-80.7467219,No aplica,No aplica
+413,CONEXION,Via doble,-0.9527614,-80.7467371,No aplica,No aplica
+415,CONEXION,Conexion hacia bloque B-06,-0.9532073,-80.7461624,No aplica,No aplica
+313,DESTINO,Entrada a gradas de estadio,-0.9529929,-80.7459055,No aplica,No aplica
+416,CONEXION,Via multiple,-0.9531211,-80.7458914,No aplica,No aplica
+418,CONEXION,Conexion,-0.9527077,-80.7460667,No aplica,No aplica
+419,CONEXION,Conexion,-0.9528999,-80.7464389,No aplica,No aplica
+420,CONEXION,Conexion,-0.9520882,-80.7461865,No aplica,No aplica
+421,CONEXION,Conexion,-0.9524024,-80.7466377,No aplica,No aplica
+423,CONEXION,Conexion hacia Tasty Food 1,-0.9528382,-80.7470856,No aplica,No aplica
+424,CONEXION,Conexion,-0.9518525,-80.7460025,No aplica,No aplica
+426,CONEXION,Via multiple,-0.9515738,-80.7458176,No aplica,No aplica
+427,CONEXION,Conexion,-0.9513514,-80.7459681,No aplica,No aplica
+429,CONEXION,Conexion,-0.9510915,-80.7458820,No aplica,No aplica
+430,CONEXION,Conexion,-0.9510895,-80.7456762,No aplica,No aplica
+432,CONEXION,Conexion,-0.9507913,-80.7459696,No aplica,No aplica
+433,CONEXION,Via doble,-0.9506117,-80.7459976,No aplica,No aplica
+434,CONEXION,Cruce Ingreso Puerta 3,-0.9505195,-80.7460022,No aplica,No aplica
+436,CONEXION,Conexion,-0.9504511,-80.7458052,No aplica,No aplica
+323,DESTINO,Entrada Empresa publica de produccion y desarrollo estrategico,-0.9501260,-80.7451416,No aplica,No aplica
+437,CONEXION,Conexion,-0.9501243,-80.7456306,No aplica,No aplica
+442,CONEXION,Via doble,-0.9504272,-80.7454660,No aplica,No aplica
+443,CONEXION,Conexion,-0.9509794,-80.7452087,No aplica,No aplica
+444,CONEXION,Conexion,-0.9513112,-80.7453964,No aplica,No aplica
+446,CONEXION,Conexion,-0.9515745,-80.7456435,No aplica,No aplica
+447,CONEXION,Conexion,-0.9518900,-80.7455470,No aplica,No aplica
+448,CONEXION,Via doble,-0.9521340,-80.7452709,No aplica,No aplica
+450,CONEXION,Conexion hacia entrada Bloque B-16,-0.9524089,-80.7450892,No aplica,No aplica
+451,CONEXION,Conexion,-0.9526500,-80.7449650,No aplica,No aplica
+325,DESTINO,Entrada a cine,-0.9528157,-80.7443140,No aplica,No aplica
+452,CONEXION,"Conexion hacia Direccion de Infraestructura, Obras y Patrimonio (DIOP)",-0.9526204,-80.7447202,No aplica,No aplica
+453,CONEXION,Conexion,-0.9525404,-80.7445782,No aplica,No aplica
+454,CONEXION,Via doble,-0.9529938,-80.7448343,No aplica,No aplica
+455,CONEXION,Conexion,-0.9529082,-80.7445776,No aplica,No aplica
+456,CONEXION,Conexion,-0.9529467,-80.7442918,No aplica,No aplica
+457,CONEXION,Conexion hacia Cine,-0.9528117,-80.7443721,No aplica,No aplica
+458,CONEXION,Conexion,-0.9529002,-80.7441927,No aplica,No aplica
+459,CONEXION,Conexion,-0.9532239,-80.7442647,No aplica,No aplica
+460,CONEXION,Via multiple,-0.9530619,-80.7438258,No aplica,No aplica
+461,CONEXION,Conexion Ingreso Puerta 2,-0.9528567,-80.7437454,No aplica,No aplica
+462,CONEXION,Conexion,-0.9525144,-80.7437719,No aplica,No aplica
+463,CONEXION,Conexion hacia Bloque B-18,-0.9521704,-80.7438959,No aplica,No aplica
+464,CONEXION,Conexion hacia Instituto de Neurociencias,-0.9519019,-80.7439234,No aplica,No aplica
+466,CONEXION,Conexion hacia Bloque B-19,-0.9516126,-80.7437507,No aplica,No aplica
+467,CONEXION,Conexion hacia Bloque B-25,-0.9513493,-80.7435826,No aplica,No aplica
+468,CONEXION,Conexion hacia Bloque B-20,-0.9511164,-80.7434023,No aplica,No aplica
+470,CONEXION,Conexion,-0.9509331,-80.7433915,No aplica,No aplica
+472,CONEXION,Conexion,-0.9527967,-80.7439365,No aplica,No aplica
+473,CONEXION,Conexion,-0.9525230,-80.7442655,No aplica,No aplica
+474,CONEXION,Conexion,-0.9522127,-80.7446575,No aplica,No aplica
+475,CONEXION,Interseccion en L,-0.9519207,-80.7448348,No aplica,No aplica
+477,CONEXION,Conexion hacia Estudios y Construcciones,-0.9532505,-80.7438543,No aplica,No aplica
+478,CONEXION,Conexion hacia Bloque B-22,-0.9533252,-80.7447338,No aplica,No aplica
+479,CONEXION,Via doble,-0.9534463,-80.7450294,No aplica,No aplica
+480,CONEXION,"Conexion hacia Departamento de Bienestar, Admisión y Nivelacion Universitaria",-0.9534367,-80.7454930,No aplica,No aplica
+482,CONEXION,Conexion,-0.9536259,-80.7456470,No aplica,No aplica
+483,CONEXION,Conexion hacia Bloque B-03,-0.9540181,-80.7456648,No aplica,No aplica
+485,CONEXION,Conexion hacia Bloque B-01,-0.9543352,-80.7458581,No aplica,No aplica
+486,CONEXION,Via doble,-0.9537440,-80.7450424,No aplica,No aplica
+487,CONEXION,Interseccion L,-0.9541302,-80.7450936,No aplica,No aplica
+488,CONEXION,Conexion hacia Departamento de Bienestar Universitario,-0.9541655,-80.7453273,No aplica,No aplica
+490,CONEXION,Conexion hacia Rectorado y Secretaria General y GYM,-0.9544686,-80.7453211,No aplica,No aplica
+491,CONEXION,Via multiple,-0.9549347,-80.7452144,No aplica,No aplica
+492,CONEXION,Conexion hacia Bloque B-25,-0.9549898,-80.7449345,No aplica,No aplica
+493,CONEXION,Conexion hacia Aula Magna de la Universidad Eloy Alfaro,-0.9547238,-80.7445062,No aplica,No aplica
+494,CONEXION,Via multiple,-0.9540936,-80.7440839,No aplica,No aplica
+317,DESTINO,Entrada hacia Vicerrectorado,-0.9530732,-80.7473918,No aplica,No aplica
+489,CONEXION,Conexion,-0.9544579,-80.7456830,No aplica,No aplica
+318,DESTINO,Entrada hacia Tasty Food,-0.9530136,-80.7472279,No aplica,No aplica
+481,CONEXION,Conexion de camino (Escaleras),-0.9536182,-80.7457285,No aplica,No aplica
+500,ZONA SEGURA,Zona segura 1,-0.9548688,-80.7463192,No aplica,No aplica
+501,ZONA SEGURA,Zona segura 2,-0.9544396,-80.7454748,No aplica,No aplica
+502,ZONA SEGURA,Zona segura 3,-0.9535427,-80.7441043,No aplica,No aplica
+314,DESTINO,Entrada a Bloque B-13,-0.9506265,-80.7458753,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
+329,DESTINO,Entrada a Direccion de Informatica e Innovacion Tecnologica (DIIT),-0.9507658,-80.7430103,No aplica,No aplica
+226,DESTINO,Entrada Bloque B-16,-0.9525370,-80.7447600,Ciencias de la Vida y Tecnologias (FACIVITEC),"Tecnologias de la Informacion, Sotfware"
+495,CONEXION,Conexion,-0.9537390,-80.7439574,No aplica,No aplica
+227,DESTINO,Entrada Bloque B-08,-0.9517289,-80.7460501,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Civil, Ingeneria Electrica"
