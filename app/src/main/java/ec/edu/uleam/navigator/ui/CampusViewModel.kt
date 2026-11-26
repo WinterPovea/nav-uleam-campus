@@ -591,8 +591,12 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun yaEnDestino(lat: Double, lon: Double): Boolean {
         val d = ui.destino ?: return false
-        val n = nodoById[d.idNodo] ?: return false
-        return OriginPicker.isAtDestination(lat, lon, n.latitud, n.longitud, repo.shapes, arrivalRadiusM(lastGpsAccuracyM))
+        val graph = repo.graph ?: return false
+        val nombres = repo.lugares.associate { it.idNodo to it.nombre }
+        return OriginPicker.isAtDestination(lat, lon, d.idNodo, graph, repo.shapes, arrivalRadiusM(lastGpsAccuracyM)) { a, b ->
+            val na = nombres[a]; val nb = nombres[b]
+            na != null && nb != null && OriginPicker.samePlaceName(na, nb)
+        }
     }
 
     private fun edgeHasStairs(fromId: Int, toId: Int): Boolean {
