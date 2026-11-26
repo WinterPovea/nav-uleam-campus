@@ -63,6 +63,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import ec.edu.uleam.navigator.data.AristaEntity
 import ec.edu.uleam.navigator.data.LugarEntity
@@ -98,7 +100,12 @@ fun CampusMap(
     modifier: Modifier = Modifier,
     azimuthDeg: Float? = null,
     navigating: Boolean = false,
-    controlsBottomPadding: Dp = 16.dp,
+    /**
+     * Alto (px) de lo que tapa el mapa por abajo (la tarjeta). Es una función que se lee solo al ubicar los
+     * botones (fase de layout): mientras la tarjeta se anima, los botones la siguen cuadro a cuadro sin
+     * volver a recomponer (redibujar desde cero) todo el mapa.
+     */
+    controlsBottomPx: () -> Int = { 0 },
     /** Estilo del mapa actual (el botón para alternarlo está en la pantalla principal, bajo las puertas). */
     mapStyle: MapStyle = MapStyle.CLARO,
     /** Tramo inicial de la ruta con GPS real: desde el camino junto al usuario hasta el primer nodo. */
@@ -224,7 +231,8 @@ fun CampusMap(
     val density = LocalDensity.current
     // Zonas tapadas por la interfaz: arriba la búsqueda + puertas + botón de estilo, abajo la tarjeta
     val topInsetPx = with(density) { 200.dp.toPx() }
-    val bottomInsetPx = with(density) { controlsBottomPadding.toPx() }
+    val controlsGapPx = with(density) { 24.dp.toPx() }
+    fun bottomInsetPx(): Float = controlsBottomPx() + controlsGapPx
 
     /**
      * Mantiene la cámara sobre el campus: se puede desplazar hasta que el borde del campus (con un margen
@@ -242,7 +250,7 @@ fun CampusMap(
         // Norte arriba: el borde norte puede bajar hasta topInset; el borde sur subir hasta h - bottomInset
         val cl = limit(
             lat,
-            cameraBounds[0] - m + (h / 2 - bottomInsetPx) / k,
+            cameraBounds[0] - m + (h / 2 - bottomInsetPx()) / k,
             cameraBounds[1] + m - (h / 2 - topInsetPx) / k
         )
         val co = limit(lon, cameraBounds[2] - m + (w / 2) / k, cameraBounds[3] + m - (w / 2) / k)
@@ -735,7 +743,8 @@ fun CampusMap(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 10.dp, bottom = controlsBottomPadding)
+                    .offset { IntOffset(0, -controlsBottomPx()) }
+                    .padding(start = 10.dp, bottom = 24.dp)
                     .size(28.dp)
                     .background(Color(0xD9FFFFFF), CircleShape)
                     .clickable { showCredits = true }
@@ -782,7 +791,8 @@ fun CampusMap(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = controlsBottomPadding),
+                .offset { IntOffset(0, -controlsBottomPx()) }
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {

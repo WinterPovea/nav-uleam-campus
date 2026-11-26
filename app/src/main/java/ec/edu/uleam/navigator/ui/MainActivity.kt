@@ -16,6 +16,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -289,8 +292,8 @@ fun CampusApp(vm: CampusViewModel) {
     BackHandler(enabled = busquedaAbierta) { cerrarBusqueda() }
 
     // Altura de la tarjeta inferior: los botones flotantes del mapa quedan siempre por encima de ella
-    var cardHeightPx by remember { mutableStateOf(0) }
-    val cardHeightDp = with(LocalDensity.current) { cardHeightPx.toDp() }
+    // (se guarda en un estado que solo se lee al ubicar los botones: animar la tarjeta no redibuja todo el mapa)
+    val cardHeightPx = remember { mutableIntStateOf(0) }
 
     Box(Modifier.fillMaxSize().statusBarsPadding()) {
         // CAPA 1: MAPA CANVAS BASE
@@ -309,7 +312,7 @@ fun CampusApp(vm: CampusViewModel) {
             modifier = Modifier.fillMaxSize(),
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
-            controlsBottomPadding = cardHeightDp + 24.dp,
+            controlsBottomPx = { cardHeightPx.intValue },
             mapStyle = effectiveStyle,
             routeLead = vm.leadActivo()
         )
@@ -536,7 +539,7 @@ fun CampusApp(vm: CampusViewModel) {
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(12.dp)
-                .onSizeChanged { cardHeightPx = it.height }
+                .onSizeChanged { cardHeightPx.intValue = it.height }
         )
     }
 }
@@ -563,7 +566,10 @@ fun CollapsibleNavigationCard(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
-        modifier = modifier.animateContentSize()
+        // Un solo movimiento suave de la tarjeta al expandir/colapsar (sin animaciones encimadas por dentro)
+        modifier = modifier.animateContentSize(
+            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+        )
     ) {
         // Navegando y sin expandir: tarjeta compacta (destino corto + metros restantes) para no tapar el mapa
         val compact = s.navigating && !expanded
@@ -723,11 +729,7 @@ fun CollapsibleNavigationCard(
             }
 
             // SECCIÓN EXPANDIDA: INSTRUCCIONES TURN-BY-TURN Y CONTROLES AVANZADOS
-            AnimatedVisibility(
-                visible = expanded,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
+            if (expanded) {
                 Column(Modifier.padding(top = 10.dp)) {
                     HorizontalDivider()
                     Spacer(Modifier.height(8.dp))
