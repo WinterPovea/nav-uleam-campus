@@ -83,6 +83,18 @@ class OriginPickerTest {
     }
 
     @Test
+    fun dentroDeTastyFood1NoEstaEnElVicerrectorado() {
+        // La entrada del Vicerrectorado (317) queda a ~9 m de Tasty Food 1, pero pertenece a su propio edificio
+        val vice = graph.node(317)!!
+        val poly = shapes.filter { it.codigo == "Tasty Food 1" }.maxBy { it.puntos.size }.puntos
+        val c = GeoPoint(poly.map { it.lat }.average(), poly.map { it.lon }.average())
+        assertTrue(OriginPicker.contains(poly, c))
+        assertFalse(OriginPicker.isAtDestination(c.lat, c.lon, vice.latitude, vice.longitude, shapes, 8.0))
+        val tasty = graph.node(305)!!
+        assertTrue(OriginPicker.isAtDestination(c.lat, c.lon, tasty.latitude, tasty.longitude, shapes, 8.0))
+    }
+
+    @Test
     fun dentroDeB13HaciaPuerta3SalePorLaEntradaNorte() {
         val poly = shapes.filter { it.tipo == "EDIFICIO" && it.codigo == "B-13" }.maxBy { it.puntos.size }.puntos
         val c = GeoPoint(poly.map { it.lat }.average(), poly.map { it.lon }.average())

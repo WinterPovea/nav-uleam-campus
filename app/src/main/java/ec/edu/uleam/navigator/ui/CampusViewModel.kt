@@ -232,7 +232,8 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         val currentDestino = ui.destino
 
         // Ya está en el destino (a pocos metros o dentro de su edificio): se avisa en vez de trazar ruta
-        if (currentDestino != null && yaEnDestino(lat, lon)) {
+        // Navegando, también cuenta la lectura sin suavizar: la llegada se detecta sin el pequeño atraso del filtro
+        if (currentDestino != null && (yaEnDestino(lat, lon) || (ui.navigating && yaEnDestino(rawLat, rawLon)))) {
             resetOffRouteTracking()
             if (ui.navigating) {
                 llegarAlDestino(currentDestino)

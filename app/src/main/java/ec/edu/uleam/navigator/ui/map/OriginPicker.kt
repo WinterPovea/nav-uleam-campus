@@ -135,14 +135,19 @@ object OriginPicker {
 
     /**
      * ¿El usuario ya está en el destino? Sí, si está a [radiusM] o menos del nodo del destino,
-     * o dentro del edificio al que pertenece esa entrada.
+     * o dentro del edificio al que pertenece esa entrada. La entrada pertenece solo al edificio MÁS CERCANO
+     * (como en [entrancesOf]): estar dentro de Tasty Food 1 no cuenta como "en el Vicerrectorado" aunque su
+     * entrada quede a 9 m de la cafetería.
      */
     fun isAtDestination(lat: Double, lon: Double, destLat: Double, destLon: Double, shapes: List<CampusShape>, radiusM: Double): Boolean {
         val p = GeoPoint(lat, lon)
         val d = GeoPoint(destLat, destLon)
         if (distanceM(p, d) <= radiusM) return true
         val b = buildingAt(p, shapes) ?: return false
-        return distanceToPolygonM(d, b.puntos) <= ENTRANCE_TO_BUILDING_M
+        val dB = distanceToPolygonM(d, b.puntos)
+        if (dB > ENTRANCE_TO_BUILDING_M) return false
+        val edificios = shapes.filter { it.tipo in BUILDING_TYPES && it.puntos.size >= 3 }
+        return edificios.none { o -> o !== b && o.codigo != b.codigo && distanceToPolygonM(d, o.puntos) < dB }
     }
 
     /** Edificio (huella) que contiene el punto, o null. */

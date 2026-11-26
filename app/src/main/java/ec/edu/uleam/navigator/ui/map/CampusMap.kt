@@ -114,7 +114,7 @@ fun CampusMap(
     val scope = rememberCoroutineScope()
 
     // Posición con movimiento suave (el marcador se desliza entre lecturas GPS)
-    val animatedUser = rememberAnimatedUserPosition(userPosition, 900)
+    val animatedUser = rememberAnimatedUserPosition(userPosition, 450)
     val latestUser by rememberUpdatedState(animatedUser)
 
     // Modo seguimiento: la cámara acompaña al usuario mientras se navega (como Google Maps)
