@@ -193,4 +193,9 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 405,205,No,Conexion hacia entrada Bloque B-05
 426,227,No,Conexion a Entrada Bloque B-08
 424,227,No,Conexion a Entrada Bloque B-08
+419,206,No,Conexion
+436,314,No,Conexion hacia Bloque B-13
+434,314,No,Conexion hacia Bloque B-13
+327,323,No,Conexion hacia Empresa Publica de produccion y desarrollo estrategico
+466,225,No,Conexion hacia Bloque B-25
 433,434,No,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)

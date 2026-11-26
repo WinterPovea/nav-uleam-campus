@@ -33,10 +33,12 @@ NUEVOS = {
 }
 # Segundas entradas de un bloque: se nombran "(Bloque B-xx, acceso 2)"
 ACCESO_2 = {314, 226, 227}
-# B-21 (nodo 221) sin carreras por el momento; Psicología, Fisioterapia, etc. están en el B-20 (nodo 220).
+# B-20 (nodo 220): Psicología. B-21 (nodo 221): Fisioterapia, Fonoaudiología, Terapia Ocupacional, Nutrición y Dietética.
 # data/nodos_u.csv ya trae ese reparto; estas tablas quedan vacías para casos futuros.
+# Tasty Food: 326 (junto al B-08) es el 3, 321 (junto al B-20) es el 2, 327 (junto a la Empresa pública) es el 4.
+TASTY_NOMBRE = {"326": "Tasty Food 3", "321": "Tasty Food 2", "327": "Tasty Food 4"}
 CARRERAS_DE = {}                # nodo -> nodo del que toma las carreras
-SIN_CARRERAS = {221}            # nodos cuya descripción es "No disponible por el momento"
+SIN_CARRERAS = set()            # nodos cuya descripción es "No disponible por el momento"
 BLOQUE_REAL = {}                # id_nodo -> bloque a mostrar si difiere del que trae el CSV (hoy ninguno)
 
 # Sinónimos que ayudan a encontrar la facultad por palabras sueltas.
@@ -142,6 +144,8 @@ def main() -> None:
             r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 1)", "tasty food patio de comidas comida"
         elif r["id_nodo"] == "318":
             r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 2)", "tasty food patio de comidas comida"
+        elif r["id_nodo"] in TASTY_NOMBRE:  # numeración real de los Tasty Food (nov-2026)
+            r["nombre"] = TASTY_NOMBRE[r["id_nodo"]]
         elif r["id_nodo"] == "312":  # El bosque es una cafetería, no un lugar cultural
             r["categoria"], r["etiquetas"] = "COMIDA", "cafeteria cafe comida"
 

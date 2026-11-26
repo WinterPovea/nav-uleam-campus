@@ -1,7 +1,7 @@
 id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 100,400,9.15,1,0,Acceso desde puerta 1
 101,461,15.72,1,0,Acceso desde puerta 2
-102,434,6.69,1,0,Acceso desde puerta 3
+102,434,9.12,1,0,Acceso desde puerta 3
 103,494,92.25,1,0,Acceso desde puerta 4 (vehiculos)
 103,493,46.63,1,0,Acceso desde puerta 4 (vehiculos)
 400,401,21.86,1,1,Conexion de camino (escaleras)
@@ -18,10 +18,10 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 403,405,33.79,1,0,Conexion de camino
 405,406,40.34,1,0,Conexion de via
 406,407,20.76,1,0,Conexion de camino
-407,409,36.22,1,0,Conexion de camino
-409,304,17.2,1,0,Conexion hacia cancha multiple
-409,305,36.52,1,0,Conexion hacia Tasty Food
-409,317,59.57,1,0,Conexion hacia Vicerrectorado
+407,409,36.65,1,0,Conexion de camino
+409,304,14.97,1,0,Conexion hacia cancha multiple
+409,305,16.55,1,0,Conexion hacia Tasty Food
+409,317,66.89,1,0,Conexion hacia Vicerrectorado
 406,412,38.37,1,0,Conexion de camino
 412,312,29.04,1,0,Conexion hacia cafeteria El Bosque
 412,413,42.12,1,0,Conexion de camino
@@ -54,27 +54,27 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 429,209,17.79,1,0,Conexion hacia entrada de Bloque B-09
 429,213,19.8,1,0,Conexion hacia entrada de Bloque B-13
 429,430,22.88,1,0,Conexion de camino
-430,214,38.64,1,0,Conexion hacia entrada de Bloque B-14
+430,214,32.22,1,0,Conexion hacia entrada de Bloque B-14
 429,432,34.77,1,0,Conexion de camino
-432,433,20.72,1,0,Conexion de via
-433,314,14.19,1,0,Conexion hacia entrada de Bloque B-13
-433,444,102.56,1,0,Conexion de camino
-314,213,37.0,1,0,Conexion entrada y salida de Bloque B-13
-434,436,23.19,1,0,Conexion de camino
-436,210,16.63,1,0,Conexion hacia entrada de Bloque B-10
-436,437,55.75,1,0,Conexion de camino
-437,211,25.84,1,0,Conexion hacia entrada de Bloque B-11
-437,212,16.97,1,0,Conexion de camino
+432,433,17.82,1,0,Conexion de via
+433,314,16.66,1,0,Conexion hacia entrada de Bloque B-13
+433,444,99.78,1,0,Conexion de camino
+314,213,37.76,1,0,Conexion entrada y salida de Bloque B-13
+434,436,14.13,1,0,Conexion de camino
+436,210,13.7,1,0,Conexion hacia entrada de Bloque B-10
+436,437,52.74,1,0,Conexion de camino
+437,211,27.86,1,0,Conexion hacia entrada de Bloque B-11
+437,212,18.7,1,0,Conexion de camino
 437,327,41.64,1,0,Conexion hacia Tasty Food
 437,323,54.37,1,0,Conexion hacia EPPDE
 436,442,40.73,1,0,Conexion de camino
 437,442,38.33,1,0,Conexion de camino
-442,327,54.88,1,0,Conexion hacia Tasty Food
-442,323,51.14,1,0,Conexion hacia EPPDE
-442,314,51.24,1,0,Conexion hacia entrada de Bloque B-13
+442,327,52.54,1,0,Conexion hacia Tasty Food
+442,323,57.45,1,0,Conexion hacia EPPDE
+442,314,47.95,1,0,Conexion hacia entrada de Bloque B-13
 442,443,67.91,1,0,Conexion de camino
-443,214,30.64,1,0,Conexion hacia entrada de Bloque B-14
-443,444,51.99,1,0,Conexion de camino
+443,214,27.12,1,0,Conexion hacia entrada de Bloque B-14
+443,444,45.36,1,0,Conexion de camino
 444,214,27.25,1,0,Conexion de camino
 444,430,39.97,1,0,Conexion de camino
 444,215,33.89,1,0,Conexion hacia entrada de Bloque B-15
@@ -82,7 +82,7 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 444,426,55.74,1,0,Conexion de via
 446,215,22.84,1,0,Conexion hacia entrada de Bloque B-15
 426,215,25.33,1,0,Conexion hacia entrada de Bloque B-15
-305,318,20.37,1,0,Conexion entrada y salida Tasty Food
+305,318,23.82,1,0,Conexion entrada y salida Tasty Food
 446,447,39.53,1,0,Conexion de camino
 451,452,27.42,1,0,Conexion de camino
 448,450,42.64,1,0,Conexion de camino
@@ -114,12 +114,12 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 464,224,16.94,1,0,Conexion hacia entrada de Bloque B-24
 466,219,33.87,1,0,Conexion hacia entrada de Bloque B-19
 466,467,41.4,1,0,Conexion de camino
-467,225,8.52,1,0,Conexion hacia entrada de Bloque B-25
+467,225,20.93,1,0,Conexion hacia entrada de Bloque B-25
 467,468,33.64,1,0,Conexion de camino
 468,220,13.98,1,0,Conexion hacia entrada de Bloque B-20
 468,470,22.48,1,0,Conexion de camino
 470,321,13.93,1,0,Conexion hacia Tasty Food
-470,322,23.05,1,0,Conexion hacia cancha de psicologia
+470,322,18.5,1,0,Conexion hacia cancha de psicologia
 470,221,29.6,1,0,Conexion hacia entrada de Bloque B-21
 462,472,40.35,1,0,Conexion de camino
 461,472,23.31,1,0,Conexion de camino
@@ -148,7 +148,7 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 480,302,21.97,1,0,Conexion hacia DBANU
 480,482,29.49,1,0,Conexion de camino
 416,480,57.28,1,0,Conexion de camino
-482,483,45.38,1,1,Conexion de camino (Escaleras)
+482,483,44.38,1,1,Conexion de camino (Escaleras)
 479,486,33.13,1,0,Conexion de camino
 486,487,43.82,1,0,Conexion de via
 487,488,26.45,1,0,Conexion de camino
@@ -191,4 +191,9 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 405,205,51.04,1,0,Conexion hacia entrada Bloque B-05
 426,227,31.18,1,0,Conexion a Entrada Bloque B-08
 424,227,14.73,1,0,Conexion a Entrada Bloque B-08
-433,434,10.26,1,0,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)
+419,206,51.06,1,0,Conexion
+436,314,20.41,1,0,Conexion hacia Bloque B-13
+434,314,17.11,1,0,Conexion hacia Bloque B-13
+327,323,16.44,1,0,Conexion hacia Empresa Publica de produccion y desarrollo estrategico
+466,225,27.11,1,0,Conexion hacia Bloque B-25
+433,434,18.0,1,0,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)

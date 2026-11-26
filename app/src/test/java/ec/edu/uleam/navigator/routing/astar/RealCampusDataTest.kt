@@ -122,6 +122,16 @@ class RealCampusDataTest {
         assertTrue(buscar("patio de comidas").containsAll(listOf(305, 318, 326, 327, 321, 230)))
     }
 
+    @Test fun `numeracion real de los Tasty Food y carreras de B-20 y B-21`() {
+        val nombre = { id: Int -> lugares.first { it.idNodo == id }.nombre }
+        assertEquals("Tasty Food 2", nombre(321))   // junto al B-20
+        assertEquals("Tasty Food 3", nombre(326))   // junto al B-08
+        assertEquals("Tasty Food 4", nombre(327))   // junto a la Empresa pública
+        assertTrue(220 in buscar("psicologia") && 221 !in buscar("psicologia"))
+        assertTrue(221 in buscar("fisioterapia") && 220 !in buscar("fisioterapia"))
+        assertTrue(221 in buscar("nutricion") && 221 in buscar("fonoaudiologia"))
+    }
+
     @Test fun `la busqueda ignora puntuacion y mayusculas`() {
         assertEquals(buscar("fcs"), buscar("  (FCS), "))
         assertTrue(301 in buscar("(CIECP)"))

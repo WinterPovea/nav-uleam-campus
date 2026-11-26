@@ -26,9 +26,10 @@ DATA = ROOT / "data"
 QGIS = DATA / "qgis"
 
 # Correcciones que valen aunque la capa de QGIS diga otra cosa (la versión de la app es la correcta).
+# B-20: solo Psicología. B-21: el resto de carreras de Ciencias de la Salud que antes estaban en el B-20.
 CARRERAS_FIJAS = {
-    "220": "Psicologia, Fisioterapia, Fonoaudologia, Terapia Ocupacional, Nutricion y Dietetica",
-    "221": "No disponible",
+    "220": "Psicologia",
+    "221": "Fisioterapia, Fonoaudiologia, Terapia Ocupacional, Nutricion y Dietetica",
 }
 # Aristas que faltan en la capa de QGIS y se agregan siempre (origen, destino, doble vía, nota).
 ARISTAS_EXTRA = [
