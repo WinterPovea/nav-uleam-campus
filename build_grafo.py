@@ -78,8 +78,21 @@ def main():
             na, nb = (nodos[a]["lat"], nodos[a]["lon"]), (nodos[b]["lat"], nodos[b]["lon"])
             if dist_m(pts[0], nb) + dist_m(pts[-1], na) < dist_m(pts[0], na) + dist_m(pts[-1], nb): pts = pts[::-1]
             err = dist_m(pts[0], na) + dist_m(pts[-1], nb)
+            if err > 3.0:
+                # La línea no calza con los ID de su tabla, pero sus extremos caen sobre otros nodos:
+                # actualizar_mapa.py usa esos nodos para la arista, así que la forma va con ellos.
+                ga, gb = (min(nodos, key=lambda i: dist_m((nodos[i]["lat"], nodos[i]["lon"]), q)) for q in (pts[0], pts[-1]))
+                ega = dist_m((nodos[ga]["lat"], nodos[ga]["lon"]), pts[0]); egb = dist_m((nodos[gb]["lat"], nodos[gb]["lon"]), pts[-1])
+                e1, e2 = dist_m(pts[0], na), dist_m(pts[-1], nb)
+                if min(e1, e2) <= 3.0 and max(e1, e2) <= 25.0:
+                    pass  # un extremo quedó suelto al mover el nodo: se pega al nodo (abajo)
+                elif ga != gb and ega + egb <= 3.0 and {ga, gb} != {a, b}:
+                    a, b = ga, gb
+                    na, nb = (nodos[a]["lat"], nodos[a]["lon"]), (nodos[b]["lat"], nodos[b]["lon"])
+                    err = ega + egb
+                else:
+                    malas_formas.append((a, b, round(err, 1))); continue
             k = (min(a, b), max(a, b))
-            if err > 3.0: malas_formas.append((a, b, round(err, 1))); continue
             pts = [na] + [tuple(round(c, 7) for c in q) for q in pts[1:-1]] + [nb]   # extremos = nodos exactos
             if a > b: pts = pts[::-1]
             if k not in formas or err < formas[k][0]: formas[k] = (err, pts)

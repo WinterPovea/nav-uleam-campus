@@ -58,7 +58,7 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 429,432,No,Conexion de camino
 432,433,Si,Conexion de via
 433,314,No,Conexion hacia entrada de Bloque B-13
-433,444,No,Conexion de camino
+433,102,No,Conexion de camino
 314,213,No,Conexion entrada y salida de Bloque B-13
 434,436,No,Conexion de camino
 436,210,No,Conexion hacia entrada de Bloque B-10
@@ -140,7 +140,7 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 477,311,No,Conexion hacia Estudios y Construcciones
 454,478,No,Conexion de camino
 459,478,No,Conexion de camino
-454,479,SI,Conexion de via
+478,479,SI,Conexion de via
 454,479,Si,Conexion de via
 478,222,No,Conexion hacia entrada de Bloque B-22
 479,222,No,Conexion hacia entrada de Bloque B-22
@@ -176,7 +176,7 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 481,306,No,Conexion entrada hacia Coliseo Edmundo Lourido
 415,306,No,Conexion de camino
 481,415,No,Conexion de camino
-410,481,No,Conexion de camino
+416,481,No,Conexion de camino
 400,500,No,Conexion hacia zona segura 1
 489,501,No,Conexion hacia zona segura 2
 488,501,No,Conexion hacia zona segura 2
@@ -198,4 +198,3 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 434,314,No,Conexion hacia Bloque B-13
 327,323,No,Conexion hacia Empresa Publica de produccion y desarrollo estrategico
 466,225,No,Conexion hacia Bloque B-25
-433,434,No,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)

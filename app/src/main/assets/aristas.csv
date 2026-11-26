@@ -58,7 +58,7 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 429,432,34.77,1,0,Conexion de camino
 432,433,17.82,1,0,Conexion de via
 433,314,16.66,1,0,Conexion hacia entrada de Bloque B-13
-433,444,99.78,1,0,Conexion de camino
+433,102,14.65,1,0,Conexion de camino
 314,213,37.76,1,0,Conexion entrada y salida de Bloque B-13
 434,436,14.13,1,0,Conexion de camino
 436,210,13.7,1,0,Conexion hacia entrada de Bloque B-10
@@ -140,6 +140,7 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 477,311,16.93,1,0,Conexion hacia Estudios y Construcciones
 454,478,38.51,1,0,Conexion de camino
 459,478,54.19,1,0,Conexion de camino
+478,479,36.78,1,0,Conexion de via
 454,479,56.37,1,0,Conexion de via
 478,222,20.76,1,0,Conexion hacia entrada de Bloque B-22
 479,222,40.44,1,0,Conexion hacia entrada de Bloque B-22
@@ -175,6 +176,7 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 481,306,28.62,1,0,Conexion entrada hacia Coliseo Edmundo Lourido
 415,306,44.8,1,0,Conexion de camino
 481,415,76.74,1,0,Conexion de camino
+416,481,58.17,1,0,Conexion de camino
 400,500,44.77,1,0,Conexion hacia zona segura 1
 489,501,23.24,1,0,Conexion hacia zona segura 2
 488,501,34.61,1,0,Conexion hacia zona segura 2
@@ -196,4 +198,3 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 434,314,17.11,1,0,Conexion hacia Bloque B-13
 327,323,16.44,1,0,Conexion hacia Empresa Publica de produccion y desarrollo estrategico
 466,225,27.11,1,0,Conexion hacia Bloque B-25
-433,434,18.0,1,0,Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)
