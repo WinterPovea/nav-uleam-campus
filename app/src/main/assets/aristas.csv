@@ -198,3 +198,16 @@ id_origen,id_destino,distancia_m,bidireccional,tiene_escaleras,nota
 434,314,17.11,1,0,Conexion hacia Bloque B-13
 327,323,16.44,1,0,Conexion hacia Empresa Publica de produccion y desarrollo estrategico
 466,225,27.11,1,0,Conexion hacia Bloque B-25
+400,600,25.16,1,0,Conexion hacia Cajero Banco Pichincha
+485,600,18.47,1,0,Conexion hacia Cajero Banco Pichincha
+489,600,31.85,1,0,Conexion hacia Cajero Banco Pichincha
+492,701,19.61,1,0,Conexion hacia punto de hidratacion
+402,702,11.34,1,0,Conexion hacia punto de hidratacion
+483,703,15.94,1,0,Conexion hacia punto de hidratacion
+409,704,5.95,1,0,Conexion hacia punto de hidratacion
+419,705,1.48,1,0,Conexion hacia punto de hidratacion
+420,706,22.06,1,0,Conexion hacia punto de hidratacion
+475,707,25.79,1,0,Conexion hacia punto de hidratacion
+463,708,14.24,1,0,Conexion hacia punto de hidratacion
+444,709,19.81,1,0,Conexion hacia punto de hidratacion
+436,710,22.89,1,0,Conexion hacia punto de hidratacion

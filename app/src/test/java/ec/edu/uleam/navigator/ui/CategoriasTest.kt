@@ -32,6 +32,14 @@ class CategoriasTest {
     }
 
     @Test
+    fun cajerosPuertasEHidratacion() {
+        assertEquals(listOf(600), Categorias.filtrar(lugares, "CAJERO").map { it.idNodo })
+        assertEquals(listOf(100, 101, 102, 103), Categorias.filtrar(lugares, "PUERTA").map { it.idNodo })
+        assertTrue(Categorias.filtrar(lugares, Categorias.HIDRATACION).size >= 10)
+        assertTrue(Categorias.CHIPS.any { it.first == Categorias.HIDRATACION })
+    }
+
+    @Test
     fun recientesSinRepetirYConLimite() {
         assertEquals(listOf(3, 1, 2), Recientes.agregar(listOf(1, 2, 3), 3))
         assertEquals(listOf(9, 1, 2, 3, 4), Recientes.agregar(listOf(1, 2, 3, 4, 5), 9))

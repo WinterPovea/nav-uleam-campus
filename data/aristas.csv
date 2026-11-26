@@ -198,3 +198,6 @@ ID_Origen,ID_Destino,Doble_Via,Notas
 434,314,No,Conexion hacia Bloque B-13
 327,323,No,Conexion hacia Empresa Publica de produccion y desarrollo estrategico
 466,225,No,Conexion hacia Bloque B-25
+400,600,No,Conexion hacia Cajero Banco Pichincha
+485,600,No,Conexion hacia Cajero Banco Pichincha
+489,600,No,Conexion hacia Cajero Banco Pichincha

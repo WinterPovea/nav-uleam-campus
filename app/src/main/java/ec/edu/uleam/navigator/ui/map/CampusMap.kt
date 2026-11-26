@@ -484,7 +484,7 @@ fun CampusMap(
                     val place = lugaresByNodoId[node.id]
 
                     when (node.tipo) {
-                        "DESTINO" -> {
+                        "DESTINO" -> if (place?.categoria != "HIDRATACION" || node.id == destinationNodeId) {
                             val category = place?.categoria ?: "BLOQUE"
                             val (fillColor, strokeColor) = when (category) {
                                 "ADMINISTRATIVO" -> Color(0xFFEDE7F6) to Color(0xFF5E35B1) // Rectorado/Admin
@@ -553,6 +553,8 @@ fun CampusMap(
                 val ordenados = nodos.sortedBy { if (it.id == destinationNodeId || it.id == originNodeId) 0 else 1 }
                 ordenados.forEach { node ->
                     val place = lugaresByNodoId[node.id] ?: return@forEach
+                    // Los puntos de hidratación ya tienen su gota en el mapa: sin rótulo (salvo si es el destino)
+                    if (place.categoria == "HIDRATACION" && node.id != destinationNodeId) return@forEach
                     // Con huellas dibujadas el código del bloque ya va dentro del edificio (salvo con zoom alto)
                     if (hasShapes && zoom < 2.8f && node.tipo == "DESTINO" && !place.codigo.isNullOrBlank()) return@forEach
                     val center = p.toScreen(node.latitud, node.longitud)

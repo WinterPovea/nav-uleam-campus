@@ -273,6 +273,11 @@ def main():
         g = (g[0] + dn / 111320.0, g[1] + de / (111320.0 * math.cos(math.radians(g[0]))))
         puntos.append(["CAFE", nombre, "OTRO", "%.6f %.6f" % g])
 
+    # Cajeros automáticos: ícono sobre su nodo
+    for l in lugares:
+        if l["categoria"] == "CAJERO" and l["id_nodo"] in nodos:
+            puntos.append(["CAJERO", l["nombre"], "OTRO", "%.6f %.6f" % nodos[l["id_nodo"]]])
+
     # Edificios que no están en los polígonos de OSM: trazados sobre una captura de QGIS georreferenciada con
     # los nodos 470 (px 200,456) y 329 (px 554,299) -> ~0,12 m por píxel, norte arriba
     def px(x, y):

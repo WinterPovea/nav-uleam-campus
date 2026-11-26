@@ -370,7 +370,12 @@ fun CampusApp(vm: CampusViewModel) {
                             Categorias.CHIPS.forEach { (cat, etiqueta) ->
                                 FilterChip(
                                     selected = s.categoria == cat,
-                                    onClick = { vm.filtrarCategoria(cat) },
+                                    onClick = {
+                                        if (cat == Categorias.HIDRATACION) {
+                                            cerrarBusqueda()
+                                            vm.irAHidratacionCercana()
+                                        } else vm.filtrarCategoria(cat)
+                                    },
                                     label = { Text(etiqueta, fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = tc(0xFFF6DADD, 0xFF1E3A50)

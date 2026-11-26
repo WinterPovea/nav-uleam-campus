@@ -2,6 +2,7 @@ package ec.edu.uleam.navigator.routing.astar
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /** El Dijkstra inverso (una pasada) debe dar exactamente las mismas distancias que un A* por cada origen. */
@@ -25,6 +26,17 @@ class DistancesToTest {
     @Test fun igualQueAStar() = comparar(avoidStairs = false)
 
     @Test fun igualQueAStarEvitandoEscaleras() = comparar(avoidStairs = true)
+
+    @Test fun hidratacionMasCercanaEsLaDeMenorRuta() {
+        val puntos = RealCampusData.lugares().filter { it.categoria == "HIDRATACION" }.map { it.idNodo }.toSet()
+        assertTrue(puntos.size >= 10)
+        for (o in listOf(100, 101, 102, 103, 216, 314, 205)) {
+            val r = astar.findNearestOf(o, puntos) as RouteResult.Success
+            val mejor = puntos.mapNotNull { (astar.findRoute(o, it) as? RouteResult.Success)?.distanceM }.min()
+            assertEquals(mejor, r.distanceM, 1e-6, "desde $o")
+            assertTrue(r.nodeIds.last() in puntos)
+        }
+    }
 
     @Test fun destinoDesconocidoDaMapaVacio() {
         assertEquals(emptyMap<Int, Double>(), astar.distancesTo(-1))

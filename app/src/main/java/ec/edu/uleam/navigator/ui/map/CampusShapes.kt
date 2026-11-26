@@ -432,9 +432,12 @@ fun DrawScope.drawCampusShapes(
     // Cafeterías sin huella propia (El bosque): taza sobre el nodo, visible desde zoom bajo
     if (zoom >= 1.0f) {
         for (s in shapes) {
-            if (s.tipo != "CAFE" || s.puntos.size != 1) continue
+            if (s.puntos.size != 1) continue
             val n = p.toScreen(s.puntos[0].lat, s.puntos[0].lon)
-            drawCafeIcon(Offset(n.x, n.y - 30f))
+            when (s.tipo) {
+                "CAFE" -> drawCafeIcon(Offset(n.x, n.y - 30f))
+                "CAJERO" -> drawAtmIcon(Offset(n.x, n.y - 30f))
+            }
         }
     }
     // Iconos puntuales: parqueo (P) y punto de hidratación (gota)
@@ -465,6 +468,21 @@ fun DrawScope.drawCampusShapes(
             }
         }
     }
+}
+
+/** Ícono de cajero automático: círculo verde con un billete y el signo $. */
+private fun DrawScope.drawAtmIcon(o: Offset) {
+    drawCircle(Color.White, 18f, o)
+    drawCircle(Color(0xFF2E7D32), 16f, o)
+    drawRoundRect(Color.White, Offset(o.x - 10f, o.y - 6.5f), Size(20f, 13f), CornerRadius(2f, 2f), style = Stroke(width = 2f))
+    val nc = drawContext.canvas.nativeCanvas
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = 13f
+        textAlign = android.graphics.Paint.Align.CENTER
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+    }
+    nc.drawText("$", o.x, o.y + 4.5f, paint)
 }
 
 /** Ícono de cafetería: círculo café con una taza blanca humeante. */

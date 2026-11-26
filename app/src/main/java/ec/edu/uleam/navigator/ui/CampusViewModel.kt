@@ -387,6 +387,28 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
      * Evacuación de emergencia: calcula ruta hacia la zona segura más cercana
      * utilizando Dijkstra en el grafo unificado sin depender de SQL.
      */
+    /**
+     * Lleva al punto de hidratación más cercano POR CAMINO desde donde está el usuario (no en línea recta):
+     * un Dijkstra desde el origen hasta el primer punto de hidratación alcanzable.
+     */
+    fun irAHidratacionCercana() {
+        ui = ui.copy(query = "", results = emptyList(), categoria = null)
+        val o = ui.origenId ?: run {
+            ui = ui.copy(msg = "Esperando tu ubicación para buscar el punto de hidratación más cercano.")
+            return
+        }
+        val astar = repo.astar ?: return
+        val puntos = repo.lugares.filter { it.categoria == Categorias.HIDRATACION }.map { it.idNodo }.toSet()
+        when (val r = astar.findNearestOf(o, puntos, RouteOptions(avoidStairs = ui.avoidStairs))) {
+            is RouteResult.Success -> {
+                val lugar = repo.lugares.firstOrNull { it.idNodo == r.nodeIds.last() } ?: return
+                elegirDestino(lugar)
+                ui = ui.copy(infoMsg = "Punto de hidratación más cercano: ${"%.0f".format(r.distanceM)} m")
+            }
+            is RouteResult.Failure -> ui = ui.copy(msg = "No hay ruta a un punto de hidratación: ${mensajeDe(r.reason)}")
+        }
+    }
+
     fun zonaSegura() {
         resetOffRouteTracking()
         detenerNavegacion()
