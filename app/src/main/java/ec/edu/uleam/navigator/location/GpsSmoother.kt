@@ -14,8 +14,11 @@ import kotlin.math.hypot
  * Lógica pura (sin Android) para poder probarla en tests unitarios.
  */
 class GpsSmoother(
-    /** Cuánto puede moverse el usuario (m/s) entre lecturas; ≈ paso rápido. */
-    private val processSpeedMps: Double = 2.0,
+    /**
+     * Cuánto puede moverse el usuario (m/s) entre lecturas. Más alto = sigue más rápido al usuario (≈ 1.4 m
+     * de atraso caminando con lecturas cada segundo) a cambio de suavizar un poco menos el ruido.
+     */
+    private val processSpeedMps: Double = 3.5,
     private val resetJumpM: Double = 60.0,
     private val minAccuracyM: Double = 3.0
 ) {

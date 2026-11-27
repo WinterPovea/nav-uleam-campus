@@ -72,14 +72,42 @@ class OriginPickerTest {
         assertEquals(null, OriginPicker.pick(-0.9300, -80.7300, graph, shapes))
     }
 
+    private fun llega(p: GeoPoint, dest: Int, r: Double = 8.0) = OriginPicker.isAtDestination(p.lat, p.lon, dest, graph, shapes, r)
+
     @Test
     fun llegadaPorCercaniaODentroDelEdificioDestino() {
         val dest = graph.node(216)!!    // entrada de B-16
-        val p = dentroDe("B-16")
-        assertTrue(OriginPicker.isAtDestination(p.lat, p.lon, dest.latitude, dest.longitude, shapes, 20.0))
-        assertTrue(OriginPicker.isAtDestination(dest.latitude + 0.0001, dest.longitude, dest.latitude, dest.longitude, shapes, 20.0)) // ~11 m
+        assertTrue(llega(dentroDe("B-16"), 216, 20.0))
+        assertTrue(llega(GeoPoint(dest.latitude + 0.0001, dest.longitude), 216, 20.0)) // ~11 m
         val lejos = graph.node(222)!!   // B-22
-        assertFalse(OriginPicker.isAtDestination(lejos.latitude, lejos.longitude, dest.latitude, dest.longitude, shapes, 20.0))
+        assertFalse(llega(GeoPoint(lejos.latitude, lejos.longitude), 216, 20.0))
+    }
+
+    @Test
+    fun dentroDeTastyFood1NoEstaEnElVicerrectorado() {
+        // La entrada del Vicerrectorado (317) queda a ~9 m de Tasty Food 1, pero pertenece a su propio edificio
+        val poly = shapes.filter { it.codigo == "Tasty Food 1" }.maxBy { it.puntos.size }.puntos
+        val c = GeoPoint(poly.map { it.lat }.average(), poly.map { it.lon }.average())
+        assertTrue(OriginPicker.contains(poly, c))
+        assertFalse(llega(c, 317))
+        // Tasty Food 1 tiene dos entradas del mismo lugar: cualquiera cuenta como llegada
+        val mismo = { a: Int, b: Int -> setOf(a, b) == setOf(305, 318) || a == b }
+        assertTrue(OriginPicker.isAtDestination(c.lat, c.lon, 305, graph, shapes, 8.0, mismo))
+        assertTrue(OriginPicker.isAtDestination(c.lat, c.lon, 318, graph, shapes, 8.0, mismo))
+    }
+
+    @Test
+    fun dentroDeB05NoEstaEnElLaboratorioGastronomico() {
+        val p = dentroDe("B-05")
+        assertFalse(llega(p, 230))   // el laboratorio tiene su propia entrada: se traza la ruta
+        assertTrue(llega(p, 205))
+    }
+
+    @Test
+    fun mismoLugarConOtroAcceso() {
+        assertTrue(OriginPicker.samePlaceName("Facultad X (Bloque B-13)", "Facultad X (Bloque B-13, acceso 2)"))
+        assertTrue(OriginPicker.samePlaceName("Tasty Food 1 (entrada 1)", "Tasty Food 1 (entrada 2)"))
+        assertFalse(OriginPicker.samePlaceName("Laboratorio gastronómico (Bloque B-05)", "Facultad de Educación (Bloque B-05)"))
     }
 
     @Test

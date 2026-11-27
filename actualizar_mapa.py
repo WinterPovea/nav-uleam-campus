@@ -26,14 +26,14 @@ DATA = ROOT / "data"
 QGIS = DATA / "qgis"
 
 # Correcciones que valen aunque la capa de QGIS diga otra cosa (la versión de la app es la correcta).
+# B-20: solo Psicología. B-21: el resto de carreras de Ciencias de la Salud que antes estaban en el B-20.
 CARRERAS_FIJAS = {
-    "220": "Psicologia, Fisioterapia, Fonoaudologia, Terapia Ocupacional, Nutricion y Dietetica",
-    "221": "No disponible",
+    "220": "Psicologia",
+    "221": "Fisioterapia, Fonoaudiologia, Terapia Ocupacional, Nutricion y Dietetica",
 }
 # Aristas que faltan en la capa de QGIS y se agregan siempre (origen, destino, doble vía, nota).
-ARISTAS_EXTRA = [
-    ("433", "434", "No", "Conexion de camino hacia Puerta 3 (oeste de Bloque B-13)"),
-]
+# (La 433–434 ya no hace falta: la capa trae ahora 433–Puerta 3 y 314–434.)
+ARISTAS_EXTRA = []
 CAMPOS_NODOS = ["ID", "Categoria", "Descri", "Latitud", "Longitud", "Facultad", "Carrera"]
 CAMPOS_ARISTAS = ["ID_Origen", "ID_Destino", "Doble_Via", "Notas"]
 
@@ -86,16 +86,49 @@ def leer_nodos(gpkg):
     return capa, nodos
 
 
-def leer_aristas(shp_base):
+def leer_aristas(shp_base, nodos):
+    """Aristas de la capa. Si los ID de una línea no sirven (nodo inexistente, arista repetida o la línea está
+    lejísimos de esos nodos) pero sus dos extremos caen justo sobre otros nodos, se usan esos nodos: el dibujo
+    manda sobre la tabla de atributos. Si tampoco, la línea se descarta y se avisa."""
     sys.path.insert(0, str(ROOT))
-    from build_grafo import read_shp_lines
-    filas = []
-    for attrs, _ in read_shp_lines(shp_base):
+    from build_grafo import read_shp_lines, dist_m
+    pos = {n["ID"]: (float(n["Latitud"]), float(n["Longitud"])) for n in nodos}
+
+    def nodo_en(p, max_m=1.5):
+        k = min(pos, key=lambda i: dist_m(pos[i], p))
+        return k if dist_m(pos[k], p) <= max_m else None
+
+    filas, pares = [], set()
+    for attrs, pts in read_shp_lines(shp_base):
         o, d = str(attrs.get("ID_Origen", "")).strip(), str(attrs.get("ID_Destino", "")).strip()
-        if o and d:
-            filas.append({"ID_Origen": o, "ID_Destino": d, "Doble_Via": attrs.get("Doble_Via", "No") or "No",
-                          "Notas": attrs.get("Notas", "")})
-    pares = {frozenset((r["ID_Origen"], r["ID_Destino"])) for r in filas}
+        if o.endswith(".0"): o = o[:-2]
+        if d.endswith(".0"): d = d[:-2]
+        if not (o and d):
+            continue
+        go, gd = (nodo_en(pts[0]), nodo_en(pts[-1])) if pts and len(pts) >= 2 else (None, None)
+        motivo = None
+        if o not in pos or d not in pos:
+            motivo = "nodo inexistente"
+        elif go and gd and go != gd and {go, gd} != {o, d}:
+            e1, e2 = sorted(min((dist_m(pts[0], pos[o]), dist_m(pts[-1], pos[d])),
+                                (dist_m(pts[0], pos[d]), dist_m(pts[-1], pos[o])), key=sum))
+            # Un extremo suelto hasta 25 m es un nodo que se movió (build_grafo lo pega); más lejos, la línea
+            # en realidad une otros dos nodos.
+            if not (e1 <= 3.0 and e2 <= 25.0):
+                motivo = "la línea une otros nodos"
+        if motivo:
+            if go and gd and go != gd and frozenset((go, gd)) not in pares:
+                print(f"  ~ arista {o}-{d} ({motivo}) -> {go}-{gd}, según dónde empieza y termina la línea")
+                o, d = go, gd
+            else:
+                print(f"  - arista {o}-{d} descartada ({motivo})")
+                continue
+        if frozenset((o, d)) in pares:
+            print(f"  - arista {o}-{d} repetida (se deja una)")
+            continue
+        pares.add(frozenset((o, d)))
+        filas.append({"ID_Origen": o, "ID_Destino": d, "Doble_Via": attrs.get("Doble_Via", "No") or "No",
+                      "Notas": attrs.get("Notas", "")})
     for o, d, dv, nota in ARISTAS_EXTRA:
         if frozenset((o, d)) not in pares:
             filas.append({"ID_Origen": o, "ID_Destino": d, "Doble_Via": dv, "Notas": nota})
@@ -129,7 +162,7 @@ def main():
 
     capa, nodos = leer_nodos(gpkg)
     print(f"Nodos: {len(nodos)} (capa '{capa}' de {gpkg.name})")
-    aristas = leer_aristas(shp_base)
+    aristas = leer_aristas(shp_base, nodos)
     print(f"Aristas: {len(aristas)} (de {shp_base.name}.shp)")
 
     escribir(DATA / "nodos_u.csv", CAMPOS_NODOS, nodos)

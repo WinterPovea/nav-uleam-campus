@@ -134,15 +134,43 @@ object OriginPicker {
     }
 
     /**
-     * ¿El usuario ya está en el destino? Sí, si está a [radiusM] o menos del nodo del destino,
-     * o dentro del edificio al que pertenece esa entrada.
+     * ¿El usuario ya está en el destino [destId]?
+     *
+     * - Sí, si está a [radiusM] o menos de su nodo.
+     * - Sí, si está DENTRO del edificio al que pertenece esa entrada (el edificio más cercano a ella, ver
+     *   [entrancesOf]) y, de las entradas de ese edificio, la más cercana a él es la del mismo lugar
+     *   ([samePlace]). Así, dentro de Tasty Food 1 no "llega" al Vicerrectorado (su entrada es de otro
+     *   edificio), y dentro del ala oeste de B-05 no "llega" al Laboratorio gastronómico (que tiene su propia
+     *   entrada al este): se le traza la ruta.
+     *
+     * @param samePlace ¿dos nodos de entrada son del mismo lugar? (p. ej. los dos accesos de B-13).
      */
-    fun isAtDestination(lat: Double, lon: Double, destLat: Double, destLon: Double, shapes: List<CampusShape>, radiusM: Double): Boolean {
+    fun isAtDestination(
+        lat: Double,
+        lon: Double,
+        destId: Int,
+        graph: CampusGraph,
+        shapes: List<CampusShape>,
+        radiusM: Double,
+        samePlace: (Int, Int) -> Boolean = { a, b -> a == b }
+    ): Boolean {
         val p = GeoPoint(lat, lon)
-        val d = GeoPoint(destLat, destLon)
-        if (distanceM(p, d) <= radiusM) return true
+        val dest = graph.node(destId) ?: return false
+        if (distanceM(p, GeoPoint(dest.latitude, dest.longitude)) <= radiusM) return true
         val b = buildingAt(p, shapes) ?: return false
-        return distanceToPolygonM(d, b.puntos) <= ENTRANCE_TO_BUILDING_M
+        val entradas = entrancesOf(b, graph, shapes)
+        if (destId !in entradas) return false
+        val masCercana = entradas.minBy { id -> graph.node(id)?.let { distanceM(p, GeoPoint(it.latitude, it.longitude)) } ?: Double.MAX_VALUE }
+        return masCercana == destId || samePlace(masCercana, destId)
+    }
+
+    /** ¿Dos nombres de lugar son el mismo lugar con otro acceso? ("…(Bloque B-13, acceso 2)", "Tasty Food 1 (entrada 2)"). */
+    fun samePlaceName(a: String, b: String): Boolean {
+        fun base(n: String) = n.lowercase()
+            .replace(Regex(",\\s*acceso\\s*\\d+"), "")
+            .replace(Regex("\\s*\\(entrada\\s*\\d+\\)"), "")
+            .trim()
+        return base(a) == base(b)
     }
 
     /** Edificio (huella) que contiene el punto, o null. */

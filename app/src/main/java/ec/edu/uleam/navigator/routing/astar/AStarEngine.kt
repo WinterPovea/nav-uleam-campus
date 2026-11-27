@@ -195,6 +195,48 @@ class AStarEngine(private val graph: CampusGraph) {
         return null
     }
 
+    /**
+     * Ruta al más cercano (por camino, no en línea recta) de un conjunto de destinos, p. ej. los puntos de
+     * hidratación. Dijkstra desde el origen hasta sacar de la cola el primer destino del conjunto.
+     * Los destinos pueden ser nodos DESTINO (se puede llegar a ellos, pero no atravesarlos).
+     */
+    fun findNearestOf(originId: Int, targets: Set<Int>, options: RouteOptions = RouteOptions()): RouteResult {
+        val origin = graph.node(originId) ?: return RouteResult.Failure(RouteResult.Reason.UNKNOWN_ORIGIN)
+        if (targets.none { graph.node(it) != null }) return RouteResult.Failure(RouteResult.Reason.NO_PATH)
+        searchNearestOf(origin, targets, options.avoidStairs)?.let { return it }
+        val reason = if (options.avoidStairs && searchNearestOf(origin, targets, avoidStairs = false) != null)
+            RouteResult.Reason.ONLY_PATH_HAS_STAIRS else RouteResult.Reason.NO_PATH
+        return RouteResult.Failure(reason)
+    }
+
+    private fun searchNearestOf(origin: GraphNode, targets: Set<Int>, avoidStairs: Boolean): RouteResult.Success? {
+        if (origin.id in targets) return RouteResult.Success(listOf(origin.id), 0.0, false, 0)
+        val open = PriorityQueue<QueueEntry>(compareBy<QueueEntry> { it.g })
+        val bestG = HashMap<Int, Double>()
+        val cameFrom = HashMap<Int, Step>()
+        bestG[origin.id] = 0.0
+        open.add(QueueEntry(origin.id, 0.0, 0.0))
+        var explored = 0
+        while (open.isNotEmpty()) {
+            val cur = open.poll()!!
+            if (cur.g > (bestG[cur.nodeId] ?: Double.MAX_VALUE)) continue
+            explored++
+            if (cur.nodeId in targets) return buildResult(origin.id, cur.nodeId, cur.g, cameFrom, explored)
+            for (nb in graph.neighbors(cur.nodeId)) {
+                if (avoidStairs && nb.hasStairs) continue
+                val next = graph.node(nb.toId) ?: continue
+                if (next.type == NodeType.DESTINO && next.id !in targets) continue
+                val ng = cur.g + nb.distanceM
+                if (ng < (bestG[next.id] ?: Double.MAX_VALUE)) {
+                    bestG[next.id] = ng
+                    cameFrom[next.id] = Step(cur.nodeId, nb.hasStairs)
+                    open.add(QueueEntry(next.id, ng, ng))
+                }
+            }
+        }
+        return null
+    }
+
     private fun searchNearestSafeZone(origin: GraphNode, avoidStairs: Boolean): RouteResult.Success? {
         if (origin.type == NodeType.ZONA_SEGURA) {
             return RouteResult.Success(listOf(origin.id), 0.0, false, 0)

@@ -55,7 +55,8 @@ class FusedLocationSource(
     context: Context,
     private val maxAccuracyM: Float = LocationFilter.DEFAULT_MAX_ACCURACY_M,
     private val maxSpeedMps: Double = LocationFilter.DEFAULT_MAX_SPEED_MPS,
-    private val intervalMs: Long = 2000L
+    /** Una lectura por segundo (antes 2 s): el punto azul se retrasa menos al caminar. */
+    private val intervalMs: Long = 1000L
 ) : LocationSource {
 
     private val appContext = context.applicationContext
@@ -92,7 +93,8 @@ class FusedLocationSource(
         )
         val client = LocationServices.getFusedLocationProviderClient(appContext)
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
-            .setMinUpdateIntervalMillis(1000L)
+            .setMinUpdateIntervalMillis(500L)
+            .setWaitForAccurateLocation(false)
             .build()
 
         val callback = object : LocationCallback() {

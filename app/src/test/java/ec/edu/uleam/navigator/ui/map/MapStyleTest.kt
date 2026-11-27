@@ -47,6 +47,20 @@ class EdgeShapesTest {
         val pts = shapes.routePoints(listOf(3, 2, 1)) { nodos[it] }
         assertEquals(listOf(GeoPoint(2.0, 1.0), GeoPoint(1.0, 1.0), GeoPoint(0.5, 1.0), GeoPoint(0.0, 0.0)), pts)
     }
+
+    @Test
+    fun tramosAjustadosALaCalleSeUnenSinIrAlNodo() {
+        // Nodo 2 está a ~5 m de la calle; los dos tramos ajustados pasan por su proyección (c) y no por el nodo
+        val m = 1.0 / 111_320.0
+        val a = GeoPoint(0.0, 0.0); val c = GeoPoint(0.0, 50 * m); val b = GeoPoint(0.0, 100 * m)
+        val calle = EdgeShapes.from(listOf(
+            CampusShape("ARISTA", "1-2", "OTRO", listOf(a, c)),
+            CampusShape("ARISTA", "2-3", "OTRO", listOf(c, b))
+        ))
+        val nodo2 = GeoPoint(5 * m, 50 * m)
+        val pts = calle.routePoints(listOf(1, 2, 3)) { mapOf(1 to a, 2 to nodo2, 3 to b)[it] }
+        assertEquals(listOf(a, c, b), pts)
+    }
 }
 
 class BlockLabelTest {

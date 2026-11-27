@@ -6,12 +6,18 @@ import ec.edu.uleam.navigator.data.LugarEntity
 object Categorias {
     /** (categoría en lugares.csv, etiqueta del chip). DEPORTE y CULTURA van juntos en "Deporte y cultura". */
     val CHIPS = listOf(
+        HIDRATACION to "Hidratación más cercana",
         "BLOQUE" to "Bloques",
         "COMIDA" to "Dónde comer",
+        "CAJERO" to "Cajeros",
+        "PUERTA" to "Puertas",
         "ADMINISTRATIVO" to "Administrativos",
         "ZONA_SEGURA" to "Zonas seguras",
         "DEPORTE" to "Deporte y cultura"
     )
+
+    /** Este chip no lista lugares: lleva directo al punto de hidratación más cercano por camino. */
+    const val HIDRATACION = "HIDRATACION"
 
     /** "Dónde comer": patios de comidas (Tasty Food), cafeterías (El bosque), Agromarket y el Laboratorio gastronómico. */
     private fun esDeComida(l: LugarEntity) = l.categoria == "COMIDA" || l.nombre.contains("gastronómico", ignoreCase = true)

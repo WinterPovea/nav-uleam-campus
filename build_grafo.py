@@ -60,6 +60,65 @@ def fix(t):
     return t
 
 
+def _edificios():
+    """Polígonos de edificios de campus_shapes.csv en metros locales (para no cruzar paredes)."""
+    f = ASSETS / "campus_shapes.csv"
+    if not f.exists():
+        return []
+    out = []
+    for r in csv.DictReader(open(f, encoding="utf-8")):
+        if r["tipo"] in ("EDIFICIO", "OTRO", "COMIDA"):
+            v = [float(x) for x in r["puntos"].split()]
+            if len(v) >= 6:
+                out.append(list(zip(v[::2], v[1::2])))
+    return out
+
+
+def _cruza(p, q, poly):
+    def side(a, b, c): return (b[1] - a[1]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[1] - a[1])
+    for i in range(len(poly)):
+        c, d = poly[i], poly[(i + 1) % len(poly)]
+        if side(p, q, c) * side(p, q, d) < 0 and side(c, d, p) * side(c, d, q) < 0:
+            return True
+    return False
+
+
+def _dentro(p, poly):
+    ins, j = False, len(poly) - 1
+    for i in range(len(poly)):
+        a, b = poly[i], poly[j]
+        if (a[0] > p[0]) != (b[0] > p[0]) and p[1] < (b[1] - a[1]) * (p[0] - a[0]) / (b[0] - a[0]) + a[1]:
+            ins = not ins
+        j = i
+    return ins
+
+
+def agregar_hidratacion(nodos, aristas, max_m=60.0):
+    f = DATA / "hidratacion.csv"
+    if not f.exists():
+        return []
+    edif = _edificios()
+    hechos = []
+    for r in csv.DictReader(open(f, encoding="utf-8")):
+        nid, p = int(r["id"]), (float(r["latitud"]), float(r["longitud"]))
+        propios = [e for e in edif if _dentro(p, e)]   # si el bebedero está dentro de un edificio, sus paredes no cuentan
+        cand = sorted((dist_m(p, (n["lat"], n["lon"])), i) for i, n in nodos.items() if n["tipo"] == "CONEXION")
+        for d, i in cand:
+            if d > max_m:
+                break
+            q = (nodos[i]["lat"], nodos[i]["lon"])
+            if any(_cruza(p, q, e) for e in edif if not any(e is x for x in propios)):
+                continue
+            nodos[nid] = dict(lat=p[0], lon=p[1], tipo="DESTINO", desc="Punto de hidratacion")
+            aristas.append(dict(a=i, b=nid, d=round(d, 2), forma=None, esc=0,
+                                nota="Conexion hacia punto de hidratacion", doble=False))
+            hechos.append((nid, i, round(d, 1)))
+            break
+        else:
+            hechos.append((nid, None, None))
+    return hechos
+
+
 def main():
     nodos = {}
     for r in csv.DictReader(open(DATA / "nodos_u.csv", encoding="utf-8")):
@@ -78,8 +137,21 @@ def main():
             na, nb = (nodos[a]["lat"], nodos[a]["lon"]), (nodos[b]["lat"], nodos[b]["lon"])
             if dist_m(pts[0], nb) + dist_m(pts[-1], na) < dist_m(pts[0], na) + dist_m(pts[-1], nb): pts = pts[::-1]
             err = dist_m(pts[0], na) + dist_m(pts[-1], nb)
+            if err > 3.0:
+                # La línea no calza con los ID de su tabla, pero sus extremos caen sobre otros nodos:
+                # actualizar_mapa.py usa esos nodos para la arista, así que la forma va con ellos.
+                ga, gb = (min(nodos, key=lambda i: dist_m((nodos[i]["lat"], nodos[i]["lon"]), q)) for q in (pts[0], pts[-1]))
+                ega = dist_m((nodos[ga]["lat"], nodos[ga]["lon"]), pts[0]); egb = dist_m((nodos[gb]["lat"], nodos[gb]["lon"]), pts[-1])
+                e1, e2 = dist_m(pts[0], na), dist_m(pts[-1], nb)
+                if min(e1, e2) <= 3.0 and max(e1, e2) <= 25.0:
+                    pass  # un extremo quedó suelto al mover el nodo: se pega al nodo (abajo)
+                elif ga != gb and ega + egb <= 3.0 and {ga, gb} != {a, b}:
+                    a, b = ga, gb
+                    na, nb = (nodos[a]["lat"], nodos[a]["lon"]), (nodos[b]["lat"], nodos[b]["lon"])
+                    err = ega + egb
+                else:
+                    malas_formas.append((a, b, round(err, 1))); continue
             k = (min(a, b), max(a, b))
-            if err > 3.0: malas_formas.append((a, b, round(err, 1))); continue
             pts = [na] + [tuple(round(c, 7) for c in q) for q in pts[1:-1]] + [nb]   # extremos = nodos exactos
             if a > b: pts = pts[::-1]
             if k not in formas or err < formas[k][0]: formas[k] = (err, pts)
@@ -102,6 +174,9 @@ def main():
     rep.append(f"Aristas duplicadas eliminadas: {dup}")
     rep.append(f"Aristas con forma de QGIS: {sum(1 for x in aristas if x['forma'] and len(x['forma']) > 2)} con curvas, "
                f"{sum(1 for x in aristas if x['forma'])} en total; formas descartadas (extremos lejos de sus nodos): {malas_formas}")
+    # Puntos de hidratación (data/hidratacion.csv): nodos DESTINO 7xx unidos al nodo de calle más cercano
+    # al que se llega sin atravesar un edificio. Son destinos de búsqueda ("ir al más cercano").
+    rep.append("Puntos de hidratación: " + str(agregar_hidratacion(nodos, aristas)))
     usados = {x["a"] for x in aristas} | {x["b"] for x in aristas}
     rep.append(f"Nodos sin aristas (omitidos): {sorted(set(nodos) - usados)}")
     vec = {i: set() for i in usados}

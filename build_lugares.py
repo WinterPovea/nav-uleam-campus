@@ -33,10 +33,12 @@ NUEVOS = {
 }
 # Segundas entradas de un bloque: se nombran "(Bloque B-xx, acceso 2)"
 ACCESO_2 = {314, 226, 227}
-# B-21 (nodo 221) sin carreras por el momento; Psicología, Fisioterapia, etc. están en el B-20 (nodo 220).
+# B-20 (nodo 220): Psicología. B-21 (nodo 221): Fisioterapia, Fonoaudiología, Terapia Ocupacional, Nutrición y Dietética.
 # data/nodos_u.csv ya trae ese reparto; estas tablas quedan vacías para casos futuros.
+# Tasty Food: 326 (junto al B-08) es el 3, 321 (junto al B-20) es el 2, 327 (junto a la Empresa pública) es el 4.
+TASTY_NOMBRE = {"326": "Tasty Food 3", "321": "Tasty Food 2", "327": "Tasty Food 4"}
 CARRERAS_DE = {}                # nodo -> nodo del que toma las carreras
-SIN_CARRERAS = {221}            # nodos cuya descripción es "No disponible por el momento"
+SIN_CARRERAS = set()            # nodos cuya descripción es "No disponible por el momento"
 BLOQUE_REAL = {}                # id_nodo -> bloque a mostrar si difiere del que trae el CSV (hoy ninguno)
 
 # Sinónimos que ayudan a encontrar la facultad por palabras sueltas.
@@ -142,6 +144,8 @@ def main() -> None:
             r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 1)", "tasty food patio de comidas comida"
         elif r["id_nodo"] == "318":
             r["nombre"], r["etiquetas"] = "Tasty Food 1 (entrada 2)", "tasty food patio de comidas comida"
+        elif r["id_nodo"] in TASTY_NOMBRE:  # numeración real de los Tasty Food (nov-2026)
+            r["nombre"] = TASTY_NOMBRE[r["id_nodo"]]
         elif r["id_nodo"] == "312":  # El bosque es una cafetería, no un lugar cultural
             r["categoria"], r["etiquetas"] = "COMIDA", "cafeteria cafe comida"
 
@@ -193,6 +197,37 @@ def main() -> None:
             r["busqueda"] += " patio de comidas comida"
         elif r["id_nodo"] == "312":
             r["descripcion"] = "Cafetería"
+
+    # Cajeros (nodo con "Cajero" en su descripción) y puntos de hidratación (nodos 7xx de data/hidratacion.csv)
+    pos = {str(i): (float(n["latitud"]), float(n["longitud"])) for i, n in en_grafo.items()}
+    unicas = [r for r in unicas if not (r["id_nodo"].startswith("7") and len(r["id_nodo"]) == 3 and r["id_nodo"] not in pos)]
+
+    def cerca_de(nid):
+        """Lugar (no hidratación ni puerta) más cercano al nodo, para nombrar el punto: "junto a B-16"."""
+        la, lo = pos[nid]
+        mejor = min((r for r in unicas if r["categoria"] not in ("HIDRATACION", "PUERTA") and r["id_nodo"] in pos),
+                    key=lambda r: (pos[r["id_nodo"]][0] - la) ** 2 + (pos[r["id_nodo"]][1] - lo) ** 2)
+        m = re.search(r"B-\d+", mejor["nombre"])
+        return "Bloque " + m.group(0) if m else re.sub(r"\s*\(.*?\)", "", mejor["nombre"]).strip()
+
+    for r in unicas:
+        nid = r["id_nodo"]
+        if r["categoria"] == "PUERTA":
+            r["descripcion"] = "Acceso al campus"
+            r["etiquetas"] = "puerta acceso entrada ingreso salida"
+            r["busqueda"] = " ".join([r["nombre"], r["etiquetas"]])
+        elif "cajero" in r["nombre"].lower():
+            r["categoria"] = "CAJERO"
+            r["descripcion"] = "Cajero automático"
+            r["etiquetas"] = "cajero automatico atm banco dinero retiro"
+            r["busqueda"] = " ".join([r["nombre"], r["etiquetas"]])
+        elif en_grafo.get(int(nid), {}).get("descripcion_interna", "").lower().startswith("punto de hidratacion"):
+            r["categoria"] = "HIDRATACION"
+            r["nombre"] = f"Punto de hidratación (junto a {cerca_de(nid)})"
+            r["descripcion"] = "Agua para beber"
+            r["etiquetas"] = "punto de hidratacion agua bebedero beber tomar agua"
+            r["codigo"] = ""
+            r["busqueda"] = " ".join([r["nombre"], r["etiquetas"]])
 
     for r in unicas:
         r["nombre"] = acentuar(r["nombre"])

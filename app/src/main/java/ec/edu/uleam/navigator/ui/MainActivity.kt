@@ -16,6 +16,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -121,6 +124,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.focus.onFocusChanged
@@ -219,19 +223,17 @@ fun CampusApp(vm: CampusViewModel) {
         }
     }
 
-    // Actualizar ubicación real al ViewModel cuando no está en modo simulación
-    LaunchedEffect(locationState, vm.ui.isSimulationMode) {
+    // Actualizar la ubicación real en el ViewModel
+    LaunchedEffect(locationState) {
         if (locationState is LocationState.PermissionDenied && hasLocationPermission(context)) {
             permissionDenied = false
             permanentlyDenied = false
             vm.refreshLocationPermissionState()
         }
-        if (!vm.ui.isSimulationMode) {
-            when (val s = locationState) {
-                is LocationState.Fix -> vm.onGpsLocation(s.lat, s.lon, s.accuracyM)
-                is LocationState.LowAccuracy -> vm.onGpsLocation(s.lat, s.lon, s.accuracyM)
-                else -> {}
-            }
+        when (val s = locationState) {
+            is LocationState.Fix -> vm.onGpsLocation(s.lat, s.lon, s.accuracyM)
+            is LocationState.LowAccuracy -> vm.onGpsLocation(s.lat, s.lon, s.accuracyM)
+            else -> {}
         }
     }
 
@@ -290,8 +292,8 @@ fun CampusApp(vm: CampusViewModel) {
     BackHandler(enabled = busquedaAbierta) { cerrarBusqueda() }
 
     // Altura de la tarjeta inferior: los botones flotantes del mapa quedan siempre por encima de ella
-    var cardHeightPx by remember { mutableStateOf(0) }
-    val cardHeightDp = with(LocalDensity.current) { cardHeightPx.toDp() }
+    // (se guarda en un estado que solo se lee al ubicar los botones: animar la tarjeta no redibuja todo el mapa)
+    val cardHeightPx = remember { mutableIntStateOf(0) }
 
     Box(Modifier.fillMaxSize().statusBarsPadding()) {
         // CAPA 1: MAPA CANVAS BASE
@@ -305,13 +307,12 @@ fun CampusApp(vm: CampusViewModel) {
             originNodeId = s.origenId,
             destinationNodeId = s.destino?.idNodo,
             userPosition = vm.userPosition,
-            isSimulationMode = s.isSimulationMode,
-            onMapTap = { lat, lon -> if (busquedaAbierta) cerrarBusqueda() else vm.onMapTap(lat, lon) },
+            onMapTap = { _, _ -> if (busquedaAbierta) cerrarBusqueda() },
             onPlaceTap = { l -> if (busquedaAbierta) cerrarBusqueda() else vm.onPlaceTap(l) },
             modifier = Modifier.fillMaxSize(),
             azimuthDeg = azimuthDeg,
             navigating = s.navigating,
-            controlsBottomPadding = cardHeightDp + 24.dp,
+            controlsBottomPx = { cardHeightPx.intValue },
             mapStyle = effectiveStyle,
             routeLead = vm.leadActivo()
         )
@@ -369,7 +370,12 @@ fun CampusApp(vm: CampusViewModel) {
                             Categorias.CHIPS.forEach { (cat, etiqueta) ->
                                 FilterChip(
                                     selected = s.categoria == cat,
-                                    onClick = { vm.filtrarCategoria(cat) },
+                                    onClick = {
+                                        if (cat == Categorias.HIDRATACION) {
+                                            cerrarBusqueda()
+                                            vm.irAHidratacionCercana()
+                                        } else vm.filtrarCategoria(cat)
+                                    },
                                     label = { Text(etiqueta, fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = tc(0xFFF6DADD, 0xFF1E3A50)
@@ -438,43 +444,7 @@ fun CampusApp(vm: CampusViewModel) {
               }
             }
 
-            // Barra rápida de selección de puertas origen: solo en Modo Simulación (con GPS real el origen es la
-            // ubicación del usuario) y oculta mientras se navega
-            AnimatedVisibility(visible = !s.navigating && s.isSimulationMode) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 10.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    "Puertas:",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                (1..4).forEach { n ->
-                    val isSelected = s.origenId == (99 + n)
-                    OutlinedButton(
-                        onClick = { vm.elegirPuerta(n) },
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                        colors = if (isSelected) ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
-                        else ButtonDefaults.outlinedButtonColors()
-                    ) {
-                        Text(
-                            "P$n",
-                            fontSize = 12.sp,
-                            color = if (isSelected) Color.White else Color(0xFF2E7D32),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-            }
-
-            // ESTILO DEL MAPA (arriba a la izquierda, bajo las puertas): alterna Claro → Oscuro → Sistema
+            // ESTILO DEL MAPA (arriba a la izquierda, bajo la búsqueda): alterna Claro → Oscuro → Sistema
             Spacer(Modifier.height(8.dp))
             SmallFloatingActionButton(
                 onClick = {
@@ -497,7 +467,7 @@ fun CampusApp(vm: CampusViewModel) {
             }
 
             // AVISO RESILIENTE DE PERMISOS DENEGADOS (ROL 2)
-            if (permissionDenied && !s.isSimulationMode) {
+            if (permissionDenied) {
                 Spacer(Modifier.height(8.dp))
                 Card(
                     shape = RoundedCornerShape(12.dp),
@@ -519,7 +489,7 @@ fun CampusApp(vm: CampusViewModel) {
                         Spacer(Modifier.height(4.dp))
                         Text(
                             if (permanentlyDenied)
-                                "Para usar el GPS en vivo, abre los ajustes del sistema. También puedes utilizar el Modo Simulación sin permisos."
+                                "Para trazar rutas desde donde estás, abre los ajustes del sistema y permite el acceso a la ubicación."
                             else
                                 "Permite el acceso a tu ubicación para trazar rutas desde donde estés en el campus.",
                             fontSize = 12.sp,
@@ -560,12 +530,6 @@ fun CampusApp(vm: CampusViewModel) {
                                     Text("Reintentar", fontSize = 12.sp)
                                 }
                             }
-                            OutlinedButton(
-                                onClick = { vm.toggleSimulationMode(true) },
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                            ) {
-                                Text("Usar Modo Simulación", fontSize = 12.sp)
-                            }
                         }
                     }
                 }
@@ -580,7 +544,7 @@ fun CampusApp(vm: CampusViewModel) {
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(12.dp)
-                .onSizeChanged { cardHeightPx = it.height }
+                .onSizeChanged { cardHeightPx.intValue = it.height }
         )
     }
 }
@@ -589,9 +553,9 @@ fun CampusApp(vm: CampusViewModel) {
  * Tarjeta flotante colapsable con diseño institucional ULEAM.
  * Contiene:
  * - Resumen métrico (distancia y minutos estimados a 1.2 m/s).
- * - Indicador de estado del sensor GPS vs Modo Simulación.
+ * - Indicador de estado del GPS.
  * - Desglose guiado Turn-by-Turn con iconos direccionales y distancias.
- * - Conmutadores para Evitar Escaleras y Modo Simulación (Demo).
+ * - Interruptores para Evitar escaleras y Guía por voz.
  * - Botón de evacuación rápida hacia Zonas Seguras.
  */
 @Composable
@@ -607,7 +571,10 @@ fun CollapsibleNavigationCard(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
-        modifier = modifier.animateContentSize()
+        // Un solo movimiento suave de la tarjeta al expandir/colapsar (sin animaciones encimadas por dentro)
+        modifier = modifier.animateContentSize(
+            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+        )
     ) {
         // Navegando y sin expandir: tarjeta compacta (destino corto + metros restantes) para no tapar el mapa
         val compact = s.navigating && !expanded
@@ -657,7 +624,7 @@ fun CollapsibleNavigationCard(
             if (s.enDestino && s.destino != null) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "📍 Ya estás en tu destino",
+                    text = "Ya estás en tu destino",
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(tc(0xFFE8F5E9, 0xFF1B3A24), RoundedCornerShape(10.dp))
@@ -767,45 +734,25 @@ fun CollapsibleNavigationCard(
             }
 
             // SECCIÓN EXPANDIDA: INSTRUCCIONES TURN-BY-TURN Y CONTROLES AVANZADOS
-            AnimatedVisibility(
-                visible = expanded,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
+            if (expanded) {
                 Column(Modifier.padding(top = 10.dp)) {
                     HorizontalDivider()
                     Spacer(Modifier.height(8.dp))
 
-                    // ESTADO GNSS / SIMULACIÓN (ROL 2 & 3)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = if (s.isSimulationMode) "Modo Simulación (Demo)" else when (locationState) {
-                                is LocationState.Fix -> "GPS: Señal fija (±%.0f m)".format((locationState as LocationState.Fix).accuracyM)
-                                is LocationState.LowAccuracy -> "GPS: Señal débil"
-                                LocationState.Searching -> "GPS: Buscando satélites…"
-                                LocationState.PermissionDenied -> "GPS: Sin permisos"
-                                LocationState.ProviderDisabled -> "GPS: Desactivado"
-                            },
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (s.isSimulationMode) Color(0xFFE65100) else Color(0xFF1565C0)
-                        )
-
-                        // SWITCH MODO SIMULACIÓN (DEMO TOGGLE)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Demo", fontSize = 12.sp)
-                            Spacer(Modifier.width(4.dp))
-                            Switch(
-                                checked = s.isSimulationMode,
-                                onCheckedChange = vm::toggleSimulationMode,
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFE65100))
-                            )
-                        }
-                    }
+                    // ESTADO DEL GPS
+                    Text(
+                        text = when (locationState) {
+                            is LocationState.Fix -> "GPS: Señal fija (±%.0f m)".format((locationState as LocationState.Fix).accuracyM)
+                            is LocationState.LowAccuracy -> "GPS: Señal débil"
+                            LocationState.Searching -> "GPS: Buscando satélites…"
+                            LocationState.PermissionDenied -> "GPS: Sin permisos"
+                            LocationState.ProviderDisabled -> "GPS: Desactivado"
+                        },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = tc(0xFF1565C0, 0xFF64B5F6)
+                    )
+                    Spacer(Modifier.height(4.dp))
 
                     // SWITCH EVITAR ESCALERAS
                     Row(
@@ -814,11 +761,7 @@ fun CollapsibleNavigationCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("Accesibilidad (Evitar escaleras):", fontSize = 13.sp)
-                        Switch(
-                            checked = s.avoidStairs,
-                            onCheckedChange = vm::toggleEscaleras,
-                            colors = SwitchDefaults.colors(checkedThumbColor = tc(0xFFA01B2C, 0xFF64B5F6))
-                        )
+                        UleamSwitch(checked = s.avoidStairs, onCheckedChange = vm::toggleEscaleras)
                     }
 
                     // SWITCH GUÍA POR VOZ
@@ -832,11 +775,7 @@ fun CollapsibleNavigationCard(
                             Spacer(Modifier.width(6.dp))
                             Text("Guía por voz:", fontSize = 13.sp)
                         }
-                        Switch(
-                            checked = s.vozActiva,
-                            onCheckedChange = vm::toggleVoz,
-                            colors = SwitchDefaults.colors(checkedThumbColor = tc(0xFFA01B2C, 0xFF64B5F6))
-                        )
+                        UleamSwitch(checked = s.vozActiva, onCheckedChange = vm::toggleVoz)
                     }
 
                     // LISTADO DE INSTRUCCIONES TURN-BY-TURN (ROL 4)
@@ -980,5 +919,30 @@ private fun MapStyleDialog(onElegir: (MapStyle) -> Unit) {
             }
         },
         confirmButton = {}
+    )
+}
+
+/**
+ * Interruptor con borde visible: apagado = pista transparente con contorno gris (se ve claramente
+ * como "desactivado"); encendido = pista del color de acento con un check en el círculo.
+ */
+@Composable
+private fun UleamSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val acento = tc(0xFFA01B2C, 0xFF1E88E5)
+    val apagado = tc(0xFF79747E, 0xFF8A96A3)
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        thumbContent = if (checked) {
+            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp), tint = acento) }
+        } else null,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = Color.White,
+            checkedTrackColor = acento,
+            checkedBorderColor = acento,
+            uncheckedThumbColor = apagado,
+            uncheckedTrackColor = Color.Transparent,
+            uncheckedBorderColor = apagado
+        )
     )
 }

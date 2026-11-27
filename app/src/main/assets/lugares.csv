@@ -1,8 +1,8 @@
 id_nodo,codigo,nombre,descripcion,categoria,etiquetas,busqueda,activo
-100,,Puerta 1,,PUERTA,,puerta 1,1
-101,,Puerta 2,,PUERTA,,puerta 2,1
-102,,Puerta 3,,PUERTA,,puerta 3,1
-103,,Puerta 4,,PUERTA,,puerta 4,1
+100,,Puerta 1,Acceso al campus,PUERTA,puerta acceso entrada ingreso salida,puerta 1 acceso entrada ingreso salida,1
+101,,Puerta 2,Acceso al campus,PUERTA,puerta acceso entrada ingreso salida,puerta 2 acceso entrada ingreso salida,1
+102,,Puerta 3,Acceso al campus,PUERTA,puerta acceso entrada ingreso salida,puerta 3 acceso entrada ingreso salida,1
+103,,Puerta 4,Acceso al campus,PUERTA,puerta acceso entrada ingreso salida,puerta 4 acceso entrada ingreso salida,1
 201,FETAH·B-01,"Facultad de Educación, Turismo, Artes y Humanidades (Bloque B-01)","Educación Inicial, Educación Básica, Pedagogía de la Lengua y Literatura, Pedagogía de los Idiomas Nacionales y Extranjeros, Educación Básica Bilingüe, Educación Inicial Bilingüe, Educación Inclusiva, Educación Especial",BLOQUE,fetah educacion turismo artes humanidades,facultad de educacion turismo artes y humanidades bloque b-01 fetah inicial basica pedagogia la lengua literatura los idiomas nacionales extranjeros bilingue inclusiva especial,1
 202,FCSDB·B-02,"Facultad de Ciencias Sociales, Derecho y Bienestar (Bloque B-02)","Economía, Gestión Pública y Desarrollo",BLOQUE,fcsdb sociales derecho bienestar,facultad de ciencias sociales derecho y bienestar bloque b-02 fcsdb economia gestion publica desarrollo,1
 203,FCACC·B-03,"Facultad de Ciencias Administrativas, Contables y Comercio (Bloque B-03)","Gestión de la Información Gerencial, Comercio exterior, Bienes Raíces",BLOQUE,fcacc administrativas contables comercio,facultad de ciencias administrativas contables y comercio bloque b-03 fcacc gestion la informacion gerencial exterior bienes raices,1
@@ -18,8 +18,8 @@ id_nodo,codigo,nombre,descripcion,categoria,etiquetas,busqueda,activo
 215,FACIVITEC·B-15,Facultad de Ciencias de la Vida y Tecnologías (Bloque B-15),"Agropecuaria, Agroindustria, Agronegocios",BLOQUE,facivitec ciencias vida tecnologias fcvt,facultad de ciencias la vida y tecnologias bloque b-15 facivitec agropecuaria agroindustria agronegocios fcvt,1
 216,FACIVITEC·B-16,Facultad de Ciencias de la Vida y Tecnologías (Bloque B-16),"Tecnologías de la Información, Software",BLOQUE,facivitec ciencias vida tecnologias fcvt,facultad de ciencias la vida y tecnologias bloque b-16 facivitec informacion software fcvt,1
 219,FCS·B-19,Facultad de Ciencias de la Salud (Bloque B-19),"Medicina, Laboratorio Clínico",BLOQUE,fcs salud,facultad de ciencias la salud bloque b-19 fcs medicina laboratorio clinico,1
-220,FCS·B-20,Facultad de Ciencias de la Salud (Bloque B-20),"Psicología, Fisioterapia, Fonoaudiología, Terapia Ocupacional, Nutrición y Dietética",BLOQUE,fcs salud,facultad de ciencias la salud bloque b-20 fcs psicologia fisioterapia fonoaudologia terapia ocupacional nutricion y dietetica,1
-221,FCS·B-21,Facultad de Ciencias de la Salud (Bloque B-21),No disponible por el momento,BLOQUE,fcs salud,facultad de ciencias la salud bloque b-21 fcs,1
+220,FCS·B-20,Facultad de Ciencias de la Salud (Bloque B-20),Psicología,BLOQUE,fcs salud,facultad de ciencias la salud bloque b-20 fcs psicologia,1
+221,FCS·B-21,Facultad de Ciencias de la Salud (Bloque B-21),"Fisioterapia, Fonoaudiología, Terapia Ocupacional, Nutrición y Dietética",BLOQUE,fcs salud,facultad de ciencias la salud bloque b-21 fcs fisioterapia fonoaudiologia terapia ocupacional nutricion y dietetica,1
 204,FCS·B-04,Facultad de Ciencias de la Salud (Bloque B-04),Odontología,BLOQUE,fcs salud,facultad de ciencias la salud bloque b-04 fcs odontologia,1
 217,FCSDB·B-17,"Facultad de Ciencias Sociales, Derecho y Bienestar (Bloque B-17)",Comunicación y Tecnología,BLOQUE,fcsdb sociales derecho bienestar,facultad de ciencias sociales derecho y bienestar bloque b-17 fcsdb comunicacion tecnologia,1
 218,FCS·B-18,Facultad de Ciencias de la Salud (Bloque B-18),Enfermería,BLOQUE,fcs salud,facultad de ciencias la salud bloque b-18 fcs enfermeria,1
@@ -42,12 +42,12 @@ id_nodo,codigo,nombre,descripcion,categoria,etiquetas,busqueda,activo
 303,,Instituto de Idiomas,,BLOQUE,,instituto de idiomas,1
 324,,"Dirección de Infraestructura, Obras y Patrimonio (DIOP)",,ADMINISTRATIVO,,direccion de infraestructura obras y patrimonio diop,1
 315,,Agromarket,Facultad de Ciencias de la Vida y Tecnologías,COMIDA,facivitec ciencias vida tecnologias fcvt,agromarket facivitec facultad de ciencias la vida y tecnologias fcvt,1
-326,,Tasty Food 2,Patio de comidas,COMIDA,tasty food patio de comidas comida,tasty food 2 patio de comidas comida,1
-327,,Tasty Food 3,Patio de comidas,COMIDA,tasty food patio de comidas comida,tasty food 3 patio de comidas comida,1
+326,,Tasty Food 3,Patio de comidas,COMIDA,tasty food patio de comidas comida,tasty food 3 patio de comidas comida,1
+327,,Tasty Food 4,Patio de comidas,COMIDA,tasty food patio de comidas comida,tasty food 4 patio de comidas comida,1
 328,,Auditorio de comunicación,"Facultad de Ciencias Sociales, Derecho y Bienestar",BLOQUE,fcsdb sociales derecho bienestar,auditorio de comunicacion fcsdb facultad ciencias sociales derecho y bienestar,1
 319,,Decanato ciencias de la salud,Facultad de Ciencias de la Salud,BLOQUE,fcs salud,decanato ciencias de la salud fcs facultad,1
 320,,Bodega control de bienes,,BLOQUE,,bodega control de bienes,1
-321,,Tasty Food 4,Patio de comidas,COMIDA,tasty food patio de comidas comida,tasty food 4 patio de comidas comida,1
+321,,Tasty Food 2,Patio de comidas,COMIDA,tasty food patio de comidas comida,tasty food 2 patio de comidas comida,1
 322,,Cancha,,DEPORTE,,cancha,1
 311,,Estudios y construcciones Uleam -EP,,ADMINISTRATIVO,,estudios y construcciones uleam ep,1
 312,,El bosque,Cafetería,COMIDA,cafeteria cafe comida,el bosque cafeteria cafe comida,1
@@ -63,3 +63,14 @@ id_nodo,codigo,nombre,descripcion,categoria,etiquetas,busqueda,activo
 329,,Dirección de Informática e Innovación Tecnológica (DIIT),,ADMINISTRATIVO,diit informatica sistemas ti tecnologia soporte,direccion de informatica e innovacion tecnologica diit sistemas ti tecnologia soporte,1
 226,FACIVITEC·B-16,"Facultad de Ciencias de la Vida y Tecnologías (Bloque B-16, acceso 2)","Tecnologías de la Información, Software",BLOQUE,facivitec ciencias vida tecnologias fcvt,facultad de ciencias la vida y tecnologias bloque b-16 acceso 2 facivitec informacion software fcvt,1
 227,FIIA·B-08,"Facultad de Ingeniería, Industria y Arquitectura (Bloque B-08, acceso 2)","Ingeniería Civil, Ingeniería Eléctrica",BLOQUE,fiia ingenieria industria arquitectura,facultad de ingenieria industria y arquitectura bloque b-08 acceso 2 fiia civil electrica,1
+600,,Cajero Banco Pichincha,Cajero automático,CAJERO,cajero automatico atm banco dinero retiro,cajero banco pichincha automatico atm dinero retiro,1
+701,,Punto de hidratación (junto a Bloque B-23),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a bloque b-23 agua bebedero beber tomar,1
+702,,Punto de hidratación (junto a Paraninfo),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a paraninfo agua bebedero beber tomar,1
+703,,Punto de hidratación (junto a Bloque B-03),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a bloque b-03 agua bebedero beber tomar,1
+704,,Punto de hidratación (junto a Cancha múltiple),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a cancha multiple agua bebedero beber tomar,1
+705,,Punto de hidratación (junto a Bloque B-07),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a bloque b-07 agua bebedero beber tomar,1
+706,,Punto de hidratación (junto a Bloque B-08),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a bloque b-08 agua bebedero beber tomar,1
+707,,Punto de hidratación (junto a Bloque B-16),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a bloque b-16 agua bebedero beber tomar,1
+708,,Punto de hidratación (junto a Bloque B-18),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a bloque b-18 agua bebedero beber tomar,1
+709,,Punto de hidratación (junto a Bloque B-15),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a bloque b-15 agua bebedero beber tomar,1
+710,,Punto de hidratación (junto a Bloque B-10),Agua para beber,HIDRATACION,punto de hidratacion agua bebedero beber tomar agua,punto de hidratacion junto a bloque b-10 agua bebedero beber tomar,1

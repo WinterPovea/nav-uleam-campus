@@ -1,7 +1,7 @@
 ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 100,ENTRADA,Ingreso puerta 1,-0.9545990,-80.7460205,No aplica,No aplica
 101,ENTRADA,Ingreso puerta 2,-0.9529917,-80.7437118,No aplica,No aplica
-102,ENTRADA,Ingreso puerta 3,-0.9505201,-80.7460624,No aplica,No aplica
+102,ENTRADA,Ingreso puerta 3,-0.9505200,-80.7460023,No aplica,No aplica
 103,ENTRADA,Ingreso puerta 4,-0.9548856,-80.7441752,No aplica,No aplica
 201,DESTINO,Entrada Bloque B-01,-0.9542920,-80.7459847,"Educacion, Turismo, Artes y Humanidades (FETAH)","Educacion Inicial, Educacion Basica, Pedagogia de la Lengua y Literatura, Pedagogia de los Idiomas Nacionales y Extranjeros, Educacion Basica Billingue, Educacion Inicial Bilingue, Educacion Inclusiva, Educacion Especial"
 202,DESTINO,Entrada Bloque B-02,-0.9541458,-80.7458034,"Ciencias Sociales, Derecho y Bienestar (FCSDB)","Economia, Gestion Publica y Desarrollo"
@@ -10,7 +10,7 @@ ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 206,DESTINO,Entrada Bloque B-06,-0.9531361,-80.7461878,"Ciencias Sociales, Derecho y Bienestar (FCSDB)","Criminologia y Ciencias Forenses, Derecho, Ciencias Politicas"
 207,DESTINO,Entrada Bloque B-07,-0.9527394,-80.7464585,"Ingeneria, Industria y Arquitectura (FIIA)","Arquitectura, Tecnologia Construccion Sismorresistente"
 209,DESTINO,Entrada Bloque B-09,-0.9511917,-80.7460068,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Industrial, Ingeneria de Alimentos"
-210,DESTINO,Entrada Bloque B-10,-0.9503092,-80.7458525,Ciencias de la Vida y Tecnologias (FACIVITEC),"Ingeneria Ambiental, Biologia"
+210,DESTINO,Entrada Bloque B-10,-0.9503307,-80.7458266,Ciencias de la Vida y Tecnologias (FACIVITEC),"Ingeneria Ambiental, Biologia"
 211,DESTINO,Entrada Bloque B-11,-0.9499719,-80.7458060,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria maritima, Tecnologia Superior en Metal Mecanica"
 212,DESTINO,Entrada Bloque B-12,-0.9499969,-80.7455465,"Ciencias Administrativas, Contables y Comerico (FCACC)","Administracion de Empresas, Gestion de Talento Humano"
 213,DESTINO,Entrada Bloque B-13,-0.9509454,-80.7457802,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
@@ -18,21 +18,21 @@ ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 215,DESTINO,Entrada Bloque B-15,-0.9513849,-80.7456902,Ciencias de la Vida y Tecnologias (FACIVITEC),"Agropecuaria, Agroindustria, Agronegocios"
 216,DESTINO,Entrada Bloque B-16,-0.9522666,-80.7448884,Ciencias de la Vida y Tecnologias (FACIVITEC),"Tecnologias de la Informacion, Software"
 219,DESTINO,Entrada Bloque B-19,-0.9517361,-80.7439896,Ciencias de la Salud (FCS),"Medicina, Laboratorio Clinico"
-220,DESTINO,Entrada Bloque B-20,-0.9510820,-80.7435232,Ciencias de la Salud (FCS),"Psicologia, Fisioterapia, Fonoaudologia, Terapia Ocupacional, Nutricion y Dietetica"
-221,DESTINO,Entrada Bloque B-21,-0.9509404,-80.7431254,Ciencias de la Salud (FCS),No disponible
+220,DESTINO,Entrada Bloque B-20,-0.9510820,-80.7435232,Ciencias de la Salud (FCS),Psicologia
+221,DESTINO,Entrada Bloque B-21,-0.9509404,-80.7431254,Ciencias de la Salud (FCS),"Fisioterapia, Fonoaudiologia, Terapia Ocupacional, Nutricion y Dietetica"
 204,DESTINO,Entrada Bloque B-04,-0.9541359,-80.7468549,Ciencias de la Salud (FCS),Odontologia
 217,DESTINO,Entrada Bloque B-17,-0.9525616,-80.7441280,"Ciencias Sociales, Derecho y Bienestar (FCSDB)",Comunicacion y Tecnologia
 218,DESTINO,Entrada Bloque B-18,-0.9520958,-80.7440010,Ciencias de la Salud (FCS),Enfermeria
 222,DESTINO,Entrada Bloque B-22,-0.9535102,-80.7447586,"Educacion, Turismo, Artes y Humanidades (FETAH)","Entrenamiento Deportivo, Pedagogia de la Actividad Fisica y el Deporte, Psicologia Educativa"
 223,DESTINO,Entrada Bloque B-23,-0.9551644,-80.7449289,"Educacion, Turismo, Artes y Humanidades (FETAH)","Artes Plasticas, Artes Escenicas, Arqueologia, Diseño Textil, Sociologia"
 224,DESTINO,Entrada Bloque B-24,-0.9519395,-80.7437817,Ciencias de la Salud (FCS),Instituto de Neurociencias
-225,DESTINO,Entrada Bloque B-25,-0.9513209,-80.7436538,Ciencias de la Salud (FCS),Instituto Postgrado e Investigacion en Ciencias de la Salud (IPICS)
+225,DESTINO,Entrada Bloque B-25,-0.9513763,-80.7437181,Ciencias de la Salud (FCS),Instituto Postgrado e Investigacion en Ciencias de la Salud (IPICS)
 208,DESTINO,Entrada Bloque B-08,-0.9520489,-80.7463268,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Civil, Ingeneria Electrica"
 300,DESTINO,Entrada a Paraninfo,-0.9544945,-80.7463999,No aplica,No aplica
 301,DESTINO,"Centro de Innovacion, Emprendimiento y Convenciones del Pacifico (CIECP)",-0.9549878,-80.7467148,No aplica,No aplica
 230,DESTINO,Entrada Laboratorio Gastronomico B-05,-0.9536583,-80.7467154,"Educacion, Turismo, Artes y Humanidades (FETAH)",Gastronomia
-304,DESTINO,Cancha Multiple,-0.9534175,-80.7472066,No aplica,No aplica
-305,DESTINO,Tasty Food 1,-0.9531946,-80.7471995,No aplica,No aplica
+304,DESTINO,Cancha Multiple,-0.9534530,-80.7470164,No aplica,No aplica
+305,DESTINO,Tasty Food 1,-0.9531816,-80.7470950,No aplica,No aplica
 306,DESTINO,Coliseo Edmundi Lourido,-0.9534096,-80.7458793,No aplica,No aplica
 307,DESTINO,Plaza Cultural Centenario,-0.9545627,-80.7454824,No aplica,No aplica
 308,DESTINO,Departamento Bienestar Universitario,-0.9543428,-80.7452768,No aplica,No aplica
@@ -49,7 +49,7 @@ ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 319,DESTINO,Decanato Ciencias de la Salud,-0.9518355,-80.7442609,Ciencias de la Salud (FCS),No aplica
 320,DESTINO,Bodega control de bienes,-0.9517787,-80.7446329,No aplica,No aplica
 321,DESTINO,Tasty Food 4,-0.9508759,-80.7435030,No aplica,No aplica
-322,DESTINO,Cancha,-0.9507438,-80.7434178,No aplica,No aplica
+322,DESTINO,Cancha,-0.9507809,-80.7433977,No aplica,No aplica
 400,CONEXION,Cruce Principal Ingreso Puerta 1,-0.9545510,-80.7460874,No aplica,No aplica
 401,CONEXION,Acceso Peatonal Paraninfo,-0.9545217,-80.7462818,No aplica,No aplica
 311,DESTINO,Estudios y construcciones Uleam -EP,-0.9533598,-80.7437483,No aplica,No aplica
@@ -60,7 +60,7 @@ ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 405,CONEXION,Conexion,-0.9537897,-80.7465504,No aplica,No aplica
 406,CONEXION,Via doble,-0.9534278,-80.7465760,No aplica,No aplica
 407,CONEXION,Conexion Laboratorio Gastronomico,-0.9534715,-80.7467575,No aplica,No aplica
-409,CONEXION,Conexion hacia cancha multiple,-0.9534908,-80.7470827,No aplica,No aplica
+409,CONEXION,Conexion hacia cancha multiple,-0.9533237,-80.7470521,No aplica,No aplica
 412,CONEXION,Conexion hacia El bosque,-0.9531385,-80.7467219,No aplica,No aplica
 413,CONEXION,Via doble,-0.9527614,-80.7467371,No aplica,No aplica
 415,CONEXION,Conexion hacia bloque B-06,-0.9532073,-80.7461624,No aplica,No aplica
@@ -77,8 +77,8 @@ ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 429,CONEXION,Conexion,-0.9510915,-80.7458820,No aplica,No aplica
 430,CONEXION,Conexion,-0.9510895,-80.7456762,No aplica,No aplica
 432,CONEXION,Conexion,-0.9507913,-80.7459696,No aplica,No aplica
-433,CONEXION,Via doble,-0.9506117,-80.7459976,No aplica,No aplica
-434,CONEXION,Cruce Ingreso Puerta 3,-0.9505195,-80.7460022,No aplica,No aplica
+433,CONEXION,Via doble,-0.9506431,-80.7459956,No aplica,No aplica
+434,CONEXION,Cruce Ingreso Puerta 3,-0.9504983,-80.7459232,No aplica,No aplica
 436,CONEXION,Conexion,-0.9504511,-80.7458052,No aplica,No aplica
 323,DESTINO,Entrada Empresa publica de produccion y desarrollo estrategico,-0.9501260,-80.7451416,No aplica,No aplica
 437,CONEXION,Conexion,-0.9501243,-80.7456306,No aplica,No aplica
@@ -134,8 +134,9 @@ ID,Categoria,Descri,Latitud,Longitud,Facultad,Carrera
 500,ZONA SEGURA,Zona segura 1,-0.9548688,-80.7463192,No aplica,No aplica
 501,ZONA SEGURA,Zona segura 2,-0.9544396,-80.7454748,No aplica,No aplica
 502,ZONA SEGURA,Zona segura 3,-0.9535427,-80.7441043,No aplica,No aplica
-314,DESTINO,Entrada a Bloque B-13,-0.9506265,-80.7458753,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
+314,DESTINO,Entrada a Bloque B-13,-0.9506128,-80.7458489,"Ciencias Administrativas, Contables y Comerico (FCACC)","Contabilidad y Auditoria, Finanzas, Mercadotecnia, Auditoria y Control de Gestion"
 329,DESTINO,Entrada a Direccion de Informatica e Innovacion Tecnologica (DIIT),-0.9507658,-80.7430103,No aplica,No aplica
 226,DESTINO,Entrada Bloque B-16,-0.9525370,-80.7447600,Ciencias de la Vida y Tecnologias (FACIVITEC),"Tecnologias de la Informacion, Sotfware"
 495,CONEXION,Conexion,-0.9537390,-80.7439574,No aplica,No aplica
 227,DESTINO,Entrada Bloque B-08,-0.9517289,-80.7460501,"Ingeneria, Industria y Arquitectura (FIIA)","Ingeneria Civil, Ingeneria Electrica"
+600,DESTINO,Cajero Banco Pichincha,-0.9544883,-80.7458786,No aplica,No aplica

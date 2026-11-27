@@ -273,6 +273,11 @@ def main():
         g = (g[0] + dn / 111320.0, g[1] + de / (111320.0 * math.cos(math.radians(g[0]))))
         puntos.append(["CAFE", nombre, "OTRO", "%.6f %.6f" % g])
 
+    # Cajeros automáticos: ícono sobre su nodo
+    for l in lugares:
+        if l["categoria"] == "CAJERO" and l["id_nodo"] in nodos:
+            puntos.append(["CAJERO", l["nombre"], "OTRO", "%.6f %.6f" % nodos[l["id_nodo"]]])
+
     # Edificios que no están en los polígonos de OSM: trazados sobre una captura de QGIS georreferenciada con
     # los nodos 470 (px 200,456) y 329 (px 554,299) -> ~0,12 m por píxel, norte arriba
     def px(x, y):
@@ -291,11 +296,33 @@ def main():
             if a in nodos and b in nodos:
                 puntos.append(["VIA_DOBLE", "%s-%s" % (a, b), "OTRO", "%.6f %.6f %.6f %.6f" % (*nodos[a], *nodos[b])])
 
-    # Forma real de las aristas (curvas dibujadas en QGIS): fila ARISTA, código "a-b" con a < b, puntos de a hacia b
+    # Forma de las aristas para dibujar la ruta: fila ARISTA, código "a-b" con a < b, puntos de a hacia b.
+    # Base: la curva dibujada en QGIS. Las aristas entre dos nodos de calle (CONEXION) que corren a lo largo de
+    # una calle de OSM se ajustan a la línea central de esa calle (snap_aristas.py): la ruta se ve curva y por
+    # la carretera, no en zigzag por la vereda. Las que llegan a una entrada, puerta o zona segura no se tocan.
+    from snap_aristas import snap
+    tipos = {r["id"]: r["tipo"] for r in csv.DictReader(open(ASSETS / "nodos.csv", encoding="utf-8"))}
+    geoms = {}
     ag = DATA_DIR / "aristas_geom.csv"
     if ag.exists():
         for r in csv.DictReader(open(ag, encoding="utf-8")):
-            puntos.append(["ARISTA", "%s-%s" % (r["id_a"], r["id_b"]), "OTRO", r["puntos"]])
+            n = [float(x) for x in r["puntos"].split()]
+            geoms[(r["id_a"], r["id_b"])] = list(zip(n[::2], n[1::2]))
+    qgis = set(geoms)
+    for r in csv.DictReader(open(ASSETS / "aristas.csv", encoding="utf-8")):
+        a, b = sorted((r["id_origen"], r["id_destino"]), key=int)
+        if a in nodos and b in nodos:
+            geoms.setdefault((a, b), [nodos[a], nodos[b]])
+    calle = {k: v for k, v in geoms.items() if tipos.get(k[0]) == "CONEXION" and tipos.get(k[1]) == "CONEXION"}
+    calles_osm = [v[3] for v in vias if v[0] == "VIA" and v[3]]
+    ajustadas, snapped = snap(calle, calles_osm) if calles_osm else ({}, set())
+    for k, pts in sorted(geoms.items(), key=lambda kv: (int(kv[0][0]), int(kv[0][1]))):
+        if k in snapped:
+            pts = ajustadas[k]
+        elif k not in qgis:
+            continue  # recta y sin ajustar: la app la dibuja de nodo a nodo
+        puntos.append(["ARISTA", "%s-%s" % k, "OTRO", " ".join("%.7f %.7f" % q for q in pts)])
+    print("aristas ajustadas a calles OSM:", len(snapped), "de", len(calle), "entre nodos de calle")
 
     fmt = lambda ring: " ".join("%.6f %.6f" % q for q in ring)
     # (el contorno cóncavo solo se usa para recortar; el fondo de la app mantiene la forma redondeada)

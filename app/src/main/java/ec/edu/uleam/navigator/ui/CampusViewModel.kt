@@ -64,7 +64,6 @@ data class UiState(
     val route: RouteResult.Success? = null,
     val instructions: List<NavigationInstruction> = emptyList(),
     val avoidStairs: Boolean = false,
-    val isSimulationMode: Boolean = true, // Modo demo activo por defecto para resiliencia en interiores
     val msg: String? = null,
     val infoMsg: String? = null,
     /** true mientras el usuario recorre la ruta (botón "Empezar ruta"). */
@@ -105,9 +104,6 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     val voz: SharedFlow<String> = _voz
     private var cueTracker: VoiceCueTracker? = null
 
-    /** Posición simulada del caminante (solo en Modo Simulación mientras se navega). */
-    private var simPosition by mutableStateOf<UserPosition?>(null)
-    private var walkJob: Job? = null
 
     /**
      * Suscripción reactiva optimizada para batería y permisos en caliente:
@@ -143,12 +139,6 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     val userPosition: UserPosition?
         get() {
-            if (ui.isSimulationMode) {
-                simPosition?.let { return it }
-                // En modo simulación, el punto azul sigue al origen seleccionado
-                val node = ui.origenId?.let { nodoById[it] }
-                return if (node != null) UserPosition(node.latitud, node.longitud, 5f) else null
-            }
             return when (val state = locationState.value) {
                 is LocationState.Fix -> gpsSmoothed ?: UserPosition(state.lat, state.lon, state.accuracyM)
                 is LocationState.LowAccuracy -> gpsSmoothed ?: UserPosition(state.lat, state.lon, state.accuracyM)
@@ -163,8 +153,8 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
                 loading = false,
                 recientes = cargarRecientes(),
                 vozActiva = prefs.getBoolean(KEY_VOZ, true),
-                origenId = 100,
-                origenLabel = "Puerta 1"
+                origenId = null,
+                origenLabel = "Obteniendo tu ubicación…"
             )
         }
     }
@@ -222,59 +212,6 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         elegirDestino(l)
     }
 
-    fun elegirPuerta(n: Int) {
-        resetOffRouteTracking()
-        detenerNavegacion()
-        val puertaId = 99 + n
-        ui = ui.copy(
-            origenId = puertaId,
-            origenLabel = "Puerta $n",
-            msg = null,
-            infoMsg = "Origen fijado en Puerta $n"
-        )
-        recalcular(usarGps = false)
-    }
-
-    fun elegirOrigenManual(nodoId: Int, label: String) {
-        resetOffRouteTracking()
-        detenerNavegacion()
-        ui = ui.copy(
-            origenId = nodoId,
-            origenLabel = label,
-            msg = null,
-            infoMsg = "Origen manual: $label"
-        )
-        recalcular(usarGps = false)
-    }
-
-    /**
-     * Interacción táctil en el mapa:
-     * En Modo Simulación, fija el origen manual en el nodo de calle más cercano (<= 100 m).
-     */
-    fun onMapTap(lat: Double, lon: Double) {
-        if (!ui.isSimulationMode) {
-            ui = ui.copy(infoMsg = "Activa 'Modo Simulación' para mover el origen manualmente tocando el mapa.")
-            return
-        }
-        val astar = repo.astar ?: return
-        val snap = astar.snapToNode(lat, lon)
-        if (snap == null) {
-            ui = ui.copy(msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS))
-        } else {
-            resetOffRouteTracking()
-            detenerNavegacion()
-            val place = repo.lugares.firstOrNull { it.idNodo == snap.nodeId }
-            val label = place?.nombre ?: "Nodo ${snap.nodeId} (calle)"
-            ui = ui.copy(
-                origenId = snap.nodeId,
-                origenLabel = label,
-                msg = null,
-                infoMsg = "Origen ubicado en $label"
-            )
-            recalcular()
-        }
-    }
-
     /**
      * Recibe actualizaciones del GPS cuando no se está en modo simulación.
      * - Si no existe ruta activa, fija el nodo de origen más cercano.
@@ -282,7 +219,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
      *   consecutivos antes de disparar un recálculo en segundo plano sin parpadeo.
      */
     fun onGpsLocation(rawLat: Double, rawLon: Double, accuracyM: Float? = null, nowMs: Long = System.currentTimeMillis()) {
-        if (ui.isSimulationMode || ui.loading) return
+        if (ui.loading) return
         val astar = repo.astar ?: return
         val sm = smoother.update(rawLat, rawLon, accuracyM, nowMs)
         val lat = sm.lat
@@ -295,7 +232,8 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         val currentDestino = ui.destino
 
         // Ya está en el destino (a pocos metros o dentro de su edificio): se avisa en vez de trazar ruta
-        if (currentDestino != null && yaEnDestino(lat, lon)) {
+        // Navegando, también cuenta la lectura sin suavizar: la llegada se detecta sin el pequeño atraso del filtro
+        if (currentDestino != null && (yaEnDestino(lat, lon) || (ui.navigating && yaEnDestino(rawLat, rawLon)))) {
             resetOffRouteTracking()
             if (ui.navigating) {
                 llegarAlDestino(currentDestino)
@@ -312,7 +250,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
             if (origen == null) {
                 ui = ui.copy(
                     origenId = null,
-                    origenLabel = "GPS fuera del campus",
+                    origenLabel = "Fuera del campus",
                     route = null,
                     instructions = emptyList(),
                     msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS),
@@ -349,7 +287,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
                 delay(OFF_ROUTE_CONFIRMATION_MS)
                 val (latestLat, latestLon) = lastGpsLatLon ?: return@launch
                 val routeNow = ui.route ?: return@launch
-                if (!ui.isSimulationMode && astar.isOffRoute(latestLat, latestLon, routeNow.nodeIds)) {
+                if (astar.isOffRoute(latestLat, latestLon, routeNow.nodeIds)) {
                     ejecutarRerouteDesdeUbicacion(latestLat, latestLon)
                 }
             }
@@ -414,7 +352,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
             is RerouteOutcome.Failed -> {
                 ui = ui.copy(
                     origenId = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) null else ui.origenId,
-                    origenLabel = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) "GPS fuera del campus" else ui.origenLabel,
+                    origenLabel = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) "Fuera del campus" else ui.origenLabel,
                     route = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) null else ui.route,
                     instructions = if (outcome.reason == RouteResult.Reason.OUTSIDE_CAMPUS) emptyList() else ui.instructions,
                     msg = mensajeDe(outcome.reason),
@@ -438,55 +376,6 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         locationSessionTrigger.value++
     }
 
-    fun toggleSimulationMode(active: Boolean) {
-        resetOffRouteTracking()
-        smoother.reset()
-        originStabilizer.reset()
-        detenerNavegacion()
-        if (!active && (locationState.value is LocationState.PermissionDenied || locationState.value is LocationState.ProviderDisabled)) {
-            refreshLocationPermissionState()
-        }
-
-        ui = ui.copy(
-            isSimulationMode = active,
-            origenId = if (active && ui.origenId == null) 100 else ui.origenId,
-            origenLabel = if (active && ui.origenId == null) "Puerta 1" else ui.origenLabel,
-            msg = null,
-            infoMsg = if (active) "Modo Simulación activado: toca el mapa o elige una puerta." else "Modo GPS Real activado."
-        )
-        if (!active) {
-            val currentPos = userPosition
-            if (currentPos != null) {
-                // Al cambiar a GPS real, validar de inmediato la posición real frente al campus
-                lastGpsLatLon = currentPos.lat to currentPos.lon
-                val origen = origenGps(currentPos.lat, currentPos.lon)
-                if (origen == null) {
-                    ui = ui.copy(
-                        origenId = null,
-                        origenLabel = "GPS fuera del campus",
-                        route = null,
-                        instructions = emptyList(),
-                        msg = mensajeDe(RouteResult.Reason.OUTSIDE_CAMPUS),
-                        infoMsg = null
-                    )
-                } else {
-                    ui = ui.copy(origenId = origen.first, origenLabel = origen.second, msg = null)
-                    recalcular()
-                }
-            } else {
-                // Mientras llega la primera muestra (o lastLocation inmediata), limpiar el origen simulado
-                ui = ui.copy(
-                    origenId = null,
-                    origenLabel = "Obteniendo ubicación GPS…",
-                    route = null,
-                    instructions = emptyList()
-                )
-            }
-        } else {
-            recalcular()
-        }
-    }
-
     fun toggleEscaleras(v: Boolean) {
         resetOffRouteTracking()
         detenerNavegacion()
@@ -498,6 +387,28 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
      * Evacuación de emergencia: calcula ruta hacia la zona segura más cercana
      * utilizando Dijkstra en el grafo unificado sin depender de SQL.
      */
+    /**
+     * Lleva al punto de hidratación más cercano POR CAMINO desde donde está el usuario (no en línea recta):
+     * un Dijkstra desde el origen hasta el primer punto de hidratación alcanzable.
+     */
+    fun irAHidratacionCercana() {
+        ui = ui.copy(query = "", results = emptyList(), categoria = null)
+        val o = ui.origenId ?: run {
+            ui = ui.copy(msg = "Esperando tu ubicación para buscar el punto de hidratación más cercano.")
+            return
+        }
+        val astar = repo.astar ?: return
+        val puntos = repo.lugares.filter { it.categoria == Categorias.HIDRATACION }.map { it.idNodo }.toSet()
+        when (val r = astar.findNearestOf(o, puntos, RouteOptions(avoidStairs = ui.avoidStairs))) {
+            is RouteResult.Success -> {
+                val lugar = repo.lugares.firstOrNull { it.idNodo == r.nodeIds.last() } ?: return
+                elegirDestino(lugar)
+                ui = ui.copy(infoMsg = "Punto de hidratación más cercano: ${"%.0f".format(r.distanceM)} m")
+            }
+            is RouteResult.Failure -> ui = ui.copy(msg = "No hay ruta a un punto de hidratación: ${mensajeDe(r.reason)}")
+        }
+    }
+
     fun zonaSegura() {
         resetOffRouteTracking()
         detenerNavegacion()
@@ -543,15 +454,12 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * "Empezar ruta": activa el modo navegación (la cámara sigue al usuario y se muestra el avance).
-     * En Modo Simulación el usuario virtual camina solo por la ruta para poder probarlo sin GPS.
      */
     fun empezarRuta() {
         val route = ui.route ?: return
-        walkJob?.cancel()
         resetOffRouteTracking()
         ui = ui.copy(navigating = true, msg = null, infoMsg = "Ruta iniciada. ¡Buen viaje!")
         prepararVoz(route)
-        if (ui.isSimulationMode) caminarSimulado(route)
     }
 
     /** Planifica los avisos de giro/escaleras de la ruta y anuncia el inicio. */
@@ -580,9 +488,6 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun detenerNavegacion() {
         cueTracker = null
-        walkJob?.cancel()
-        walkJob = null
-        simPosition = null
         if (ui.navigating) ui = ui.copy(navigating = false)
     }
 
@@ -590,9 +495,6 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     private fun llegarAlDestino(destino: LugarEntity) {
         if (ui.navigating) _voz.tryEmit(VoiceCues.arrivalText(nombreCorto(destino)))
         cueTracker = null
-        walkJob?.cancel()
-        walkJob = null
-        simPosition = null
         resetOffRouteTracking()
         ui = ui.copy(
             navigating = false,
@@ -607,32 +509,6 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    /** Camina por la ruta a velocidad de demostración, avanzando cada [WALK_TICK_MS] ms. */
-    private fun caminarSimulado(route: RouteResult.Success) {
-        val byId = nodoById
-        val points = route.nodeIds.mapNotNull { id -> byId[id]?.let { GeoPoint(it.latitud, it.longitud) } }
-        val destino = ui.destino ?: return
-        if (points.size < 2) return
-        walkJob = viewModelScope.launch {
-            val stepM = DEMO_WALK_SPEED_MPS * WALK_TICK_MS / 1000.0
-            simPosition = UserPosition(points[0].lat, points[0].lon, 5f)
-            for (i in 0 until points.size - 1) {
-                val a = points[i]
-                val b = points[i + 1]
-                val len = RouteProgressCalc.distanceM(a, b)
-                var walked = 0.0
-                while (walked < len) {
-                    delay(WALK_TICK_MS)
-                    walked = minOf(len, walked + stepM)
-                    val t = if (len == 0.0) 1.0 else walked / len
-                    simPosition = UserPosition(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t, 5f)
-                    simPosition?.let { avisarVoz(it.lat, it.lon) }
-                }
-            }
-            llegarAlDestino(destino)
-        }
-    }
-
     fun limpiar() {
         resetOffRouteTracking()
         detenerNavegacion()
@@ -640,13 +516,13 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * @param usarGps con GPS real (fuera del Modo Simulación) vuelve a elegir el origen según la posición
-     *   actual y el destino; false cuando el usuario fijó el origen a mano (puerta o toque).
+     * @param usarGps vuelve a elegir el origen según la posición GPS actual y el destino
+     *   (false cuando el origen ya se acaba de elegir con la lectura GPS en curso).
      */
     private fun recalcular(usarGps: Boolean = true) {
         val d = ui.destino ?: return
         val gps = lastGpsLatLon
-        if (usarGps && !ui.isSimulationMode && !ui.navigating && gps != null) {
+        if (usarGps && !ui.navigating && gps != null) {
             if (yaEnDestino(gps.first, gps.second)) {
                 ui = ui.copy(enDestino = true, route = null, instructions = emptyList(), msg = null)
                 return
@@ -700,8 +576,8 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
         val label = if (pick.building != null) {
             val l = repo.lugares.firstOrNull { it.idNodo == pick.nodeId }
             val nombre = l?.codigo?.substringAfter('·')?.takeIf { it.isNotBlank() } ?: l?.nombre ?: "edificio"
-            "Mi ubicación GPS (entrada de $nombre)"
-        } else "Mi ubicación GPS (nodo ${pick.nodeId})"
+            "Tu ubicación ($nombre)"
+        } else "Tu ubicación"
         return pick.nodeId to label
     }
 
@@ -714,7 +590,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Tramo inicial vigente: solo con GPS real y mientras el origen sea el nodo al que lleva ese tramo. */
     fun leadActivo(): List<GeoPoint> =
-        if (!ui.isSimulationMode && ui.origenId != null && ui.origenId == ui.routeLeadNode) ui.routeLead else emptyList()
+        if (ui.origenId != null && ui.origenId == ui.routeLeadNode) ui.routeLead else emptyList()
 
     private var edgeShapesCache: EdgeShapes? = null
     private fun edgeShapes(): EdgeShapes =
@@ -737,8 +613,12 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun yaEnDestino(lat: Double, lon: Double): Boolean {
         val d = ui.destino ?: return false
-        val n = nodoById[d.idNodo] ?: return false
-        return OriginPicker.isAtDestination(lat, lon, n.latitud, n.longitud, repo.shapes, arrivalRadiusM(lastGpsAccuracyM))
+        val graph = repo.graph ?: return false
+        val nombres = repo.lugares.associate { it.idNodo to it.nombre }
+        return OriginPicker.isAtDestination(lat, lon, d.idNodo, graph, repo.shapes, arrivalRadiusM(lastGpsAccuracyM)) { a, b ->
+            val na = nombres[a]; val nb = nombres[b]
+            na != null && nb != null && OriginPicker.samePlaceName(na, nb)
+        }
     }
 
     private fun edgeHasStairs(fromId: Int, toId: Int): Boolean {
@@ -750,7 +630,7 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun mensajeDe(reason: RouteResult.Reason) = when (reason) {
-        RouteResult.Reason.OUTSIDE_CAMPUS -> "Pareces estar fuera del campus (>100 m). Elige una puerta como origen."
+        RouteResult.Reason.OUTSIDE_CAMPUS -> "Pareces estar fuera del campus ULEAM."
         RouteResult.Reason.NO_PATH -> "No se encontró una ruta disponible."
         RouteResult.Reason.ONLY_PATH_HAS_STAIRS -> "La única ruta incluye escaleras. Desactiva 'Evitar escaleras'."
         RouteResult.Reason.UNKNOWN_ORIGIN, RouteResult.Reason.UNKNOWN_DESTINATION -> "Ubicación o destino no válido."
@@ -766,9 +646,5 @@ class CampusViewModel(app: Application) : AndroidViewModel(app) {
          * (ver arrivalRadiusM); también cuenta estar dentro del edificio del destino.
          */
         const val ARRIVAL_RADIUS_M = 8.0
-
-        /** Velocidad del caminante virtual en Modo Simulación (m/s): paso humano normal (≈ 5 km/h). */
-        const val DEMO_WALK_SPEED_MPS = 1.4
-        const val WALK_TICK_MS = 100L
     }
 }

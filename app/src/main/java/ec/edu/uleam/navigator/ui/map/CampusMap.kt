@@ -63,6 +63,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import ec.edu.uleam.navigator.data.AristaEntity
 import ec.edu.uleam.navigator.data.LugarEntity
@@ -93,13 +95,17 @@ fun CampusMap(
     originNodeId: Int?,
     destinationNodeId: Int?,
     userPosition: UserPosition?,
-    isSimulationMode: Boolean,
     onMapTap: (lat: Double, lon: Double) -> Unit,
     onPlaceTap: (LugarEntity) -> Unit = {},
     modifier: Modifier = Modifier,
     azimuthDeg: Float? = null,
     navigating: Boolean = false,
-    controlsBottomPadding: Dp = 16.dp,
+    /**
+     * Alto (px) de lo que tapa el mapa por abajo (la tarjeta). Es una función que se lee solo al ubicar los
+     * botones (fase de layout): mientras la tarjeta se anima, los botones la siguen cuadro a cuadro sin
+     * volver a recomponer (redibujar desde cero) todo el mapa.
+     */
+    controlsBottomPx: () -> Int = { 0 },
     /** Estilo del mapa actual (el botón para alternarlo está en la pantalla principal, bajo las puertas). */
     mapStyle: MapStyle = MapStyle.CLARO,
     /** Tramo inicial de la ruta con GPS real: desde el camino junto al usuario hasta el primer nodo. */
@@ -114,8 +120,8 @@ fun CampusMap(
     val currentNavigating by rememberUpdatedState(navigating)
     val scope = rememberCoroutineScope()
 
-    // Posición con movimiento suave (el marcador se desliza entre lecturas GPS / pasos de simulación)
-    val animatedUser = rememberAnimatedUserPosition(userPosition, if (isSimulationMode) 130 else 900)
+    // Posición con movimiento suave (el marcador se desliza entre lecturas GPS)
+    val animatedUser = rememberAnimatedUserPosition(userPosition, 450)
     val latestUser by rememberUpdatedState(animatedUser)
 
     // Modo seguimiento: la cámara acompaña al usuario mientras se navega (como Google Maps)
@@ -139,8 +145,7 @@ fun CampusMap(
     } else null
     // En simulación el rumbo es el del tramo; con GPS real manda la brújula (si falla, el del tramo)
     val headingDeg: Float? =
-        if (isSimulationMode) navProgress?.bearingDeg?.toFloat()
-        else azimuthDeg ?: navProgress?.bearingDeg?.toFloat()
+        azimuthDeg ?: navProgress?.bearingDeg?.toFloat()
     val latestHeading by rememberUpdatedState(headingDeg)
 
     // Animación continua para el marcador de usuario 'pulsing blue dot'
@@ -226,7 +231,8 @@ fun CampusMap(
     val density = LocalDensity.current
     // Zonas tapadas por la interfaz: arriba la búsqueda + puertas + botón de estilo, abajo la tarjeta
     val topInsetPx = with(density) { 200.dp.toPx() }
-    val bottomInsetPx = with(density) { controlsBottomPadding.toPx() }
+    val controlsGapPx = with(density) { 24.dp.toPx() }
+    fun bottomInsetPx(): Float = controlsBottomPx() + controlsGapPx
 
     /**
      * Mantiene la cámara sobre el campus: se puede desplazar hasta que el borde del campus (con un margen
@@ -244,7 +250,7 @@ fun CampusMap(
         // Norte arriba: el borde norte puede bajar hasta topInset; el borde sur subir hasta h - bottomInset
         val cl = limit(
             lat,
-            cameraBounds[0] - m + (h / 2 - bottomInsetPx) / k,
+            cameraBounds[0] - m + (h / 2 - bottomInsetPx()) / k,
             cameraBounds[1] + m - (h / 2 - topInsetPx) / k
         )
         val co = limit(lon, cameraBounds[2] - m + (w / 2) / k, cameraBounds[3] + m - (w / 2) / k)
@@ -298,7 +304,7 @@ fun CampusMap(
     }
 
     // Con GPS real, ¿el usuario está fuera del campus? (más de ~110 m fuera del rectángulo de los nodos)
-    val userOutsideCampus = !isSimulationMode && userPosition?.let { u ->
+    val userOutsideCampus = userPosition?.let { u ->
         val m = 0.001
         u.lat < bounds[0] - m || u.lat > bounds[1] + m || u.lon < bounds[2] - m || u.lon > bounds[3] + m
     } == true
@@ -378,7 +384,7 @@ fun CampusMap(
                                 }
                             }
                         },
-                        // Mantener pulsado: fija el origen aunque haya un lugar bajo el dedo (Modo Simulación)
+                        // Mantener pulsado: se trata como un toque en el mapa aunque haya un lugar bajo el dedo
                         onLongPress = { offset ->
                             if (!currentNavigating) {
                                 val (lat, lon) = proj().toGeo(offset)
@@ -478,7 +484,7 @@ fun CampusMap(
                     val place = lugaresByNodoId[node.id]
 
                     when (node.tipo) {
-                        "DESTINO" -> {
+                        "DESTINO" -> if (place?.categoria != "HIDRATACION" || node.id == destinationNodeId) {
                             val category = place?.categoria ?: "BLOQUE"
                             val (fillColor, strokeColor) = when (category) {
                                 "ADMINISTRATIVO" -> Color(0xFFEDE7F6) to Color(0xFF5E35B1) // Rectorado/Admin
@@ -547,6 +553,8 @@ fun CampusMap(
                 val ordenados = nodos.sortedBy { if (it.id == destinationNodeId || it.id == originNodeId) 0 else 1 }
                 ordenados.forEach { node ->
                     val place = lugaresByNodoId[node.id] ?: return@forEach
+                    // Los puntos de hidratación ya tienen su gota en el mapa: sin rótulo (salvo si es el destino)
+                    if (place.categoria == "HIDRATACION" && node.id != destinationNodeId) return@forEach
                     // Con huellas dibujadas el código del bloque ya va dentro del edificio (salvo con zoom alto)
                     if (hasShapes && zoom < 2.8f && node.tipo == "DESTINO" && !place.codigo.isNullOrBlank()) return@forEach
                     val center = p.toScreen(node.latitud, node.longitud)
@@ -606,7 +614,7 @@ fun CampusMap(
                     ?: (routePoints ?: emptyList()).map { p.toScreen(it.lat, it.lon) }
                 // Con GPS real, línea punteada desde la posición del usuario hasta el inicio de la ruta
                 val u = animatedUser
-                if (progress == null && !isSimulationMode && u != null && points.isNotEmpty()) {
+                if (progress == null && u != null && points.isNotEmpty()) {
                     val us = p.toScreen(u.lat, u.lon)
                     if ((us - points.first()).getDistance() > 12f) {
                         drawLine(
@@ -680,7 +688,7 @@ fun CampusMap(
                 }
 
                 // Cono de visión azimutal translúcido de 45° (FOV) orientado según la brújula
-                (if (navigating && isSimulationMode) headingDeg else azimuthDeg)?.let { headingDeg ->
+                azimuthDeg?.let { headingDeg ->
                     // En coordenadas geográficas 0° = Norte (arriba, -90° en Canvas)
                     val screenHeadingDeg = headingDeg + mapRotationDeg
                     val canvasCenterAngle = screenHeadingDeg - 90f
@@ -737,7 +745,8 @@ fun CampusMap(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 10.dp, bottom = controlsBottomPadding)
+                    .offset { IntOffset(0, -controlsBottomPx()) }
+                    .padding(start = 10.dp, bottom = 24.dp)
                     .size(28.dp)
                     .background(Color(0xD9FFFFFF), CircleShape)
                     .clickable { showCredits = true }
@@ -769,7 +778,7 @@ fun CampusMap(
         // Aviso cuando el GPS ubica al usuario fuera de la universidad (el mapa se queda en el campus)
         if (userOutsideCampus) {
             Text(
-                text = "📍 No te encuentras en el campus ULEAM",
+                text = "No te encuentras en el campus ULEAM",
                 style = MaterialTheme.typography.labelLarge,
                 color = Color.White,
                 modifier = Modifier
@@ -784,7 +793,8 @@ fun CampusMap(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = controlsBottomPadding),
+                .offset { IntOffset(0, -controlsBottomPx()) }
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {

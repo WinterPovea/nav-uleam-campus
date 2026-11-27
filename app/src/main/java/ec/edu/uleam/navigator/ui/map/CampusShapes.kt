@@ -432,9 +432,12 @@ fun DrawScope.drawCampusShapes(
     // Cafeterías sin huella propia (El bosque): taza sobre el nodo, visible desde zoom bajo
     if (zoom >= 1.0f) {
         for (s in shapes) {
-            if (s.tipo != "CAFE" || s.puntos.size != 1) continue
+            if (s.puntos.size != 1) continue
             val n = p.toScreen(s.puntos[0].lat, s.puntos[0].lon)
-            drawCafeIcon(Offset(n.x, n.y - 30f))
+            when (s.tipo) {
+                "CAFE" -> drawCafeIcon(Offset(n.x, n.y - 30f))
+                "CAJERO" -> drawAtmIcon(Offset(n.x, n.y - 30f))
+            }
         }
     }
     // Iconos puntuales: parqueo (P) y punto de hidratación (gota)
@@ -467,6 +470,21 @@ fun DrawScope.drawCampusShapes(
     }
 }
 
+/** Ícono de cajero automático: círculo verde con un billete y el signo $. */
+private fun DrawScope.drawAtmIcon(o: Offset) {
+    drawCircle(Color.White, 18f, o)
+    drawCircle(Color(0xFF2E7D32), 16f, o)
+    drawRoundRect(Color.White, Offset(o.x - 10f, o.y - 6.5f), Size(20f, 13f), CornerRadius(2f, 2f), style = Stroke(width = 2f))
+    val nc = drawContext.canvas.nativeCanvas
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = 13f
+        textAlign = android.graphics.Paint.Align.CENTER
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+    }
+    nc.drawText("$", o.x, o.y + 4.5f, paint)
+}
+
 /** Ícono de cafetería: círculo café con una taza blanca humeante. */
 private fun DrawScope.drawCafeIcon(o: Offset) {
     drawCircle(Color.White, 18f, o)
@@ -491,13 +509,28 @@ class EdgeShapes private constructor(private val byPair: Map<Pair<Int, Int>, Lis
     fun between(from: Int, to: Int): List<GeoPoint>? =
         if (from <= to) byPair[from to to] else byPair[to to from]?.asReversed()
 
-    /** Puntos de una ruta de nodos siguiendo la forma de cada tramo, sin repetir los nodos de unión. */
+    /**
+     * Puntos de una ruta de nodos siguiendo la forma de cada tramo.
+     *
+     * Un tramo ajustado a una calle empieza y termina en la proyección de sus nodos sobre la calle (no en el
+     * nodo): la ruta pasa de un tramo al siguiente por la calle, sin desviarse hacia el nodo. Por eso cada
+     * tramo se añade completo y solo se omite su primer punto si coincide con el último ya añadido.
+     */
     fun routePoints(ids: List<Int>, nodePoint: (Int) -> GeoPoint?): List<GeoPoint> {
         val out = ArrayList<GeoPoint>()
-        for (i in ids.indices) {
-            if (i == 0) { nodePoint(ids[0])?.let(out::add); continue }
+        fun add(p: GeoPoint) {
+            val last = out.lastOrNull()
+            if (last == null || RouteProgressCalc.distanceM(last, p) > JOIN_M) out.add(p)
+        }
+        if (ids.size == 1) nodePoint(ids[0])?.let(::add)
+        for (i in 1 until ids.size) {
             val tramo = between(ids[i - 1], ids[i])
-            if (tramo != null) out.addAll(tramo.drop(1)) else nodePoint(ids[i])?.let(out::add)
+            if (tramo != null) {
+                tramo.forEach(::add)
+            } else {
+                nodePoint(ids[i - 1])?.let(::add)
+                nodePoint(ids[i])?.let(::add)
+            }
         }
         return out
     }
@@ -505,6 +538,9 @@ class EdgeShapes private constructor(private val byPair: Map<Pair<Int, Int>, Lis
     val size: Int get() = byPair.size
 
     companion object {
+        /** Dos puntos a menos de esta distancia (m) se consideran el mismo al unir tramos. */
+        const val JOIN_M = 1.0
+
         fun from(shapes: List<CampusShape>): EdgeShapes = EdgeShapes(
             shapes.filter { it.tipo == "ARISTA" && it.puntos.size >= 2 }.mapNotNull { s ->
                 val ids = s.codigo.split('-').mapNotNull { it.toIntOrNull() }
